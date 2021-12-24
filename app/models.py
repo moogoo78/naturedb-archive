@@ -70,10 +70,11 @@ class Annotation(Base):
     __tablename__ = 'annotation'
 
     id = Column(Integer, primary_key=True)
-    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True, primary_key=True)
+    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True)
     category = Column(String(500))
     text = Column(String(500))
     created = Column(DateTime, default=get_time)
+    memo = Column(String(500))
     # todo: english
     # abcd: Annotator
     # abcd: Date
@@ -335,7 +336,7 @@ class Unit(Base):
     # observation
     source_data = Column(JSONB)
     information_withheld = Column(Text)
-    #annotations = relationship('Annotation')
+    annotations = relationship('Annotation')
 
     def todict(self):
         return {

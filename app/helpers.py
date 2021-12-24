@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 
-from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, ScientificName, MeasurementOrFact
+from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, ScientificName, MeasurementOrFact, Annotation
 from app.database import session
 
 def make_person(con):
@@ -65,12 +65,12 @@ MOF_PARAM_LIST = [
     ('topography', 'annotation_topography_choice_id', 'annotation_topography_text', (28, 29)),
     ('veget', 'annotation_veget_choice_id', 'annotation_veget_text', (30, 31)),
 ]
-MOF2_PARAM_LIST = [
-    ('life-form', 'annotation_life_form_choice_id', 'annotation_life_form_text', (18, 19)),
-    ('flower', 'annotation_flower_choice_id', 'annotation_flower_text', (20, 21)),
-    ('fruit', 'annotation_fruit_choice_id', 'annotation_fruit_text', (22, 23)),
-    ('flower-color', 'annotation_flower_color_choice_id', 'annotation_flower_coror_text', (24, 25)),
-    ('fruit-color', 'annotation_fruit_color_choice_id', 'annotation_fruit_color_text', (26, 27)),
+MOF_PARAM_LIST2 = [
+    ('life-form', 'annotation_life_form_choice_id', 'annotation_life_form_text'),
+    ('flower', 'annotation_flower_choice_id', 'annotation_flower_text'),
+    ('fruit', 'annotation_fruit_choice_id', 'annotation_fruit_text'),
+    ('flower-color', 'annotation_flower_color_choice_id', 'annotation_flower_color_text'),
+    ('fruit-color', 'annotation_fruit_color_choice_id', 'annotation_fruit_color_text'),
 ]
 
 def make_collection(con):
@@ -170,6 +170,60 @@ def make_collection(con):
                 changed=r3[4],
             )
             session.add(u)
+            session.commit()
+
+            # MeasurementOrFact2
+            for param in MOF_PARAM_LIST2:
+                if x := r3[param[2]]:
+                    mof = MeasurementOrFact(
+                        unit_id=u.id,
+                        parameter=param[0],
+                        text=x,
+                    )
+                    session.add(mof)
+
+            a = Annotation(
+                unit_id=u.id,
+                category='add_char',
+                text=r3['annotation_memo'],
+                memo='converted from legacy',
+            )
+            session.add(a)
+            a = Annotation(
+                unit_id=u.id,
+                category='name_comment',
+                text=r3['annotation_memo2'],
+                memo='converted from legacy',
+            )
+            session.add(a)
+            a = Annotation(
+                unit_id=u.id,
+                category='plant_h',
+                text=r3['annotation_plant_h'],
+                memo='converted from legacy',
+            )
+            session.add(a)
+            a = Annotation(
+                unit_id=u.id,
+                category='sex_char',
+                text=r3['annotation_sex_char'],
+                memo='converted from legacy',
+            )
+            session.add(a)
+            a = Annotation(
+                unit_id=u.id,
+                category='exchange_dept',
+                text=r3['annotation_exchange_dept'],
+                memo='converted from legacy',
+            )
+            session.add(a)
+            a = Annotation(
+                unit_id=u.id,
+                category='exchange_id',
+                text=r3['annotation_exchange_type'],
+                memo='converted from legacy',
+            )
+            session.add(a)
         session.commit()
 
 
@@ -197,6 +251,3 @@ def conv_hast21():
         #make_taxon(con)
 
         make_collection(con)
-
-
-

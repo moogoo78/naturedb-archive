@@ -26,7 +26,7 @@ from app.models import (
     Identification,
     SpecimenMark,
     CollectionPerson,
-    #Annotation,
+    Annotation,
     Collection,
     Unit,
     Person,
