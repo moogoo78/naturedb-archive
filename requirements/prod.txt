@@ -1,0 +1,9 @@
+# Flask
+Flask==2.0.2
+
+# database
+SQLAlchemy==1.4.26
+psycopg2-binary==2.9.1
+alembic==1.7.4
+# environments
+environs==9.3.4
