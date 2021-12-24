@@ -65,9 +65,16 @@ MOF_PARAM_LIST = [
     ('topography', 'annotation_topography_choice_id', 'annotation_topography_text', (28, 29)),
     ('veget', 'annotation_veget_choice_id', 'annotation_veget_text', (30, 31)),
 ]
+MOF2_PARAM_LIST = [
+    ('life-form', 'annotation_life_form_choice_id', 'annotation_life_form_text', (18, 19)),
+    ('flower', 'annotation_flower_choice_id', 'annotation_flower_text', (20, 21)),
+    ('fruit', 'annotation_fruit_choice_id', 'annotation_fruit_text', (22, 23)),
+    ('flower-color', 'annotation_flower_color_choice_id', 'annotation_flower_coror_text', (24, 25)),
+    ('fruit-color', 'annotation_fruit_color_choice_id', 'annotation_fruit_color_text', (26, 27)),
+]
 
 def make_collection(con):
-    rows = con.execute('SELECT * FROM specimen_specimen ORDER BY id LIMIT 5')
+    rows = con.execute('SELECT * FROM specimen_specimen ORDER BY id LIMIT 20')
     for r in rows:
         #print(r)
         cid = r[0]
@@ -78,7 +85,8 @@ def make_collection(con):
             id=cid,
             collect_date=r[32],
             collector_id=r[6],
-            collector_text='{}::{}'.format(r[14] if r[14] else '', r[15] if r[15] else ''),
+            field_number=field_number,
+            companion_text='{}::{}'.format(r[14] if r[14] else '', r[15] if r[15] else ''),
             locality_text='{}::{}'.format(r[5] if r[5] else '', r[13] if r[13] else ''),
             altitude=r[11],
             altitude2=r[12],
@@ -86,18 +94,18 @@ def make_collection(con):
             longitude_decimal=r[10],
         )
         if r[39] or r[41] or r[42] or r[43]:
-            col.verbatim_latitude = "{}{}°{}'{}\"".format(r[39], r[41], r[42], r[43])
+            col.latitude_text = "{}{}°{}'{}\"".format(r[39], r[41], r[42], r[43])
         if r[40] or r[44] or r[45] or r[46]:
-            col.verbatim_longitude = "{}{}°{}'{}\"".format(r[40], r[44], r[45], r[46])
+            col.longitude_text = "{}{}°{}'{}\"".format(r[40], r[44], r[45], r[46])
         session.add(col)
 
 
         # FieldNumber
-        fn = FieldNumber(
-            collection_id=cid,
-            value=field_number,
-            collector_id=r[6])
-        session.add(fn)
+        #fn = FieldNumber(
+        #    collection_id=cid,
+        #    value=field_number,
+        #    collector_id=r[6])
+        #session.add(fn)
 
         # NamedArea
         na_list = [r[33], r[37], r[34], r[38], r[36], r[35]]

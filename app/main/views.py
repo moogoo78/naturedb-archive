@@ -8,17 +8,8 @@ from app.models import Person
 from app.helpers import conv_hast21
 
 
-@main.route('/foo')
-def index():
-    #ds = Dataset()
-    #c = Collection()
-    #c.name = 'non'
-    #p = Person(name='bar')
-    #session.add(p)
-    #session.commit()
-    #a = open('specimen.json')
-    #m = a.read()
-    #data = json.loads(m)
+@main.route('/conv-hast21')
+def foo():
     conv_hast21()
 
     return ('foo-data')

@@ -59,23 +59,26 @@ class MeasurementOrFact(Base):
     #measured_by
     #unit_of_measurement
     #applies_to
-    def todict(self):
+    def to_dict(self):
         return {
             'parameter': self.parameter,
             'text': self.text,
         }
 
-'''class Annotation(Base):
+class Annotation(Base):
 
     __tablename__ = 'annotation'
+
     id = Column(Integer, primary_key=True)
     unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True, primary_key=True)
+    category = Column(String(500))
     text = Column(String(500))
+    created = Column(DateTime, default=get_time)
     # todo: english
     # abcd: Annotator
     # abcd: Date
-    category = Column(String(500))
-'''
+
+
 
 # Geospatial
 class AreaClass(Base):
@@ -83,6 +86,7 @@ class AreaClass(Base):
 #HAST: country (249), province (142), hsienCity (97), hsienTown (371), additionalDesc(specimen.locality_text): ref: hast_id: 144954
 
     __tablename__ = 'area_class'
+
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
     label = Column(String(500))
@@ -96,6 +100,7 @@ class AreaClass(Base):
 
 class NamedArea(Base):
     __tablename__ = 'named_area'
+
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
     name_en = Column(String(500))
@@ -123,6 +128,7 @@ class NamedArea(Base):
 
 class CollectionNamedArea(Base):
     __tablename__ = 'collection_named_area'
+
     id = Column(Integer, primary_key=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     named_area_id = Column(Integer, ForeignKey('named_area.id', ondelete='SET NULL'), nullable=True)
@@ -140,6 +146,7 @@ class Identification(Base):
     #)
 
     __tablename__ = 'identification'
+
     id = Column(Integer, primary_key=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     collection = relationship('Collection', back_populates='identifications')
@@ -165,6 +172,7 @@ class Identification(Base):
 
 class SpecimenMark(Base):
     __tablename__ = 'unit_mark'
+
     id = Column(Integer, primary_key=True)
     unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True)
     mark_type = Column(String(50)) # qrcode, rfid
@@ -174,6 +182,7 @@ class SpecimenMark(Base):
 class CollectionPerson(Base):
     # other collector
     __tablename__ = 'collection_person'
+
     id = Column(Integer, primary_key=True)
     collection_id = Column(ForeignKey('collection.id', ondelete='CASCADE'))
     #gathering = relationship('gathering')
@@ -184,6 +193,7 @@ class CollectionPerson(Base):
 
 class Collection(Base):
     __tablename__ = 'collection'
+
     id = Column(Integer, primary_key=True)
     #project
     #method
@@ -266,6 +276,7 @@ class Collection(Base):
 
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'
+
     id = Column(Integer, primary_key=True)
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     value = Column(String(500)) # dwc: recordNumber
@@ -286,6 +297,7 @@ class Unit(Base):
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
     '''
     __tablename__ = 'unit'
+
     id = Column(Integer, primary_key=True)
     #guid =
     dataset_id = Column(Integer, ForeignKey('dataset.id', ondelete='SET NULL'), nullable=True)
@@ -336,6 +348,7 @@ class Person(Base):
     atomized_name => by language (en, ...), contains: given_name, inherited_name
     '''
     __tablename__ = 'person'
+
     id = Column(Integer, primary_key=True)
     full_name = Column(String(500)) # abcd: FullName
     atomized_name = Column(JSONB)
@@ -368,12 +381,14 @@ class Person(Base):
 
 class Organization(Base):
     __tablename__ = 'organization'
+
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
     abbreviation = Column(String(500))
 
 class Dataset(Base):
     __tablename__ = 'dataset'
+
     id = Column(Integer, primary_key=True)
     name = Column(String(500), unique=True)
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
