@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.9
+ARG PYTHON_VERSION=3.10
 
 FROM python:${PYTHON_VERSION}-slim-buster AS builder
 
@@ -11,7 +11,7 @@ RUN apt-get update \
 
 #RUN apt-get install xx
 
-WORKDIR /app
+WORKDIR /code
 
 
 #COPY --from=node

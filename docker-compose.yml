@@ -22,7 +22,7 @@ services:
     ports:
       - 5000:5000
     volumes:
-      - ./:/app
+      - .:/code
       - ../naturedb-volumes/bucket:/bucket
     #command: /srv/start
   postgres:
