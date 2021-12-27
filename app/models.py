@@ -8,6 +8,7 @@ from sqlalchemy import (
     Date,
     Boolean,
     ForeignKey,
+    desc,
 )
 from sqlalchemy.orm import (
     relationship,
@@ -232,7 +233,7 @@ class Collection(Base):
 
     note = Column(Text)
     other_field_numbers = relationship('FieldNumber')
-    identifications = relationship('Identification', back_populates='collection')
+    identifications = relationship('Identification', back_populates='collection', lazy='dynamic')
     units = relationship('Unit')
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
@@ -245,19 +246,30 @@ class Collection(Base):
             'latitude': self.latitude_decimal,
             'locality': self.locality_text,
         }
+
         data = {
             'id': self.id,
             'collect_date': self.collect_date,
             'collector__full_name': self.collector.full_name,
             'geospatial': geospatial,
-            'mof_list': [x.todict() for x in self.biotope_measurement_or_facts],
+            'mof_list': [x.to_dict() for x in self.biotope_measurement_or_facts],
             #'field_number_list': [x.todict() for x in self.field_numbers],
-            'display_field_number': self.display_field_number(),
-            'display_field_number_list': self.display_field_number(is_list=True),
+            'field_number': self.field_number,
         }
+        if last_taxon := self.last_taxon:
+            data['latest_scientific_name'] = last_taxon
+
         return data
 
+    @property
+    def last_taxon(self):
+        if last_id := self.identifications.order_by(desc('verification_level')).first():
+            if taxon := last_id.scientific_name:
+                return last_id.scientific_name.full_scientific_name
+        return ''
+
     def display_field_number(self, delimeter='', is_list=False):
+        '''DEPRICATED'''
         fn_list = []
         for fn in self.field_numbers:
             x = fn.todict()
@@ -371,7 +383,7 @@ class Person(Base):
 
     def to_dict(self):
         data = {
-            'pk': self.id,
+            'id': self.id,
             'full_name': self.full_name,
             #'atomized_name': self.atomized_name,
             'other_name': self.other_name,
