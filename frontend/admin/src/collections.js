@@ -16,26 +16,26 @@ import {
 } from 'react-admin';
 
 /*
-const collectionFilters = [
-  <TextInput source="q" label="Search" alwaysOn />,
-  <ReferenceInput source="userId" label="User" reference="users" allowEmpty>
-  <SelectInput optionText="name" />
-  </ReferenceInput>,
-];
-*/
+   const collectionFilters = [
+   <TextInput source="q" label="Search" alwaysOn />,
+   <ReferenceInput source="userId" label="User" reference="users" allowEmpty>
+   <SelectInput optionText="name" />
+   </ReferenceInput>,
+   ];
+ */
 
-//<ReferenceField source="userId" reference="users">
-//<TextField source="collect_date" />
-//</ReferenceField>
 //filters={collectionFilters}
+//<ReferenceField source="collector_id" reference="people">
+//<TextField source="full_name" />
+//</ReferenceField>
 export const CollectionList = props => (
   <List {...props}>
   <Datagrid rowClick="edit">
-    <TextField source="id" />
-    <TextField source="latest_scientific_name" />
-    <TextField source="collector__full_name" />
-    <TextField source="field_number" />
-    <DateField source="collect_date" locales="zh-TW" />
+  <TextField source="id" />
+  <TextField source="collector__full_name" />
+  <TextField source="field_number" />
+  <TextField source="latest_scientific_name" />
+  <DateField source="collect_date" locales="zh-TW" />
   </Datagrid>
   </List>
 );

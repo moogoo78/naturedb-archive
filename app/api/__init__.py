@@ -37,23 +37,48 @@ def _corsify_actual_response(response):
 def make_react_admin_response(data, ra_range, total):
     resp = jsonify(data)
     resp.headers.add('Access-Control-Allow-Origin', '*')
-    resp.headers.add('Access-Control-Expose-Headers', 'Content-Range')
-    resp.headers.add('Content-Range', 'items {}-{}/{}'.format(ra_range[0], ra_range[1], total))
+    resp.headers.add('Access-Control-Allow-Methods', '*')
+
+    if ra_range:
+        resp.headers.add('Access-Control-Expose-Headers', 'Content-Range')
+        resp.headers.add('Content-Range', 'items {}-{}/{}'.format(ra_range[0], ra_range[1], total))
+
     return resp
 
-def ra_get_list_response(req, query):
+def ra_get_list_response(res_name, req, query):
     '''
     model must has to_dict method
+    res_name: for debug
     '''
     payload = {
-        'range': json.loads(req.args.get('range')),
-        'sort': json.loads(req.args.get('sort'))
+        'range': '',
     }
+    if r := req.args.get('range'):
+        payload['range'] = json.loads(r)
+    if s := req.args.get('sort'):
+        payload['sort'] = json.loads(s)
+    if f := req.args.get('filter'):
+        payload['filter'] = json.loads(f)
+
     query, total = apply_react_admin_query(query, payload)
     rows = []
     for r in query.all():
         rows.append(r.to_dict())
     return make_react_admin_response(rows, payload['range'], total)
+
+def ra_item_response(res_name, req, obj):
+    if req.method == 'OPTIONS':
+        return _build_cors_preflight_response()
+    else:
+        data = obj.to_dict()
+        if req.method == 'PUT':
+            for k, v in req.json.items():
+                if v != data[k]:
+                    setattr(obj, k, v)
+            session.commit()
+        resp = jsonify(obj.to_dict())
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        return resp
 
 def apply_react_admin_query(query, payload):
     total = query.count()
@@ -64,7 +89,7 @@ def apply_react_admin_query(query, payload):
         elif v[1] == 'DESC':
             query = query.order_by(desc(payload['sort'][0]))
 
-    if 'range' in payload:
+    if 'range' in payload and payload['range'] != '':
         start = payload['range'][0]
         end = payload['range'][1]
         query = query.limit((end-start)+1).offset(start)
@@ -92,13 +117,19 @@ def get_collection_list():
     #    rows.append(r.to_dict())
 
     #return _corsify_actual_response(jsonify(rows))
-    return ra_get_list_response(request, query)
+    return ra_get_list_response('collection', request, query)
 
 @api.route('/v1/collections/<int:collection_id>')
 def get_collection_detail(collection_id):
     col = session.get(Collection, collection_id)
     #result = Person.query.filter(Person.is_collector==True).all()
     return _corsify_actual_response(jsonify(col.to_dict()))
+
+@api.route('/v1/people/<int:person_id>', methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+def get_person_detail(person_id):
+    #print(person_id, request.method, request.form, request.args, request.json, request.get_json())
+    obj = session.get(Person, person_id)
+    return ra_item_response('people', request, obj)
 
 @api.route('/v1/people')
 def get_person_list():
@@ -124,4 +155,4 @@ def get_person_list():
     #return _corsify_actual_response(jsonify(rows))
     return make_react_admin_response(rows, ra_payload['range'], total)
     '''
-    return ra_get_list_response(request, query)
+    return ra_get_list_response('people', request, query)

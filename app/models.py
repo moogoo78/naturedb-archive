@@ -250,6 +250,7 @@ class Collection(Base):
         data = {
             'id': self.id,
             'collect_date': self.collect_date,
+            'collector_id': self.collector_id,
             'collector__full_name': self.collector.full_name,
             'geospatial': geospatial,
             'mof_list': [x.to_dict() for x in self.biotope_measurement_or_facts],
@@ -342,7 +343,7 @@ class Unit(Base):
     acquisition_source_text = Column(Text)
     specimen_marks = relationship('SpecimenMark')
 
-    collection = relationship('Collection')
+    collection = relationship('Collection', overlaps='units') # TODO warning
     # abcd: Disposition (in collection/missing...)
 
     # observation
@@ -364,10 +365,11 @@ class Person(Base):
 
     id = Column(Integer, primary_key=True)
     full_name = Column(String(500)) # abcd: FullName
+    english_full_name = Column(String(500))
     atomized_name = Column(JSONB)
     sorting_name = Column(JSONB)
     abbreviated_name = Column(String(500))
-    preferredName = Column(String(500))
+    preferred_name = Column(String(500))
     is_collector = Column(Boolean, default=False)
     is_identifier = Column(Boolean, default=False)
     source_data = Column(JSONB)
@@ -375,7 +377,7 @@ class Person(Base):
     organization = Column(String(500))
 
     @property
-    def other_name(self):
+    def english_name(self):
         if len(self.atomized_name):
             if en_name := self.atomized_name.get('en', ''):
                 return '{} {}'.format(en_name['inherited_name'], en_name['given_name'])
@@ -386,7 +388,9 @@ class Person(Base):
             'id': self.id,
             'full_name': self.full_name,
             #'atomized_name': self.atomized_name,
-            'other_name': self.other_name,
+            'english_full_name': self.english_full_name,
+            'abbreviated_name': self.abbreviated_name,
+            'preferred_name': self.preferred_name,
             'is_collector': self.is_collector,
             'is_identifier': self.is_identifier,
         }

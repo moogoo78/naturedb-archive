@@ -11,8 +11,15 @@ import CollectionsIcon from '@material-ui/icons/Collections';
 //import HikingIcon from '@material-ui/icons/Hiking';
 //import YardIcon from '@material-ui/icons/Yard';
 
-import { PersonList } from './people';
-import { CollectionList, CollectionCreate, CollectionEdit } from './collections';
+import {
+  PeopleList,
+  PeopleCreate,
+  PeopleEdit
+} from './people';
+import {
+  CollectionList,
+  CollectionCreate,
+  CollectionEdit } from './collections';
 import Dashboard from './Dashboard';
 import authProvider from './authProvider';
 
@@ -22,7 +29,7 @@ import dataProvider from './dataProvider';
 const App = () => (
   <Admin dataProvider={dataProvider} dashboard={Dashboard} authProvider={authProvider} title="NatureDB">
   <Resource name="collections" list={CollectionList} edit={CollectionEdit} create={CollectionCreate} icon={CollectionsIcon} />
-  <Resource name="people" list={PersonList} icon={PeopleIcon} />
+  <Resource name="people" list={PeopleList} edit={PeopleEdit} create={PeopleCreate} icon={PeopleIcon} />
   </Admin>
 );
 
