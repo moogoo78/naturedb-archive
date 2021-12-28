@@ -1,5 +1,7 @@
 # API
 
+- no tailing slash
+
 ```python
 args: {
   align: '{right|left}', # default: left

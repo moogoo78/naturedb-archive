@@ -1,5 +1,5 @@
 import * as React from "react";
-//import { List, Datagrid, TextField, EmailField } from 'react-admin';
+
 import {
   List,
   Create,
@@ -8,19 +8,29 @@ import {
   SimpleForm,
   BooleanField,
   TextField,
+  ReferenceInput,
   BooleanInput,
   SelectInput,
   TextInput,
 } from 'react-admin';
 
+const peopleFilters = [
+  <TextInput source="q" label="Search" alwaysOn />,
+  <BooleanInput source="is_collector" />,
+  <BooleanInput source="is_identifier" />,
+];
+
 export const PeopleCreate = props => (
-  <Edit {...props}>
+  <Create {...props}>
   <SimpleForm>
-  <TextInput source="id" />
-  <TextInput source="title" />
-  <TextInput source="body" />
+  <TextInput source="full_name"/>
+  <TextInput source="english_full_name" />
+  <TextInput source="abbreviated_name" />
+  <TextInput source="preferred_name" />
+  <BooleanInput source="is_collector" />
+  <BooleanInput source="is_identifier" />
   </SimpleForm>
-  </Edit>
+  </Create>
 );
 
 //<TextInput source="given_name" />
@@ -39,7 +49,7 @@ export const PeopleEdit = props => (
 );
 
 export const PeopleList = props => (
-  <List {...props}>
+  <List filters={peopleFilters} {...props}>
   <Datagrid rowClick="edit">
   <TextField source="id" />
   <TextField source="full_name" />
