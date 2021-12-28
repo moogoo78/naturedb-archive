@@ -24,7 +24,7 @@ export const PeopleCreate = props => (
   <Create {...props}>
   <SimpleForm>
   <TextInput source="full_name"/>
-  <TextInput source="english_full_name" />
+  <TextInput source="full_name_en" />
   <TextInput source="abbreviated_name" />
   <TextInput source="preferred_name" />
   <BooleanInput source="is_collector" />
@@ -39,7 +39,7 @@ export const PeopleEdit = props => (
   <Edit {...props}>
   <SimpleForm>
   <TextInput source="full_name"/>
-  <TextInput source="english_full_name" />
+  <TextInput source="full_name_en" />
   <TextInput source="abbreviated_name" />
   <TextInput source="preferred_name" />
   <BooleanInput source="is_collector" />
@@ -53,7 +53,7 @@ export const PeopleList = props => (
   <Datagrid rowClick="edit">
   <TextField source="id" />
   <TextField source="full_name" />
-  <TextField source="english_full_name" />
+  <TextField source="full_name_en" />
   <BooleanField source="is_collector" />
   <BooleanField source="is_identifier" />
   </Datagrid>

@@ -94,7 +94,12 @@ class AreaClass(Base):
     label = Column(String(500))
     #org = models.ForeignKey(on_delete=models.SET_NULL, null=True, blank=True)
 
-
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'label': self.label,
+        }
 #class AreaClassSystem(models.Model):
 #    ancestor = models.ForeignKey(AreaClass, on_delete=models.SET_NULL, null=True, blank=True, related_name='descendant_nodes')
 #    descendant = models.ForeignKey(AreaClass, on_delete=models.SET_NULL, null=True, blank=True, related_name='ancestor_nodes')
@@ -120,12 +125,13 @@ class NamedArea(Base):
             f' ({self.name_en})' if self.name_en else ''
         )
 
-    def todict(self):
+    def to_dict(self):
         return {
-            'pk': self.id,
+            'id': self.id,
             'name': self.name,
             'name_en': self.name_en,
-            'area_class__label': self.area_class.label,
+            'area_class_id': self.area_class_id,
+            'area_class': self.area_class.to_dict(),
         }
 
 class CollectionNamedArea(Base):
@@ -351,8 +357,9 @@ class Unit(Base):
     information_withheld = Column(Text)
     annotations = relationship('Annotation')
 
-    def todict(self):
+    def to_dict(self):
         return {
+            'id': self.id,
             'accession_number': self.accession_number,
         }
 
@@ -365,7 +372,7 @@ class Person(Base):
 
     id = Column(Integer, primary_key=True)
     full_name = Column(String(500)) # abcd: FullName
-    english_full_name = Column(String(500))
+    full_name_en = Column(String(500))
     atomized_name = Column(JSONB)
     sorting_name = Column(JSONB)
     abbreviated_name = Column(String(500))
@@ -388,7 +395,7 @@ class Person(Base):
             'id': self.id,
             'full_name': self.full_name,
             #'atomized_name': self.atomized_name,
-            'english_full_name': self.english_full_name,
+            'full_name_en': self.full_name_en,
             'abbreviated_name': self.abbreviated_name,
             'preferred_name': self.preferred_name,
             'is_collector': self.is_collector,
