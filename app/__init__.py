@@ -3,6 +3,7 @@ import click
 
 from flask import Flask
 
+from app.database import session
 #from app.models import Specimen
 
 ALEMBIC_BIN_PATH = '/root/.local/bin/alembic'
@@ -97,8 +98,13 @@ def create_app():
 
     @app.route('/')
     def index():
-        #print (Specimen, 'ueueuuuee')
+
         return 'hello'
+
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        # SQLAlchemy won`t close connection, will occupy pool
+        session.remove()
 
     @app.cli.command('makemigrations')
     @click.argument('message')
