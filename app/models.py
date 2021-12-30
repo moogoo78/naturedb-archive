@@ -132,6 +132,7 @@ class NamedArea(Base):
             'name_en': self.name_en,
             'area_class_id': self.area_class_id,
             'area_class': self.area_class.to_dict(),
+            'name_mix': '/'.join([self.name, self.name_en]),
         }
 
 class CollectionNamedArea(Base):
@@ -159,6 +160,7 @@ class Identification(Base):
     collection_id = Column(Integer, ForeignKey('collection.id', ondelete='SET NULL'), nullable=True)
     collection = relationship('Collection', back_populates='identifications')
     identifier_id = Column(Integer, ForeignKey('person.id', ondelete='SET NULL'), nullable=True)
+    identifier = relationship('Person')
     scientific_name_id = Column(Integer, ForeignKey('scientific_name.id', ondelete='set NULL'), nullable=True)
     scientific_name = relationship('ScientificName', backref=backref('scientific_name'))
     date = Column(DateTime)
@@ -172,6 +174,17 @@ class Identification(Base):
     note = Column(Text)
     source_data = Column(JSONB)
 
+    def to_dict(self):
+        return {
+            'collection_id': self.collection_id,
+            'identifier_id': self.identifier_id,
+            'identifier': self.identifier.to_dict() if self.identifier else None,
+            'scientific_name_id': self.scientific_name_id,
+            #'scientific_name': self.scientifi
+            'date': self.date,
+            'date_text': self.date_text,
+            'verification_level': self.verification_level,
+        }
 #class UnitSpecimenMark(Base):
 #    __tablename__ = 'unit_specimen_mark'
 #    id = Column(Integer, primary_key=True)
@@ -245,27 +258,45 @@ class Collection(Base):
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
 
     def to_dict(self):
-        geospatial = {
-            'named_area_list': [x.named_area.todict() for x in self.named_areas],
-            'altitude': (self.altitude, self.altitude2),
-            'longitude': self.longitude_decimal,
-            'latitude': self.latitude_decimal,
-            'locality': self.locality_text,
-        }
+        # geospatial = {
+        #     'named_area_list': [x.named_area.todict() for x in self.named_areas],
+        #     'altitude': (self.altitude, self.altitude2),
+        #     'longitude': self.longitude_decimal,
+        #     'latitude': self.latitude_decimal,
+        #     'locality': self.locality_text,
+        # }
 
         data = {
             'id': self.id,
             'collect_date': self.collect_date,
             'collector_id': self.collector_id,
             'collector__full_name': self.collector.full_name,
-            'geospatial': geospatial,
+            #'geospatial': geospatial,
+            'named_area_list': [x.named_area.to_dict() for x in self.named_areas],
+            'altitude': (self.altitude, self.altitude2),
+            'longitude': self.longitude_decimal,
+            'latitude': self.latitude_decimal,
+            'locality': self.locality_text,
             'mof_list': [x.to_dict() for x in self.biotope_measurement_or_facts],
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
+            'units': [x.to_dict() for x in self.units],
         }
         if last_taxon := self.last_taxon:
             data['latest_scientific_name'] = last_taxon
-
+        for i in data['named_area_list']:
+            if i['area_class_id'] == 1:
+                data['named_area_country_id'] = i['id']
+            elif i['area_class_id'] == 2:
+                data['named_area_province_id'] = i['id']
+            elif i['area_class_id'] == 3:
+                data['named_area_hsien_id'] = i['id']
+            elif i['area_class_id'] == 4:
+                data['named_area_town_id'] = i['id']
+            elif i['area_class_id'] == 5:
+                data['named_area_park_id'] = i['id']
+            elif i['area_class_id'] == 6:
+                data['named_area_locality_id'] = i['id']
         return data
 
     @property
@@ -361,6 +392,7 @@ class Unit(Base):
         return {
             'id': self.id,
             'accession_number': self.accession_number,
+            'collection_id': self.collection_id,
         }
 
 class Person(Base):
@@ -410,11 +442,25 @@ class Organization(Base):
     name = Column(String(500))
     abbreviation = Column(String(500))
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'abbreviation': self.abbreviation,
+        }
+
 class Dataset(Base):
     __tablename__ = 'dataset'
 
     id = Column(Integer, primary_key=True)
     name = Column(String(500), unique=True)
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    organization = relationship('Organization')
     # code ?
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'organization': self.organization.to_dict(),
+        }

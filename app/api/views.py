@@ -15,6 +15,10 @@ from app.models import (
     NamedArea,
     AreaClass,
     Unit,
+    Dataset,
+    Organization,
+    Identification,
+    MeasurementOrFact,
 )
 from app.api import api
 from .helpers import (
@@ -228,6 +232,156 @@ class PersonMethodView(MethodView):
         # update
         obj = session.get(Person, item_id)
         return ra_item_response('people', request, obj)
+
+    def options(self, item_id):
+        return make_cors_preflight_response()
+
+class DatasetMethodView(MethodView):
+    RESOURCE_NAME = 'dataset'
+    model = Dataset
+    def get(self, item_id):
+        if item_id is None:
+            # item_list
+            query = self.model.query
+            return ra_get_list_response(self.RESOURCE_NAME, request, query)
+        else:
+            # single item
+            obj = session.get(self.model, item_id)
+            return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def post(self, item_id):
+        # create
+        obj = self.model()
+        for i, v in request.json.items():
+            setattr(obj, i, v)
+        session.add(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def delete(self, item_id):
+        # delete a single user
+        obj = session.get(self.model, item_id)
+        session.delete(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def put(self, item_id):
+        # update
+        obj = session.get(self.model, item_id)
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def options(self, item_id):
+        return make_cors_preflight_response()
+
+class OrganizationMethodView(MethodView):
+    RESOURCE_NAME = 'organization'
+    model = Organization
+    def get(self, item_id):
+        if item_id is None:
+            # item_list
+            query = self.model.query
+            return ra_get_list_response(self.RESOURCE_NAME, request, query)
+        else:
+            # single item
+            obj = session.get(self.model, item_id)
+            return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def post(self, item_id):
+        # create
+        obj = self.model()
+        for i, v in request.json.items():
+            setattr(obj, i, v)
+        session.add(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def delete(self, item_id):
+        # delete a single user
+        obj = session.get(self.model, item_id)
+        session.delete(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def put(self, item_id):
+        # update
+        obj = session.get(self.model, item_id)
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def options(self, item_id):
+        return make_cors_preflight_response()
+
+
+class IdentificationMethodView(MethodView):
+    RESOURCE_NAME = 'identification'
+    model = Identification
+    def get(self, item_id):
+        if item_id is None:
+            # item_list
+            query = self.model.query
+            return ra_get_list_response(self.RESOURCE_NAME, request, query)
+        else:
+            # single item
+            obj = session.get(self.model, item_id)
+            return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def post(self, item_id):
+        # create
+        obj = self.model()
+        for i, v in request.json.items():
+            setattr(obj, i, v)
+        session.add(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def delete(self, item_id):
+        # delete a single user
+        obj = session.get(self.model, item_id)
+        session.delete(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def put(self, item_id):
+        # update
+        obj = session.get(self.model, item_id)
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def options(self, item_id):
+        return make_cors_preflight_response()
+
+
+class MeasurementOrFactsMethodView(MethodView):
+    RESOURCE_NAME = 'measurement_or_facts'
+    model = MeasurementOrFact
+    def get(self, item_id):
+        if item_id is None:
+            # item_list
+            query = self.model.query
+            return ra_get_list_response(self.RESOURCE_NAME, request, query)
+        else:
+            # single item
+            obj = session.get(self.model, item_id)
+            return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def post(self, item_id):
+        # create
+        obj = self.model()
+        for i, v in request.json.items():
+            setattr(obj, i, v)
+        session.add(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def delete(self, item_id):
+        # delete a single user
+        obj = session.get(self.model, item_id)
+        session.delete(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
+
+    def put(self, item_id):
+        # update
+        obj = session.get(self.model, item_id)
+        return ra_item_response(self.RESOURCE_NAME, request, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()

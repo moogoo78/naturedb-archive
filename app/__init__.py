@@ -16,6 +16,10 @@ def register_blueprint_api(app):
         NamedAreaMethodView,
         AreaClassMethodView,
         UnitMethodView,
+        DatasetMethodView,
+        OrganizationMethodView,
+        IdentificationMethodView,
+        MeasurementOrFactsMethodView,
     )
     #app.register_blueprint(api_bp, url_prefix='/api')
     api_person_view = PersonMethodView.as_view('api-person')
@@ -82,6 +86,57 @@ def register_blueprint_api(app):
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
 
+    api_dataset_view = DatasetMethodView.as_view('api-dataset')
+    api_bp.add_url_rule(
+        '/datasets',
+        defaults={'item_id': None},
+        view_func=api_dataset_view,
+        methods=['GET', 'POST', 'OPTIONS']
+    )
+    api_bp.add_url_rule(
+        '/datasets/<int:item_id>',
+        view_func=api_dataset_view,
+        methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
+    )
+
+    api_organization_view = OrganizationMethodView.as_view('api-organization')
+    api_bp.add_url_rule(
+        '/organizations',
+        defaults={'item_id': None},
+        view_func=api_organization_view,
+        methods=['GET', 'POST', 'OPTIONS']
+    )
+    api_bp.add_url_rule(
+        '/organizations/<int:item_id>',
+        view_func=api_organization_view,
+        methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
+    )
+
+    api_identification_view = IdentificationMethodView.as_view('api-identification')
+    api_bp.add_url_rule(
+        '/identifications',
+        defaults={'item_id': None},
+        view_func=api_identification_view,
+        methods=['GET', 'POST', 'OPTIONS']
+    )
+    api_bp.add_url_rule(
+        '/identifications/<int:item_id>',
+        view_func=api_identification_view,
+        methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
+    )
+
+    api_mof_view = MeasurementOrFactsMethodView.as_view('api-measurement-and-fact')
+    api_bp.add_url_rule(
+        '/measurement_or_facts',
+        defaults={'item_id': None},
+        view_func=api_mof_view,
+        methods=['GET', 'POST', 'OPTIONS']
+    )
+    api_bp.add_url_rule(
+        '/measurement_or_facts/<int:item_id>',
+        view_func=api_mof_view,
+        methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
+    )
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
 

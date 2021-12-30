@@ -6,9 +6,10 @@ import {
   Typography,
   Box,
   Toolbar,
+  Paper,
 } from '@material-ui/core';
+import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-
 
 import {
   List,
@@ -32,15 +33,43 @@ import {
   DeleteButton,
   SaveButton,
   FormWithRedirect,
+  ReferenceManyField,
+  ChipField,
+  SingleFieldList,
+  ArrayField,
+  FunctionField,
+  TopToolbar,
+  ListButton,
+  TabbedForm,
+  FormTab,
+  NumberInput,
+  required,
+  minLength,
+  maxLength,
+  minValue,
+  maxValue,
+  number,
+  regex,
+  email,
+  choices,
+  BooleanInput,
+  //ShowButto
 } from 'react-admin';
 
+
+//<ShowButton basePath={basePath} record={data} />
+const EditActions = ({ basePath, data }) => (
+  <TopToolbar>
+  <ListButton basePath={basePath} label="Back" icon={<ChevronLeft />} />
+  </TopToolbar>
+);
 
 const collectionFilters = [
   <TextInput source="q" label="Search" alwaysOn />,
   <ReferenceInput source="id" label="Collector" reference="people">
   <SelectInput optionText="name" />
   </ReferenceInput>,
-   ];
+];
 
 //<ReferenceField source="collector_id" reference="people">
 //<TextField source="full_name" />
@@ -57,96 +86,245 @@ export const CollectionList = props => (
   </List>
 );
 
-const AccordionSectionTitle = ({ children, name }) => {
-    const formGroupState = useFormGroup(name);
+/* const AccordionSectionTitle = ({ children, name }) => {
+ *     const formGroupState = useFormGroup(name);
+ * 
+ *     return (
+ *         <Typography color={formGroupState.invalid && formGroupState.dirty ? 'error' : 'inherit'}>
+ *             {children}
+ *         </Typography>
+ *     );
+ * } */
 
-    return (
-        <Typography color={formGroupState.invalid && formGroupState.dirty ? 'error' : 'inherit'}>
-            {children}
-        </Typography>
-    );
+
+const UnitList = (props) => {
+  console.log(props);
+  return <>unit list</>
 }
-
-const segments = [
-  { id: 'compulsive', name: 'Compulsive' },
-  { id: 'collector', name: 'Collector' },
-  { id: 'ordered_once', name: 'Ordered Once' },
-  { id: 'regular', name: 'Regular' },
-  { id: 'returns', name: 'Returns' },
-  { id: 'reviewer', name: 'Reviewer' },
-];
-
-const MyGatheringGeo = () => (
-  <Box display="flex">
-  <Box flex={3} mr="0.5em">
-  <TextInput source="geospatial.longitude" fullWidth />
-  </Box>
-  <Box flex={3} mr="0.5em" ml="0.5em">
-  <TextInput source="geospatial.latitude" fullWidth />
-  </Box>
-  <Box flex={1} mr="0.5em" ml="0.5em">
-  <TextInput source="geospatial.altitude.0" label="alt" fullWidth />
-  </Box>
-  <Box flex={1} ml="0.5em">
-  <TextInput source="geospatial.altitude.1" label="alt2" fullWidth />
-  </Box>
-  </Box>
-)
-;
-const MyGathering = () => (
-  <Box display="flex">
-  <Box flex={2} mr="1em">
-  <Typography variant="h6" gutterBottom>Gathering</Typography>
-  <Box display="flex">
-  <Box flex={1} mr="0.5em">
-  <ReferenceInput source="collector_id" reference="people" allowEmpty fullWidth>
+/**
+   <Typography variant="h5" gutterBottom>Gathering</Typography>
+ */
+export const CollectionEdit = props => (
+  <Edit title="Collection::Edit" actions={<EditActions />} {...props}>
+  <TabbedForm>
+  <FormTab label="gathering">
+  <TextInput disabled label="ID" source="id" />
+  <ReferenceInput source="collector_id" reference="people" allowEmpty allowEmpty>
   <AutocompleteInput optionText="full_name"/>
   </ReferenceInput>
-  </Box>
-  <Box flex={1} mr="0.5em" ml="0.5em">
-  <TextInput source="field_number" fullWidth />
-  </Box>
-  <Box flex={1} ml="0.5em">
-  <DateInput source="collect_date" fullWidth />
-  </Box>
-  </Box>
-  <MyGatheringGeo />
-  </Box>
-  </Box>
-);
-
-export const CollectionEdit = props => (
-  <Edit title="Collection::Edit" {...props}>
-  <FormWithRedirect
-  {...props}
-  render={formProps => (
-    <form>
-    <Box p="1em">
-    <MyGathering />
-    </Box>
-    <Toolbar>
-    <Box display="flex" justifyContent="space-between" width="100%">
-    <SaveButton
-    saving={formProps.saving}
-    handleSubmitWithRedirect={formProps.handleSubmitWithRedirect}
-    />
-    <DeleteButton record={formProps.record} />
-    </Box>
-    </Toolbar>
-    </form>
-  )}
-  />
+  <TextInput source="field_number" />
+  <DateInput source="collect_date" />
+  <TextInput source="longitude" />
+  <TextInput source="latitude" />
+  <TextInput source="altitude.0" label="alt" />
+  <TextInput source="altitude.1" label="alt2" />
+  </FormTab>
+  <FormTab label="locality">
+  <ReferenceInput source="named_area_country_id" reference="named_areas" allowEmpty filter={{area_class_id: 1}}>
+  <AutocompleteInput optionText="name_mix"/>
+  </ReferenceInput>
+  <ReferenceInput source="named_area_province_id" reference="named_areas" allowEmpty filter={{area_class_id: 2}}>
+  <AutocompleteInput optionText="name_mix"/>
+  </ReferenceInput>
+  <ReferenceInput source="named_area_hsien_id" reference="named_areas" allowEmpty filter={{area_class_id: 3}}>
+  <AutocompleteInput optionText="name_mix"/>
+  </ReferenceInput>
+  <ReferenceInput source="named_area_town_id" reference="named_areas" allowEmpty filter={{area_class_id: 4}}>
+  <AutocompleteInput optionText="name_mix"/>
+  </ReferenceInput>
+  <ReferenceInput source="named_area_park_id" reference="named_areas" allowEmpty filter={{area_class_id: 5}}>
+  <AutocompleteInput optionText="name_mix"/>
+  </ReferenceInput>
+  <ReferenceInput source="named_area_locality_id" reference="named_areas" allowEmpty filter={{area_class_id: 6}}>
+  <AutocompleteInput optionText="name_mix"/>
+  </ReferenceInput>
+  <TextInput source="locality_text" />
+  </FormTab>
+  <FormTab label="Identification">
+  </FormTab>
+  <FormTab label="Measurement Or Facts">
+  <ReferenceManyField reference="people" target="collector_id" addLabel={false}>
+  <Datagrid>
+  <TextField source="body" />
+  <DateField source="created_at" />
+  <EditButton />
+  </Datagrid>
+  </ReferenceManyField>
+  </FormTab>
+  <FormTab label="Unit">
+  <ReferenceManyField reference="people" target="collector_id" addLabel={false}>
+  <Datagrid>
+  <Paper><TextField source="accession_number" /></Paper>
+  </Datagrid>
+  </ReferenceManyField>
+  </FormTab>
+  </TabbedForm>
   </Edit>
 );
 /*
    <SimpleForm>
-   <ReferenceInput source="collector_id" reference="people" allowEmpty>
+
+   <ReferenceInput source="collector_id" reference="people" allowEmpty allowEmpty>
    <AutocompleteInput optionText="full_name"/>
    </ReferenceInput>
    <TextInput source="field_number" />
    <DateInput source="collect_date" />
+   <Typography variant="h6" gutterBottom>Gathering: locality</Typography>
+   <ReferenceInput source="named_area_country_id" reference="named_areas" allowEmpty filter={{area_class_id: 1}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   <ReferenceInput source="named_area_province_id" reference="named_areas" allowEmpty filter={{area_class_id: 2}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   <ReferenceInput source="named_area_hsien_id" reference="named_areas" allowEmpty filter={{area_class_id: 3}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   <ReferenceInput source="named_area_town_id" reference="named_areas" allowEmpty filter={{area_class_id: 4}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   <ReferenceInput source="named_area_park_id" reference="named_areas" allowEmpty filter={{area_class_id: 5}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   <ReferenceInput source="named_area_locality_id" reference="named_areas" allowEmpty filter={{area_class_id: 6}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   <TextInput source="locality_text" />
+   <TextInput source="geospatial.longitude" />
+   <TextInput source="geospatial.latitude" />
+   <Box display="flex">
+   <Box flex={1} mr="0.5em">
+   <TextInput source="geospatial.altitude.0" label="alt" fullWidth />
+   </Box>
+   <Box flex={1} ml="0.5em">
+   <TextInput source="geospatial.altitude.1" label="alt2" fullWidth />
+   </Box>
+   </Box>
+   <Typography variant="h5" gutterBottom>Units</Typography>
+   <ArrayField source="units">
+   <SingleFieldList>
+   <Paper><TextField source="accession_number" /></Paper>
+   </SingleFieldList>
+   </ArrayField>
    </SimpleForm>
+ */
 
+
+/*
+   <ArrayField source="units">
+   <SingleFieldList>
+   <TextField source="accession_number" />
+   </SingleFieldList>
+   </ArrayField>
+ */
+
+/*
+   多欄
+
+   const segments = [
+   { id: 'compulsive', name: 'Compulsive' },
+   { id: 'collector', name: 'Collector' },
+   { id: 'ordered_once', name: 'Ordered Once' },
+   { id: 'regular', name: 'Regular' },
+   { id: 'returns', name: 'Returns' },
+   { id: 'reviewer', name: 'Reviewer' },
+   ];
+
+   const MyGatheringGeo1 = () => (
+   <Box display="flex">
+   <Box flex={1}>
+   <ReferenceInput source="named_area_country_id" reference="named_areas" allowEmpty fullWidth filter={{area_class_id: 1}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   </Box>
+   <Box>
+   <ReferenceInput source="named_area_province_id" reference="named_areas" allowEmpty fullWidth filter={{area_class_id: 2}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   </Box>
+   <Box>
+   <ReferenceInput source="named_area_hsien_id" reference="named_areas" allowEmpty fullWidth filter={{area_class_id: 3}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   </Box>
+   <Box>
+   <ReferenceInput source="named_area_town_id" reference="named_areas" allowEmpty fullWidth filter={{area_class_id: 4}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   </Box>
+   <Box>
+   <ReferenceInput source="named_area_park_id" reference="named_areas" allowEmpty fullWidth filter={{area_class_id: 5}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   </Box>
+   <Box>
+   <ReferenceInput source="named_area_locality_id" reference="named_areas" allowEmpty fullWidth filter={{area_class_id: 6}}>
+   <AutocompleteInput optionText="name_mix"/>
+   </ReferenceInput>
+   </Box>
+   </Box>
+   );
+
+   const MyGatheringGeo2 = () => (
+   <Box display="flex">
+   <Box>
+   <TextInput source="locality_text" fullWidth/>
+   </Box>
+   <Box flex={1} mr="0.5em">
+   <TextInput source="geospatial.longitude" fullWidth />
+   </Box>
+   <Box flex={1} mr="0.5em" ml="0.5em">
+   <TextInput source="geospatial.latitude" fullWidth />
+   </Box>
+   <Box flex={1} mr="0.5em" ml="0.5em">
+   <TextInput source="geospatial.altitude.0" label="alt" fullWidth />
+   </Box>
+   <Box flex={1} ml="0.5em">
+   <TextInput source="geospatial.altitude.1" label="alt2" fullWidth />
+   </Box>
+   </Box>
+   );
+
+   const MyGathering = () => (
+   <Box display="flex">
+   <Box flex={2} mr="1em">
+   <Typography variant="h6" gutterBottom>Gathering</Typography>
+   <Box display="flex">
+   <Box flex={1} mr="0.5em">
+   <ReferenceInput source="collector_id" reference="people" allowEmpty fullWidth>
+   <AutocompleteInput optionText="full_name"/>
+   </ReferenceInput>
+   </Box>
+   <Box flex={1} mr="0.5em" ml="0.5em">
+   <TextInput source="field_number" fullWidth />
+   </Box>
+   <Box flex={1} ml="0.5em">
+   <DateInput source="collect_date" fullWidth />
+   </Box>
+   </Box>
+   <MyGatheringGeo1 />
+   <MyGatheringGeo2 />
+   </Box>
+   </Box>
+   );
+   <FormWithRedirect
+   {...props}
+   render={formProps => (
+   <form>
+   <Box p="1em">
+   <MyGathering />
+   </Box>
+   <Toolbar>
+   <Box display="flex" justifyContent="space-between" width="100%">
+   <SaveButton
+   saving={formProps.saving}
+   handleSubmitWithRedirect={formProps.handleSubmitWithRedirect}
+   />
+   <DeleteButton record={formProps.record} />
+   </Box>
+   </Toolbar>
+   </form>
+   )}
+   />
  */
 
 /*
