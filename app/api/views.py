@@ -20,6 +20,9 @@ from app.models import (
     Identification,
     MeasurementOrFact,
 )
+from app.taxon.models import (
+    ScientificName,
+)
 from app.api import api
 from .helpers import (
     ra_get_list_response,
@@ -38,7 +41,7 @@ class UnitMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
@@ -47,19 +50,19 @@ class UnitMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -76,7 +79,7 @@ class AreaClassMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
@@ -85,19 +88,19 @@ class AreaClassMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -120,7 +123,7 @@ class NamedAreaMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
@@ -129,19 +132,19 @@ class NamedAreaMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -153,40 +156,38 @@ class CollectionMethodView(MethodView):
         if item_id is None:
             # item_list
             query = Collection.query
-            #if filter_str := request.args.get('filter', ''):
-            #    filter_dict = json.loads(filter_str)
-            #    if keyword := filter_dict.get('q', ''):
-            #        query = query.filter(Person.full_name.ilike(f'%{keyword}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{keyword}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{keyword}%'))
-            #    if is_collector := filter_dict.get('is_collector', ''):
-            #        query = query.filter(Person.is_collector==True)
-            #    if is_identifier := filter_dict.get('is_identifier', ''):
-            #        query = query.filter(Person.is_identifier==True)
+            if filter_str := request.args.get('filter', ''):
+                filter_dict = json.loads(filter_str)
+                if keyword := filter_dict.get('q', ''):
+                    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.scientific_name).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | ScientificName.full_scientific_name.ilike(f'%{keyword}%'))
+            #print(query, '--')
             return ra_get_list_response('collections', request, query)
         else:
             # single item
             obj = session.get(Collection, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
         obj = Collection()
-        for i, v in request.json.items():
-            setattr(obj, i, v)
-        session.add(obj)
-        session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        #for i, v in request.json.items():
+        #    setattr(obj, i, v)
+        #session.add(obj)
+        #session.commit()
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(Collection, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(Person, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        print 
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -210,7 +211,7 @@ class PersonMethodView(MethodView):
         else:
             # single item
             obj = session.get(Person, item_id)
-            return ra_item_response('people', request, obj)
+            return ra_item_response('people', obj)
 
     def post(self, item_id):
         # create
@@ -219,19 +220,23 @@ class PersonMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response('people', request, obj)
+        return ra_item_response('people', obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(Person, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response('people', request, obj)
+        return ra_item_response('people',  obj)
 
     def put(self, item_id):
         # update
-        obj = session.get(Person, item_id)
-        return ra_item_response('people', request, obj)
+        #obj = session.get(Person, item_id)
+        query = Person.query.filter(Person.id==item_id)
+        if obj := query.first():
+            query.update(values=request.json)
+            session.commit()
+            return ra_item_response('people', obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -247,7 +252,7 @@ class DatasetMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
@@ -256,19 +261,19 @@ class DatasetMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -284,7 +289,7 @@ class OrganizationMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
@@ -293,19 +298,19 @@ class OrganizationMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -322,7 +327,7 @@ class IdentificationMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
@@ -331,19 +336,19 @@ class IdentificationMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
@@ -360,7 +365,7 @@ class MeasurementOrFactsMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, request, obj)
+            return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
@@ -369,19 +374,19 @@ class MeasurementOrFactsMethodView(MethodView):
             setattr(obj, i, v)
         session.add(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        return ra_item_response(self.RESOURCE_NAME, request, obj)
+        return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()

@@ -177,11 +177,12 @@ class Identification(Base):
 
     def to_dict(self):
         return {
+            'id': self.id,
             'collection_id': self.collection_id,
             'identifier_id': self.identifier_id,
             'identifier': self.identifier.to_dict() if self.identifier else None,
             'scientific_name_id': self.scientific_name_id,
-            #'scientific_name': self.scientifi
+            'scientific_name': self.scientific_name.to_dict(),
             'date': self.date,
             'date_text': self.date_text,
             'verification_level': self.verification_level,
@@ -258,6 +259,7 @@ class Collection(Base):
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
 
+    # collection.to_dict
     def to_dict(self):
         # geospatial = {
         #     'named_area_list': [x.named_area.todict() for x in self.named_areas],
@@ -282,6 +284,7 @@ class Collection(Base):
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
+            'identifications': [x.to_dict() for x in self.identifications]
         }
         if last_taxon := self.last_taxon:
             data['latest_scientific_name'] = last_taxon

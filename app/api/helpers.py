@@ -95,13 +95,7 @@ def ra_get_list_response(res_name, req, query):
     }
     return make_react_admin_response(result, payload['range'])
 
-def ra_item_response(res_name, req, obj):
-    data = obj.to_dict()
-    if req.method == 'PUT':
-        for k, v in req.json.items():
-            if v != data[k]:
-                setattr(obj, k, v)
-        session.commit()
+def ra_item_response(res_name, obj):
     resp = jsonify(obj.to_dict())
     resp.headers.add('Access-Control-Allow-Origin', '*')
     return resp

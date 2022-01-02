@@ -62,7 +62,7 @@ import {
 //<ShowButton basePath={basePath} record={data} />
 const EditActions = ({ basePath, data }) => (
   <TopToolbar>
-  <ListButton basePath={basePath} label="Back" icon={<ChevronLeft />} />
+  <ListButton basePath={basePath} label="列表"  />
   </TopToolbar>
 );
 
@@ -118,6 +118,19 @@ export const CollectionEdit = props => (
   </ReferenceInput>
   <TextInput source="field_number" />
   <DateInput source="collect_date" />
+  <ArrayField source="units">
+  <Datagrid>
+  <TextField source="id" />
+  <TextInput source="accession_number" />
+  <ArrayField source="mof_list">
+  <Datagrid>
+  <TextField source="parameter" />
+  <TextField source="text" />
+  <EditButton />
+  </Datagrid>
+  </ArrayField>
+  </Datagrid>
+  </ArrayField>
   <ArrayField source="mof_list">
   <Datagrid>
   <TextField source="parameter" />
@@ -152,19 +165,14 @@ export const CollectionEdit = props => (
   <TextInput source="locality_text" />
   </FormTab>
   <FormTab label="Identification">
-  </FormTab>
-  <FormTab label="Unit">
-  <ArrayField source="units">
+  <ArrayField source="identifications">
   <Datagrid>
   <TextField source="id" />
-  <TextInput source="accession_number" />
-  <ArrayField source="mof_list">
-  <Datagrid>
-  <TextField source="parameter" />
-  <TextField source="text" />
-  <EditButton />
-  </Datagrid>
-  </ArrayField>
+  <TextInput source="scientific_name.full_scientific_name" fullWidth />
+  <TextInput source="idetifier" />
+  <DateInput source="date" />
+  <TextInput source="date_text" />
+  <TextInput source="verification_level" />
   </Datagrid>
   </ArrayField>
   </FormTab>

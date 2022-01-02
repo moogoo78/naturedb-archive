@@ -37,3 +37,9 @@ class ScientificName(Base):
     #SubspeciesEpithet
     #Breed
     source_data = Column(JSONB)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'full_scientific_name': self.full_scientific_name,
+        }
