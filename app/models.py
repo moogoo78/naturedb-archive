@@ -62,6 +62,7 @@ class MeasurementOrFact(Base):
     #applies_to
     def to_dict(self):
         return {
+            'id': self.id,
             'parameter': self.parameter,
             'text': self.text,
         }
@@ -393,6 +394,7 @@ class Unit(Base):
             'id': self.id,
             'accession_number': self.accession_number,
             'collection_id': self.collection_id,
+            'mof_list': [x.to_dict() for x in self.measurement_or_facts],
         }
 
 class Person(Base):

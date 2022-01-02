@@ -54,6 +54,8 @@ import {
   choices,
   BooleanInput,
   //ShowButto
+  useRecordContext,
+  ReferenceArrayField
 } from 'react-admin';
 
 
@@ -97,15 +99,17 @@ export const CollectionList = props => (
  * } */
 
 
-const UnitList = (props) => {
-  console.log(props);
-  return <>unit list</>
-}
+
 /**
    <Typography variant="h5" gutterBottom>Gathering</Typography>
  */
+
+const PageTitle = ({ record }) => {
+    return <span>Post {record ? `"${record.id}"` : ''}</span>;
+};
+
 export const CollectionEdit = props => (
-  <Edit title="Collection::Edit" actions={<EditActions />} {...props}>
+  <Edit title={<PageTitle />} actions={<EditActions />} {...props}>
   <TabbedForm>
   <FormTab label="gathering">
   <TextInput disabled label="ID" source="id" />
@@ -114,12 +118,19 @@ export const CollectionEdit = props => (
   </ReferenceInput>
   <TextInput source="field_number" />
   <DateInput source="collect_date" />
+  <ArrayField source="mof_list">
+  <Datagrid>
+  <TextField source="parameter" />
+  <TextField source="text" />
+  <EditButton />
+  </Datagrid>
+  </ArrayField>
+  </FormTab>
+  <FormTab label="locality">
   <TextInput source="longitude" />
   <TextInput source="latitude" />
   <TextInput source="altitude.0" label="alt" />
   <TextInput source="altitude.1" label="alt2" />
-  </FormTab>
-  <FormTab label="locality">
   <ReferenceInput source="named_area_country_id" reference="named_areas" allowEmpty filter={{area_class_id: 1}}>
   <AutocompleteInput optionText="name_mix"/>
   </ReferenceInput>
@@ -142,21 +153,20 @@ export const CollectionEdit = props => (
   </FormTab>
   <FormTab label="Identification">
   </FormTab>
-  <FormTab label="Measurement Or Facts">
-  <ReferenceManyField reference="people" target="collector_id" addLabel={false}>
+  <FormTab label="Unit">
+  <ArrayField source="units">
   <Datagrid>
-  <TextField source="body" />
-  <DateField source="created_at" />
+  <TextField source="id" />
+  <TextInput source="accession_number" />
+  <ArrayField source="mof_list">
+  <Datagrid>
+  <TextField source="parameter" />
+  <TextField source="text" />
   <EditButton />
   </Datagrid>
-  </ReferenceManyField>
-  </FormTab>
-  <FormTab label="Unit">
-  <ReferenceManyField reference="people" target="collector_id" addLabel={false}>
-  <Datagrid>
-  <Paper><TextField source="accession_number" /></Paper>
+  </ArrayField>
   </Datagrid>
-  </ReferenceManyField>
+  </ArrayField>
   </FormTab>
   </TabbedForm>
   </Edit>
