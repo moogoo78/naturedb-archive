@@ -3,30 +3,20 @@ import * as React from "react";
 import { Admin, Resource} from 'react-admin';
 //import jsonServerProvider from 'ra-data-json-server';
 
-import PeopleIcon from '@material-ui/icons/People';
-import CollectionsIcon from '@material-ui/icons/Collections';
+
 import PlaceIcon from '@material-ui/icons/Place';
 import MapIcon from '@material-ui/icons/Map';
 import AssignmentIcon from '@material-ui/icons/Assignment';
 import CategoryIcon from '@material-ui/icons/Category';
 import AccountBalanceIcon from '@material-ui/icons/AccountBalance';
 import SearchIcon from '@material-ui/icons/Search';
-import LandscapeIcon from '@material-ui/icons/Landscape';
+
 //import LocalFloristIcon from '@material-ui/icons/LocalFlorist';
 // mui icons
 //import HikingIcon from '@material-ui/icons/Hiking';
 //import YardIcon from '@material-ui/icons/Yard';
 
-import {
-  PeopleList,
-  PeopleCreate,
-  PeopleEdit
-} from './people';
-import {
-  CollectionList,
-  CollectionCreate,
-  CollectionEdit
-} from './collections';
+
 import {
   NamedAreaList,
 } from './named_areas';
@@ -45,6 +35,10 @@ import {
 import {
   MeasurementOrFactList,
 } from './measurement_or_facts';
+
+import people from './people';
+import units from './units';
+import collections from './collections';
 import Dashboard from './Dashboard';
 
 import authProvider from './authProvider';
@@ -54,9 +48,9 @@ import dataProvider from './dataProvider';
 
 const App = () => (
   <Admin dataProvider={dataProvider} dashboard={Dashboard} authProvider={authProvider} title="NatureDB">
-  <Resource name="collections" list={CollectionList} edit={CollectionEdit} create={CollectionCreate} icon={LandscapeIcon} />
-  <Resource name="units" list={CollectionList} icon={CollectionsIcon} />
-  <Resource name="people" list={PeopleList} edit={PeopleEdit} create={PeopleCreate} icon={PeopleIcon} />
+  <Resource name="collections" {...collections} />
+  <Resource name="units" {...units} />
+  <Resource name="people" {...people} />
   <Resource name="named_areas" list={NamedAreaList} icon={PlaceIcon} />
   <Resource name="area_classes" list={AreaClassList} icon={MapIcon} />
   <Resource name="organizations" list={OrganizationList} icon={AccountBalanceIcon} />
@@ -66,4 +60,8 @@ const App = () => (
   </Admin>
 );
 
+/*
+
+
+*/
 export default App;

@@ -178,6 +178,7 @@ class Identification(Base):
     def to_dict(self):
         return {
             'id': self.id,
+            'identification_id': self.id,
             'collection_id': self.collection_id,
             'identifier_id': self.identifier_id,
             'identifier': self.identifier.to_dict() if self.identifier else None,
@@ -261,20 +262,11 @@ class Collection(Base):
 
     # collection.to_dict
     def to_dict(self):
-        # geospatial = {
-        #     'named_area_list': [x.named_area.todict() for x in self.named_areas],
-        #     'altitude': (self.altitude, self.altitude2),
-        #     'longitude': self.longitude_decimal,
-        #     'latitude': self.latitude_decimal,
-        #     'locality': self.locality_text,
-        # }
-
         data = {
             'id': self.id,
             'collect_date': self.collect_date,
             'collector_id': self.collector_id,
             'collector__full_name': self.collector.full_name,
-            #'geospatial': geospatial,
             'named_area_list': [x.named_area.to_dict() for x in self.named_areas],
             'altitude': (self.altitude, self.altitude2),
             'longitude': self.longitude_decimal,
@@ -284,7 +276,7 @@ class Collection(Base):
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
-            'identifications': [x.to_dict() for x in self.identifications]
+            'identifications': [x.to_dict() for x in self.identifications.all()[:2]]
         }
         if last_taxon := self.last_taxon:
             data['latest_scientific_name'] = last_taxon
