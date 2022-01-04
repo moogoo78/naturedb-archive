@@ -5,7 +5,8 @@ from flask import (
     jsonify,
     request,
 )
-#from sqlalchemy import desc
+from sqlalchemy import select
+
 from flask.views import MethodView
 
 from app.database import session
@@ -155,12 +156,13 @@ class CollectionMethodView(MethodView):
     def get(self, item_id):
         if item_id is None:
             # item_list
-            query = Collection.query
+            #query = Collection.query.join(Person).join(Identification).join(ScientificName)
+            query = Collection.query.join(Person)
             if filter_str := request.args.get('filter', ''):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
                     query = query.join(Collection.collector).join(Collection.identifications).join(Identification.scientific_name).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | ScientificName.full_scientific_name.ilike(f'%{keyword}%'))
-            #print(query, '--')
+            print(query, '--')
             return ra_get_list_response('collections', request, query)
         else:
             # single item
@@ -170,10 +172,15 @@ class CollectionMethodView(MethodView):
     def post(self, item_id):
         # create
         obj = Collection()
+        print (request.json, obj.id)
         #for i, v in request.json.items():
-        #    setattr(obj, i, v)
-        #session.add(obj)
-        #session.commit()
+        #    if i != 'id':
+        #        setattr(obj, i, v)
+        if jd := request.json:
+            obj.collector_id = jd.get('collector_id', '')
+            obj.field_number = jd.get('field_number', '')
+        session.add(obj)
+        session.commit()
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
@@ -186,7 +193,6 @@ class CollectionMethodView(MethodView):
     def put(self, item_id):
         # update
         obj = session.get(Person, item_id)
-        print 
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):

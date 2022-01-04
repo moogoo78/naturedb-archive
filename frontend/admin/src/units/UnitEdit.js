@@ -11,8 +11,8 @@ const RelatedCollectionButton = ({ record }) => (
     <Button
         component={Link}
         to={{
-            pathname: `/collections/${record.id}`,
-            state: { record: { post_id: record.id } },
+            pathname: `/collections/${record.collection_id}`,
+            state: { record: { collection_id: record.collection_id } },
         }}
     >
   {`Collection: ${record.id}`}

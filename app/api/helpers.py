@@ -6,7 +6,8 @@ from flask import (
 )
 from sqlalchemy import (
     select,
-    desc
+    desc,
+    text,
 )
 
 from app.database import session
@@ -36,25 +37,6 @@ def make_react_admin_response(result, ra_range):
 
     return resp
 
-def apply_react_admin_query(query, payload):
-    '''
-    filter must apply before
-    '''
-    total = query.count()
-    # order_by must apply before limit/offset
-    if 'sort' in payload:
-        if payload['sort'][1] == 'ASC':
-            query = query.order_by(payload['sort'][0])
-        elif v[1] == 'DESC':
-            query = query.order_by(desc(payload['sort'][0]))
-
-    if 'range' in payload and payload['range'] != '':
-        start = payload['range'][0]
-        end = payload['range'][1]
-        query = query.limit((end-start)+1).offset(start)
-
-    return query, total
-
 def ra_get_list_response(res_name, req, query):
     '''
     model must has to_dict method
@@ -76,17 +58,20 @@ def ra_get_list_response(res_name, req, query):
 
     total = query.count()
     # order_by must apply before limit/offset
+    # apply payload from react-admin
+    #print(payload)
     if 'sort' in payload:
         if payload['sort'][1] == 'ASC':
-            query = query.order_by(payload['sort'][0])
+            query = query.order_by(text(payload['sort'][0]))
         elif payload['sort'][1] == 'DESC':
-            query = query.order_by(desc(payload['sort'][0]))
+            query = query.order_by(desc(text(payload['sort'][0])))
 
     if 'range' in payload and payload['range'] != '':
         start = payload['range'][0]
         end = payload['range'][1]
         query = query.limit((end-start)+1).offset(start)
 
+    #print(query, 'query!!', query.all())
     rows = [x.to_dict() for x in query.all()]
 
     result = {

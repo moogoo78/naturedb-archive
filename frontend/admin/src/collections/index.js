@@ -1,12 +1,12 @@
 import LandscapeIcon from '@material-ui/icons/Landscape';
 
 import CollectionList from './CollectionList';
-//import PersonCreate from './PersonCreate';
-//import PersonEdit from './PersonEdit';
+import CollectionCreate from './CollectionCreate';
+import CollectionEdit from './CollectionEdit';
 
 const item =  {
-  //create: PersonCreate,
-  //edit: PersonEdit,
+  create: CollectionCreate,
+  edit: CollectionEdit,
   list: CollectionList,
 //  show: CommentShow,
   icon: LandscapeIcon,

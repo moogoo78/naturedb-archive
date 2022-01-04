@@ -268,7 +268,8 @@ class Collection(Base):
             'collector_id': self.collector_id,
             'collector__full_name': self.collector.full_name,
             'named_area_list': [x.named_area.to_dict() for x in self.named_areas],
-            'altitude': (self.altitude, self.altitude2),
+            'altitude': self.altitude,
+            'altitude2':self.altitude2,
             'longitude': self.longitude_decimal,
             'latitude': self.latitude_decimal,
             'locality': self.locality_text,
@@ -276,7 +277,7 @@ class Collection(Base):
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
-            'identifications': [x.to_dict() for x in self.identifications.all()[:2]]
+            'identifications': [x.to_dict() for x in self.identifications.all()]
         }
         if last_taxon := self.last_taxon:
             data['latest_scientific_name'] = last_taxon
