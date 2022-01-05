@@ -20,6 +20,29 @@ from app.utils import get_time
 from app.database import Base
 from app.taxon.models import ScientificName
 
+def get_hast_parameters(obj=None):
+    '''obj is Collection.biotope_measurement_or_facts
+    '''
+    rows = []
+    if obj:
+        mof_dict = {f'{x.parameter}': x for x in obj}
+
+    for param in MeasurementOrFact.PARAMETER_FOR_COLLECTION:
+        mof_id = None
+        mof_text = ''
+        if obj:
+            if x := mof_dict.get(param):
+                mof_id = x.id
+                mof_text = x.text
+        rows.append({
+            'id': mof_id,
+            'parameter': param,
+            'label': MeasurementOrFact.find_label(param),
+            'text': mof_text,
+        })
+
+    return rows
+
 #class UnitAnnotation(Base):
 #    __tablename__ = 'unit_annotation'
     #id = Column(Integer, primary_key=True)
@@ -49,6 +72,9 @@ class MeasurementOrFact(Base):
         ('fruit-color', '果色'),
     )
 
+    PARAMETER_FOR_COLLECTION = ('habitat', 'veget', 'topography', 'naturalness', 'light-intensity', 'humidity', 'abundance')
+    PARAMETER_FOR_UNIT = ('life-form', 'flower', 'fruit', 'flower-color', 'fruit-color')
+
     id = Column(Integer, primary_key=True)
     collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
@@ -61,11 +87,22 @@ class MeasurementOrFact(Base):
     #unit_of_measurement
     #applies_to
     def to_dict(self):
+        item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
         return {
             'id': self.id,
+            'label': item[1],
             'parameter': self.parameter,
             'text': self.text,
+            'collection_id': self.collection_id,
         }
+
+
+    @staticmethod
+    def find_label(param):
+        for i in MeasurementOrFact.PARAMETER_CHOICES:
+            if i[0] == param:
+                return i[1]
+        return ''
 
 class Annotation(Base):
 
@@ -266,19 +303,22 @@ class Collection(Base):
             'id': self.id,
             'collect_date': self.collect_date,
             'collector_id': self.collector_id,
-            'collector__full_name': self.collector.full_name,
+            'collector': self.collector.to_dict() if self.collector else '',
             'named_area_list': [x.named_area.to_dict() for x in self.named_areas],
             'altitude': self.altitude,
             'altitude2':self.altitude2,
-            'longitude': self.longitude_decimal,
-            'latitude': self.latitude_decimal,
-            'locality': self.locality_text,
-            'mof_list': [x.to_dict() for x in self.biotope_measurement_or_facts],
+            'longitude_decimal': self.longitude_decimal,
+            'latitude_decimal': self.latitude_decimal,
+            'locality_text': self.locality_text,
+            #'measurement_or_facts': [x.to_dict() for x in self.biotope_measurement_or_facts],
+            'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
             'identifications': [x.to_dict() for x in self.identifications.all()]
         }
+
+
         if last_taxon := self.last_taxon:
             data['latest_scientific_name'] = last_taxon
         for i in data['named_area_list']:
@@ -390,6 +430,8 @@ class Unit(Base):
             'id': self.id,
             'accession_number': self.accession_number,
             'collection_id': self.collection_id,
+            'preparation_type': self.preparation_type,
+            'preparation_date': self.preparation_date,
             'mof_list': [x.to_dict() for x in self.measurement_or_facts],
         }
 
@@ -415,14 +457,21 @@ class Person(Base):
 
     @property
     def english_name(self):
-        if len(self.atomized_name):
+        if self.atomized_name and len(self.atomized_name):
             if en_name := self.atomized_name.get('en', ''):
                 return '{} {}'.format(en_name['inherited_name'], en_name['given_name'])
         return ''
 
+    def display_name(self):
+        name = self.english_name
+        if self.full_name:
+            name = '{} ({})'.format(name, self.full_name)
+        return name
+
     def to_dict(self):
         data = {
             'id': self.id,
+            'display_name': self.display_name(),
             'full_name': self.full_name,
             #'atomized_name': self.atomized_name,
             'full_name_en': self.full_name_en,

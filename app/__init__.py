@@ -1,5 +1,7 @@
 import subprocess
 import click
+#import logging
+from logging.config import dictConfig
 
 from flask import Flask
 
@@ -8,6 +10,25 @@ from app.database import session
 
 ALEMBIC_BIN_PATH = '/root/.local/bin/alembic'
 
+
+# TODO: similer to flask default
+'''
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['wsgi']
+    }
+})
+'''
 def register_blueprint_api(app):
     from app.api import api as api_bp
     from app.api.views import (
@@ -153,7 +174,6 @@ def create_app():
 
     @app.route('/')
     def index():
-
         return 'hello'
 
     @app.teardown_appcontext

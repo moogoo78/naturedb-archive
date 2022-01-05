@@ -3,6 +3,7 @@ import {
   Edit,
   SimpleForm,
   TextInput,
+  DateInput,
 } from 'react-admin';
 import Button from '@material-ui/core/Button';
 import { Link } from 'react-router-dom';
@@ -24,6 +25,9 @@ const UnitEdit = props => (
   <SimpleForm>
   <RelatedCollectionButton />
   <TextInput source="accession_number" />
+  <TextInput source="duplication_number" />
+  <TextInput source="preparation_type" />
+  <DateInput source="preparation_date" />
   </SimpleForm>
   </Edit>
 );

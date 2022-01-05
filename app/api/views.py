@@ -4,6 +4,7 @@ from flask import (
     render_template,
     jsonify,
     request,
+    current_app,
 )
 from sqlalchemy import select
 
@@ -20,6 +21,7 @@ from app.models import (
     Organization,
     Identification,
     MeasurementOrFact,
+    CollectionNamedArea,
 )
 from app.taxon.models import (
     ScientificName,
@@ -153,6 +155,8 @@ class NamedAreaMethodView(MethodView):
 
 class CollectionMethodView(MethodView):
     RESOURCE_NAME = 'collections'
+    model = Collection
+
     def get(self, item_id):
         if item_id is None:
             # item_list
@@ -162,42 +166,58 @@ class CollectionMethodView(MethodView):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
                     query = query.join(Collection.collector).join(Collection.identifications).join(Identification.scientific_name).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | ScientificName.full_scientific_name.ilike(f'%{keyword}%'))
-            print(query, '--')
+
             return ra_get_list_response('collections', request, query)
         else:
             # single item
-            obj = session.get(Collection, item_id)
+            obj = session.get(self.model, item_id)
             return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
         # create
-        obj = Collection()
-        print (request.json, obj.id)
-        #for i, v in request.json.items():
-        #    if i != 'id':
-        #        setattr(obj, i, v)
-        if jd := request.json:
-            obj.collector_id = jd.get('collector_id', '')
-            obj.field_number = jd.get('field_number', '')
-        session.add(obj)
-        session.commit()
+        obj = self.model()
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
-        obj = session.get(Collection, item_id)
+        obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def put(self, item_id):
         # update
-        obj = session.get(Person, item_id)
+        obj = session.get(self.model, item_id)
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
 
+    def _modify(self, obj, data):
+        print(data, flush=True)
+        named_area_list = []
+        for i, v in data.items():
+            # available types: str, int, NoneType
+            if 'named_area_' in i and i != 'named_area_list':
+                named_area_list.append(v)
+            elif i != 'id' and isinstance(v, str | int | None):
+                setattr(obj, i, v)
+
+        if not obj.id:
+            session.add(obj)
+
+        session.commit()
+
+        # NamedArea list
+        if len(named_area_list) > 0:
+            for i in named_area_list:
+                cna = CollectionNamedArea(collection_id=obj.id, named_area_id=i)
+                session.add(cna)
+            session.commit()
+
+        return obj
 
 class PersonMethodView(MethodView):
 
@@ -367,6 +387,10 @@ class MeasurementOrFactsMethodView(MethodView):
         if item_id is None:
             # item_list
             query = self.model.query
+            if filter_str := request.args.get('filter', ''):
+                filter_dict = json.loads(filter_str)
+                if collection_id := filter_dict.get('collection_id', ''):
+                    query = query.filter(MeasurementOrFact.collection_id==collection_id)
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
             # single item

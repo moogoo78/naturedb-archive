@@ -1,4 +1,4 @@
-import CollectionsIcon from '@material-ui/icons/Collections';
+import PictureInPictureAltIcon from '@material-ui/icons/PictureInPictureAlt';
 
 import UnitList from './UnitList';
 import UnitCreate from './UnitCreate';
@@ -9,6 +9,6 @@ const item =  {
   edit: UnitEdit,
   list: UnitList,
 //  show: CommentShow,
-  icon: CollectionsIcon,
+  icon: PictureInPictureAltIcon,
 };
 export default item;

@@ -1,0 +1,98 @@
+<!doctype html>
+<html class="no-js" lang="zh-TW">
+  <head>
+    <meta charset="utf-8">
+    <title>HAST::print-label</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/print-label.css') }}"/>
+  </head>
+  <body>
+    <div class="page">
+      <ul class="hast-label-container">
+      {% for i in item_list %}
+        <li class="hast-label-item">
+          {{ i }}
+{#
+        {% for id in i.label_info.identifications[1:]" %}
+        <div class="id-container">
+        {% with id.taxon.display_list as d %}
+        <div class="taxon">
+          <span class="taxon-family">{{ d.0.0 }} {{ d.0.1 }}</span>
+          {% if d|length > 1 %}
+          <span class="taxon-species">{{ d.2.0 }} {{ d.2.1 }}</span>
+          {% endif %}
+        </div>
+        <div class="left-right">
+          <span>Det. by {{ id.identifier.label_presenter }}</span>
+          <span>{{ id.date_display }}</span>
+        </div>
+        {% endwith %}
+
+        </div>
+        {% endfor %}
+        <div class="institution">
+        <!-- LAYOUT1 span class="institution-name">中央研究院植物標本館</span><span class="institution-code">(HAST)</span-->
+          <span class="collection-name">{{ i.label_info.country }}</span>
+        </div>
+        {% if i.label_info.init_id %}
+        {% with i.label_info.init_id.taxon.display_list as d %}
+        <div class="taxon">
+          <span class="taxon-family">{{ d.0.0 }} {{ d.0.1 }}</span>
+          {% if d|length == 2 %}
+          <span class="taxon-species">{{ d.1.0 }} {{ d.1.1 }}</span>
+          {% elif d|length == 3 %}
+          <span class="taxon-species">{{ d.2.0 }} {{ d.2.1 }}</span>
+          {% endif %}
+        </div>
+        {% endwith %}
+        {% endif %}
+
+        <div class="locality">
+          <span class="locality-list">{{ i.label_info.location_list|slice:"1:"|join:", " }}</span>
+          {% if i.label_info.locality_text %}<span class="box">{{ i.label_info.locality_text }}</span>{% endif %}
+        </div>
+        <div class="geographic-position">
+          {% if i.label_info.coordinates %}<span>{{ i.label_info.coordinates }}</span>{% endif %}
+          {% if i.label_info.altitude_list|length > 0 %}<span class="altitude">Elev. ca. {{ i.label_info.altitude_list.0 }}{% if i.label_info.1 %}-{{ i.label_info.altitude_list.1 }}{% endif %} m<span>{% endif %}
+        </div>
+        <div class="annotation-container">
+        {% if i.label_info.annotation_list.0 %}
+        <div class="annotations">
+          {{ i.label_info.annotation_list.0|capfirst }}.
+        </div>
+        {% endif %}
+        {% if i.label_info.annotation_list.1 %}
+        <div class="annotations">
+          {{ i.label_info.annotation_list.1 }}
+        </div>
+        {% endif %}
+        {% if i.label_info.annotation_list.2 %}
+        <div class="annotations">
+          {{ i.label_info.annotation_list.2|capfirst }}.
+        </div>
+        {% endif %}
+        {% for memo in i.label_info.annotation_memo_list %}
+        <div class="annotations">
+          {{ memo }}.
+        </div>
+        {% endfor %}
+        </div>
+
+        <div class="collect">
+          <span class="collect-num">{{ i.label_info.collect_num}}{% if i.label_info.companion_list %}<span class="box companion">& {{ i.label_info.companion_list|join:", " }}</span>{% endif %}</span>
+          <span class="collect-date">{{ i.label_info.collect_date }}</span>
+        </div>
+        <!-- LAYOUT1 div class="footer">HERBARIUM, ACADEMIA SINICA, TAIPEI (HAST)</div-->
+        <div class="institution"><span class="institution-name">中央研究院植物標本館</span><span class="institution-code">Herbarium, Academia Sinica, Taipei (HAST)</span></div>
+        <div class="annotations">
+          {% for text in i.label_info.footer_text %}
+          <span class="box">{{ text }}</span>
+          {% endfor %}
+        </div>
+#}
+      </li>
+      {% endfor %}
+    </ul>
+    </page>
+  </body>
+</html>

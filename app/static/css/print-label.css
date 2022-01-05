@@ -1,0 +1,190 @@
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+/* css reset end*/
+
+body {
+  color: black;
+  /*font-family: "Yu Gothic Medium", sans-serif;*/
+  font-family: "Microsoft JhengHei", sans-serif;
+  line-hight: 18px;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-style: normal;
+  font-variant-caps: normal;
+  font-variant-east-asian: normal;
+  font-variant-ligatures: normal;
+  font-variant-numeric: normal;
+  font-size: 12px;
+}
+.hast-label-container {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-itmes: stretch:
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.hast-label-item {
+  padding: 10px;
+  width: 42%;
+  height: auto;
+  /*text-align: center;*/
+  border: 1px solid black;
+  margin: 10px;
+  font-size: 12px;
+}
+.institution {
+  font-weight: bold;
+  text-align: center;
+  line-height: 15px;
+  margin-top: 20px;
+  font-size: 11px;
+}
+.institution-name{
+  display: block;
+}
+.institution-code{
+  /*margin-left: 10px;*/
+  display: block;
+}
+.collection-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+}
+.taxon {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 14px;
+  margin: 6px 0;
+  border: 1px dashed green;
+}
+.id-container {
+  margin: 20px 0;
+  border: 1px solid orange;
+}
+.taxon > span {
+  display: block;
+}
+.locality {
+}
+.geographic-position {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+}
+.left-right {
+  display: flex;
+  justify-content: space-between;
+}
+.annotations {
+  margin: 2px 0;
+}
+.annotation-container{
+  margin: 8px 0;
+}
+.collect {
+  display: flex;
+  justify-content: space-between;
+}
+.collect-num {
+}
+.collect-date {
+}
+.box {
+  display: block;
+}
+.companion {
+  margin: 2px 0;
+}
+.footer {
+  margin-top: 6px;
+  font-weight: bold;
+  font-size:10px;
+  text-decoration: underline;
+  text-align: center;
+}
+/*
+  font-weight: bold;
+  font-size: 3em;
+*/
+
+@media screen {
+
+}
+@media print{
+  .hast-label-item {
+    border: 0;;
+  }
+  @page{
+    /*size: A4 portrait;*/
+    /*width: 21cm;*/
+    /*height: 29.7cm;*/
+    /*margin: 30mm 45mm 30mm 45mm;*/
+    /*size: 7in 9.25in;*/
+    /*margin: 27mm 16mm 27mm 16mm;*/
+    /*margin: 0.5cm;*/
+    /*orphans:4;*/
+    /*widows:2;*/
+    size: auto;
+    margin: 0mm;
+  }
+  .page {
+    margin: 0;
+    box-shadow: 0;
+  }
+  .id-container {
+    border: unset;
+  }
+  .taxon {
+    border: unset;
+  }
+}

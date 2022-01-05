@@ -5,12 +5,28 @@ import {
   Datagrid,
   TextField,
   DateField,
+  ArrayField,
+  ChipField,
+  SingleFieldList,
   TextInput,
   ReferenceInput,
   SelectInput,
+  EditButton,
+  BulkDeleteButton,
 } from 'react-admin';
+import Button from '@material-ui/core/Button';
+import { Link } from 'react-router-dom';
+import { Link as MuiLink } from '@material-ui/core';
+const BulkActionButtons = props => {
+  const HOST = 'http://127.0.0.1:5000';
+  const printUrl = `${HOST}/print-label?ids=${props.selectedIds.join(",")}`;
+  return (
+  <>
+    <MuiLink href={printUrl}><Button>列印標籤</Button></MuiLink>
+  </>)
+}
 
-const listFilters = [
+const ListFilters = [
   <TextInput source="q" label="Search" alwaysOn />,
   <ReferenceInput source="id" label="Collector" reference="people">
   <SelectInput optionText="name" />
@@ -18,14 +34,20 @@ const listFilters = [
 ];
 
 const CollectionList = props => (
-  <List filters={listFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}}>
-  <Datagrid rowClick="edit">
-  <TextField source="id" />
-  <TextField source="collector__full_name" sortBy="person.full_name" />
-  <TextField source="field_number" />
-  <TextField source="latest_scientific_name" sortable={false} />
-  <DateField source="collect_date" locales="zh-TW" />
-  </Datagrid>
+  <List filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
+    <Datagrid>
+      <TextField source="id" />
+      <ArrayField source="units">
+        <SingleFieldList>
+          <ChipField source="accession_number" />
+        </SingleFieldList>
+      </ArrayField>
+      <TextField source="collector.display_name" sortBy="person.full_name" />
+      <TextField source="field_number" />
+      <TextField source="latest_scientific_name" sortable={false} />
+      <DateField source="collect_date" locales="zh-TW" />
+      <EditButton />
+    </Datagrid>
   </List>
 );
 
