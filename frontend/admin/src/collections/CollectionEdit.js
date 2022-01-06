@@ -45,6 +45,7 @@ import { Link } from 'react-router-dom';
 
 
 import UnitQuickCreateButton from './UnitQuickCreateButton';
+import IdentificationQuickCreateButton from './IdentificationQuickCreateButton';
 
 const UnitPreparationTypeChoices = [
   {id: 'S', name: 'specimen'},
@@ -134,7 +135,9 @@ const CollectionEdit = props => {
     setOpen(open);
   }
   const [version, setVersion] = React.useState(0);
+  const [version2, setVersion2] = React.useState(0);
   const handleUnitChange = React.useCallback(() => setVersion(version + 1), [version]);
+  const handleIdentificationChange = React.useCallback(() => setVersion2(version2 + 1), [version2]);
   //<UnitCreateButton />
   console.log('CollectionEdit::props', props);
   return (
@@ -211,6 +214,7 @@ const CollectionEdit = props => {
             <TextField source="verification_level" />
           </Datagrid>
         </ArrayField>
+        <IdentificationQuickCreateButton onChange={handleIdentificationChange} collectionId={props.id}/>
       </FormTab>
     </TabbedForm>
   </Edit>

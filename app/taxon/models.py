@@ -38,8 +38,18 @@ class ScientificName(Base):
     #Breed
     source_data = Column(JSONB)
 
+    @property
+    def display_name(self):
+        s = '[{}] {}'.format(self.rank, self.full_scientific_name)
+        if self.common_name:
+            s = '{} ({})'.format(s, self.common_name)
+        return s
+
     def to_dict(self):
         return {
             'id': self.id,
             'full_scientific_name': self.full_scientific_name,
+            'rank': self.rank,
+            'common_name': self.common_name,
+            'display_name': self.display_name,
         }

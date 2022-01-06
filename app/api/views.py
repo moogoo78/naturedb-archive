@@ -33,6 +33,47 @@ from .helpers import (
     make_cors_preflight_response,
 )
 
+class ScientificNameMethodView(MethodView):
+    RESOURCE_NAME = 'scientificname'
+    model = ScientificName
+    def get(self, item_id):
+        if item_id is None:
+            # item_list
+            query = self.model.query
+            if filter_str := request.args.get('filter', ''):
+                filter_dict = json.loads(filter_str)
+                if keyword := filter_dict.get('q', ''):
+                    query = query.filter(ScientificName.full_scientific_name.ilike(f'%{keyword}%') | ScientificName.common_name.ilike(f'%{keyword}%'))
+            return ra_get_list_response(self.RESOURCE_NAME, request, query)
+        else:
+            # single item
+            obj = session.get(self.model, item_id)
+            return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def post(self, item_id):
+        # create
+        obj = self.model()
+        for i, v in request.json.items():
+            setattr(obj, i, v)
+        session.add(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def delete(self, item_id):
+        # delete a single user
+        obj = session.get(self.model, item_id)
+        session.delete(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def put(self, item_id):
+        # update
+        obj = session.get(self.model, item_id)
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def options(self, item_id):
+        return make_cors_preflight_response()
+
 class UnitMethodView(MethodView):
     RESOURCE_NAME = 'unit'
     model = Unit
@@ -44,6 +85,11 @@ class UnitMethodView(MethodView):
         else:
             # single item
             obj = session.get(self.model, item_id)
+            if filter_str := request.args.get('filter', ''):
+                filter_dict = json.loads(filter_str)
+                if keyword := filter_dict.get('q', ''):
+                    #query = query.filter(ScientificName.full_scientific_name.ilike(f'%{keyword}%'))
+                    pass
             return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
@@ -187,7 +233,8 @@ class CollectionMethodView(MethodView):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
                     query = query.join(Collection.collector).join(Collection.identifications).join(Identification.scientific_name).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | ScientificName.full_scientific_name.ilike(f'%{keyword}%'))
-
+                if collector_id := filter_dict.get('collector_id'):
+                    query = query.filter(Person.id==collector_id)
             return ra_get_list_response('collections', request, query)
         else:
             # single item

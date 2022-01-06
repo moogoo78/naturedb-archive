@@ -36,6 +36,7 @@ import people from './people';
 import units from './units';
 import collections from './collections';
 import measurementorfacts from './measurementorfacts';
+import scientificnames from './scientificnames';
 import Dashboard from './Dashboard';
 
 import authProvider from './authProvider';
@@ -54,6 +55,7 @@ const App = () => (
     <Resource name="identifications" list={IdentificationList} icon={SearchIcon} />
     <Resource name="measurement_or_facts" {...measurementorfacts} />
     <Resource name="datasets" list={DatasetList} icon={CategoryIcon} />
+  <Resource name="scientific_names" {...scientificnames} />
   </Admin>
 );
 

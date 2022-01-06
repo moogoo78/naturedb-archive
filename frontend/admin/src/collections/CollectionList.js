@@ -10,7 +10,7 @@ import {
   SingleFieldList,
   TextInput,
   ReferenceInput,
-  SelectInput,
+  AutocompleteInput,
   EditButton,
   BulkDeleteButton,
 } from 'react-admin';
@@ -28,8 +28,8 @@ const BulkActionButtons = props => {
 
 const ListFilters = [
   <TextInput source="q" label="Search" alwaysOn />,
-  <ReferenceInput source="id" label="Collector" reference="people">
-  <SelectInput optionText="name" />
+  <ReferenceInput source="collector_id" label="Collector" reference="people">
+    <AutocompleteInput optionText="full_name" />
   </ReferenceInput>,
 ];
 
