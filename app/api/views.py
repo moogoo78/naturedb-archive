@@ -53,10 +53,7 @@ class ScientificNameMethodView(MethodView):
     def post(self, item_id):
         # create
         obj = self.model()
-        for i, v in request.json.items():
-            setattr(obj, i, v)
-        session.add(obj)
-        session.commit()
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
@@ -69,10 +66,24 @@ class ScientificNameMethodView(MethodView):
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
+
+    def _modify(self, obj, data):
+        for i, v in data.items():
+            # available types: str, int, NoneType
+            if i != 'id' and isinstance(v, str | int | None) and hasattr(obj, i):
+                setattr(obj, i, v)
+
+        if not obj.id:
+            session.add(obj)
+
+        session.commit()
+        return obj
+
 
 class UnitMethodView(MethodView):
     RESOURCE_NAME = 'unit'
@@ -121,11 +132,11 @@ class UnitMethodView(MethodView):
         return make_cors_preflight_response()
 
     def _modify(self, obj, data):
-        if 'accession_number__from_collection' in data.keys():
+        if 'accession_number__quick' in data.keys():
             # post from collection ouick button
             obj.collection_id = data.get('id')
-            obj.accession_number = data.get('accession_number__from_collection')
-            obj.duplication_number = data.get('duplication_number__from_collection')
+            obj.accession_number = data.get('accession_number__quick')
+            obj.duplication_number = data.get('duplication_number__quick')
         else:
             for i, v in data.items():
                 # available types: str, int, NoneType
@@ -426,10 +437,7 @@ class IdentificationMethodView(MethodView):
     def post(self, item_id):
         # create
         obj = self.model()
-        for i, v in request.json.items():
-            setattr(obj, i, v)
-        session.add(obj)
-        session.commit()
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
@@ -442,10 +450,33 @@ class IdentificationMethodView(MethodView):
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
+
+    def _modify(self, obj, data):
+        if 'scientific_name_id__quick' in data.keys():
+            # post from collection ouick button
+            print (data, flush=True)
+            obj.collection_id = data.get('id')
+            obj.scientific_name_id = data.get('scientific_name_id__quick')
+            obj.identifier_id = data.get('identifier_id__quick')
+            obj.date = data.get('date__quick')
+            obj.date_text = data.get('date_text__quick')
+            obj.verification_level = data.get('verification_level__quick')
+        else:
+            for i, v in data.items():
+                # available types: str, int, NoneType
+                if i != 'id' and isinstance(v, str | int | None) and hasattr(obj, i):
+                    setattr(obj, i, v)
+
+        if not obj.id:
+            session.add(obj)
+
+        session.commit()
+        return obj
 
 
 class MeasurementOrFactsMethodView(MethodView):

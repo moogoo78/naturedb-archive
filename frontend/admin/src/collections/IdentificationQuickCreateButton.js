@@ -50,7 +50,7 @@ function IdentificationQuickCreateButton({ onChange, collectionId }) {
           form.change('collection_id', parseInt(collectionId, 10));
           onChange();
           notify('add identification to collection');
-          redirect(`/collections/${collectionId}`)
+          redirect(`/collections/${collectionId}/3`)
           refresh();
         },
         onFailure: ({ error }) => {
@@ -84,14 +84,14 @@ function IdentificationQuickCreateButton({ onChange, collectionId }) {
               <DialogContent>
                 <Box display="flex">
                   <Box flex={1}>
-                    <ReferenceInput label="物種" source="scientific_name_id" reference="scientific_names" fullWidth allowEmpty>
+                    <ReferenceInput label="物種" source="scientific_name_id__quick" reference="scientific_names" fullWidth allowEmpty>
                       <AutocompleteInput optionText="display_name" />
                     </ReferenceInput>
                   </Box>
                 </Box>
                 <Box display="flex">
                   <Box flex={1}>
-                    <ReferenceInput label="鑒定者" source="identifier_id" reference="people" fullWidth allowEmpty>
+                    <ReferenceInput label="鑒定者" source="identifier_id__quick" reference="people" fullWidth allowEmpty>
                       <AutocompleteInput optionText="full_name" />
                     </ReferenceInput>
                   </Box>
@@ -100,14 +100,14 @@ function IdentificationQuickCreateButton({ onChange, collectionId }) {
                   <Box flex={1} mr="1em">
                     <DateInput
                       label="採集日期"
-                      source="date__from_collection"
+                      source="date__quick"
                       fullWidth
                     />
                   </Box>
                   <Box flex={1} ml="1em">
                     <TextInput
                       label="採集日期(格式不完整)"
-                      source="date_text_number__from_collection"
+                      source="date_text_number__quick"
                       fullWidth
                     />
                   </Box>
@@ -116,7 +116,7 @@ function IdentificationQuickCreateButton({ onChange, collectionId }) {
                   <Box flex={1}>
                     <NumberInput
                       label="鑑定等級/順序"
-                      source="verification_level__from_collection"
+                      source="verification_level__quick"
                     />
                   </Box>
                 </Box>

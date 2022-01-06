@@ -66,44 +66,48 @@ const PageTitle = ({ record }) => {
 const UnitEditButton = ({ record }) => (
     <EditButton basePath="/units" label="Edit Unit" record={record} />
 );
-
-const UnitCreateButton = ({ record }) => {
-  return (
-    <Button
-      component={Link}
-      to={`/units/create?collectiod_id=${record.id}`}
-      label="Add a unit"
-      title="Add a unit"
-    >
-    </Button>
-  );
-}
-
+const IdentificationEditButton = ({ record }) => (
+    <EditButton basePath="/identifications" label="Edit" record={record} />
+);
 const MeasurementOrFactEditButton = ({ record }) => (
     <EditButton basePath="/measurement_or_facts" label="Edit me" record={record} />
 );
 
-const MyTextField = (props) => {
-  const {
-    input: { name, onChange, ...rest },
-    meta: { touched, error },
-    isRequired
-  } = useInput(props);
-  console.log(props);
-  return (
-    <Labeled label="foo">
-      <MuiTextField
-        name={name}
-        label={props.label}
-        onChange={onChange}
-        error={!!(touched && error)}
-        helperText={touched && error}
-        required={isRequired}
-        {...rest}
-      />
-    </Labeled>
-    );
-}
+// const UnitCreateButton = ({ record }) => {
+//   return (
+//     <Button
+//       component={Link}
+//       to={`/units/create?collectiod_id=${record.id}`}
+//       label="Add a unit"
+//       title="Add a unit"
+//     >
+//     </Button>
+//   );
+// }
+
+
+// const MyTextField = (props) => {
+//   const {
+//     input: { name, onChange, ...rest },
+//     meta: { touched, error },
+//     isRequired
+//   } = useInput(props);
+//   console.log(props);
+//   return (
+//     <Labeled label="foo">
+//       <MuiTextField
+//         name={name}
+//         label={props.label}
+//         onChange={onChange}
+//         error={!!(touched && error)}
+//         helperText={touched && error}
+//         required={isRequired}
+//         {...rest}
+//       />
+//     </Labeled>
+//     );
+// }
+
 /* const AddMeasureOrFactButton = ({ record }) => (
  *   <Button
  *     component={Link}
@@ -212,6 +216,7 @@ const CollectionEdit = props => {
             <DateField source="date" />
             <TextField source="date_text" />
             <TextField source="verification_level" />
+            <IdentificationEditButton />
           </Datagrid>
         </ArrayField>
         <IdentificationQuickCreateButton onChange={handleIdentificationChange} collectionId={props.id}/>

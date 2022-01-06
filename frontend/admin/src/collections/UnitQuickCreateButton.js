@@ -81,11 +81,11 @@ function UnitQuickCreateButton({ onChange, collectionId }) {
                         <>
                           <DialogContent>
                                 <TextInput
-                                    source="accession_number__from_collection"
+                                    source="accession_number__quick"
                                     fullWidth
                                 />
                                 <TextInput
-                                    source="duplication_number__from_collection"
+                                    source="duplication_number__quick"
                                     fullWidth
                                 />
                             </DialogContent>

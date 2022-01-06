@@ -220,7 +220,7 @@ class Identification(Base):
             'identifier_id': self.identifier_id,
             'identifier': self.identifier.to_dict() if self.identifier else None,
             'scientific_name_id': self.scientific_name_id,
-            'scientific_name': self.scientific_name.to_dict(),
+            'scientific_name': self.scientific_name.to_dict() if self.scientific_name else None,
             'date': self.date,
             'date_text': self.date_text,
             'verification_level': self.verification_level,
