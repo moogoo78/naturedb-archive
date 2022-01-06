@@ -49,14 +49,17 @@ class UnitMethodView(MethodView):
     def post(self, item_id):
         # create
         obj = self.model()
-        for i, v in request.json.items():
-            setattr(obj, i, v)
-        session.add(obj)
-        session.commit()
+        print (request.json, request.args, flush=True)
+        #for i, v in request.json.items():
+        #    setattr(obj, i, v)
+        #session.add(obj)
+        #session.commit()
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
         # delete a single user
+        #print (item_id, request.args)
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
@@ -65,11 +68,29 @@ class UnitMethodView(MethodView):
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
+        obj = self._modify(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
 
+    def _modify(self, obj, data):
+        if 'accession_number__from_collection' in data.keys():
+            # post from collection ouick button
+            obj.collection_id = data.get('id')
+            obj.accession_number = data.get('accession_number__from_collection')
+            obj.duplication_number = data.get('duplication_number__from_collection')
+        else:
+            for i, v in data.items():
+                # available types: str, int, NoneType
+                if i != 'id' and isinstance(v, str | int | None) and hasattr(obj, i):
+                    setattr(obj, i, v)
+
+        if not obj.id:
+            session.add(obj)
+
+        session.commit()
+        return obj
 
 class AreaClassMethodView(MethodView):
     RESOURCE_NAME = 'area_class'
@@ -196,7 +217,7 @@ class CollectionMethodView(MethodView):
         return make_cors_preflight_response()
 
     def _modify(self, obj, data):
-        print(data, flush=True)
+        #print(data, flush=True)
         named_area_list = []
         for i, v in data.items():
             # available types: str, int, NoneType

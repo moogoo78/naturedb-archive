@@ -3,6 +3,8 @@ import * as React from "react";
 import {
   Edit,
   EditButton,
+  Button,
+  //CreateButton,
   ListButton,
   TopToolbar,
   TabbedForm,
@@ -39,6 +41,10 @@ import { useInput } from 'react-admin';
 /* import ChatBubbleIcon from "@material-ui/icons/ChatBubble";
  * import { Button } from "react-admin";
  * import { Link } from 'react-router-dom'; */
+import { Link } from 'react-router-dom';
+
+
+import UnitQuickCreateButton from './UnitQuickCreateButton';
 
 const UnitPreparationTypeChoices = [
   {id: 'S', name: 'specimen'},
@@ -59,6 +65,18 @@ const PageTitle = ({ record }) => {
 const UnitEditButton = ({ record }) => (
     <EditButton basePath="/units" label="Edit Unit" record={record} />
 );
+
+const UnitCreateButton = ({ record }) => {
+  return (
+    <Button
+      component={Link}
+      to={`/units/create?collectiod_id=${record.id}`}
+      label="Add a unit"
+      title="Add a unit"
+    >
+    </Button>
+  );
+}
 
 const MeasurementOrFactEditButton = ({ record }) => (
     <EditButton basePath="/measurement_or_facts" label="Edit me" record={record} />
@@ -108,13 +126,17 @@ const MyTextField = (props) => {
         // <AddMeasureOrFactButton />
 
 
+
 const CollectionEdit = props => {
   const [open, setOpen] = React.useState(false);
   const toggle = (open) => {
     //console.log(open, 'tog');
     setOpen(open);
   }
-
+  const [version, setVersion] = React.useState(0);
+  const handleUnitChange = React.useCallback(() => setVersion(version + 1), [version]);
+  //<UnitCreateButton />
+  console.log('CollectionEdit::props', props);
   return (
   <Edit title={<PageTitle />} actions={<PageActions />} {...props}>
     <TabbedForm>
@@ -140,6 +162,7 @@ const CollectionEdit = props => {
             <UnitEditButton />
           </Datagrid>
         </ArrayField>
+        <UnitQuickCreateButton onChange={handleUnitChange} collectionId={props.id}/>
       </FormTab>
       <FormTab label="locality">
         {/*<MyTextField source="longitude_decimal" />*/}
