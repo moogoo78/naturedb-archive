@@ -13,6 +13,8 @@ from app.database import Base
 
 
 class ScientificName(Base):
+    RANK_HIERARCHY = ['family', 'genus', 'species']
+
     __tablename__ = 'scientific_name'
     id = Column(Integer, primary_key=True)
     rank = Column(String(50))
@@ -44,6 +46,12 @@ class ScientificName(Base):
         if self.common_name:
             s = '{} ({})'.format(s, self.common_name)
         return s
+
+
+    #def taxon(self):
+
+    #print (map((lambda x: ), self.RANK_HIERARCHY))
+    #    if self.rank ==
 
     def to_dict(self):
         return {

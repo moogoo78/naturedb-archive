@@ -299,6 +299,7 @@ class Collection(Base):
 
     # collection.to_dict
     def to_dict(self):
+        ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
         data = {
             'id': self.id,
             'collect_date': self.collect_date,
@@ -315,7 +316,9 @@ class Collection(Base):
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
-            'identifications': [x.to_dict() for x in self.identifications.all()]
+            'identifications': ids,
+            'identification_initial': ids[0] if len(ids) else None,
+            'identification_last': ids[-1] if len(ids) else None,
         }
 
 
@@ -360,7 +363,6 @@ class Collection(Base):
             return fn_list
         else:
             return ','.join(fn_list)
-
 
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'
