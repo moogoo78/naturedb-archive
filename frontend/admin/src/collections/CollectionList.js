@@ -44,7 +44,7 @@ const CollectionList = props => (
       </ArrayField>
       <TextField source="collector.display_name" sortBy="person.full_name" />
       <TextField source="field_number" />
-      <TextField source="latest_scientific_name" sortable={false} />
+      <TextField source="identifications[0].scientific_name.full_scientific_name" sortable={false} />
       <DateField source="collect_date" locales="zh-TW" />
       <EditButton />
     </Datagrid>

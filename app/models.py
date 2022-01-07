@@ -317,13 +317,9 @@ class Collection(Base):
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
             'identifications': ids,
-            'identification_initial': ids[0] if len(ids) else None,
-            'identification_last': ids[-1] if len(ids) else None,
         }
 
 
-        if last_taxon := self.last_taxon:
-            data['latest_scientific_name'] = last_taxon
         for i in data['named_area_list']:
             if i['area_class_id'] == 1:
                 data['named_area_country_id'] = i['id']
@@ -339,12 +335,6 @@ class Collection(Base):
                 data['named_area_locality_id'] = i['id']
         return data
 
-    @property
-    def last_taxon(self):
-        if last_id := self.identifications.order_by(desc('verification_level')).first():
-            if taxon := last_id.scientific_name:
-                return last_id.scientific_name.full_scientific_name
-        return ''
 
     def display_field_number(self, delimeter='', is_list=False):
         '''DEPRICATED'''
