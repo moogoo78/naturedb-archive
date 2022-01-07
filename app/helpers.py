@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 
-from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, ScientificName, MeasurementOrFact, Annotation
+from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation
+from app.taxon.models import Taxon
 from app.database import session
 
 def make_person(con):
@@ -74,7 +75,7 @@ MOF_PARAM_LIST2 = [
 ]
 
 def make_collection(con):
-    rows = con.execute('SELECT * FROM specimen_specimen ORDER BY id LIMIT 20')
+    rows = con.execute('SELECT * FROM specimen_specimen ORDER BY id')
     for r in rows:
         #print(r)
         cid = r[0]
@@ -126,7 +127,7 @@ def make_collection(con):
                 identifier_id=r2[2],
                 date=r2[1],
                 date_text=r2[9],
-                scientific_name_id=r2[7],
+                taxon_id=r2[7],
                 verification_level=r2[8],
                 created=r2[4],
                 changed=r2[3],
@@ -230,7 +231,7 @@ def make_collection(con):
 def make_taxon(con):
     rows = con.execute(f"SELECT * FROM taxon_taxon")
     for r in rows:
-        sn = ScientificName(
+        sn = Taxon(
             id=r[0],
             rank=r[1],
             full_scientific_name=r[2],

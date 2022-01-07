@@ -7,14 +7,21 @@ import {
   BooleanInput,
   TextInput,
   TextField,
+  SelectInput,
 } from 'react-admin';
 
+const RANK_CHOICES = [
+  {id: 'family', name: 'Family'},
+  {id: 'genus', name: 'Genus'},
+  {id: 'species', name: 'Species'}
+];
 const listFilters = [
   <TextInput source="q" label="Search" alwaysOn />,
+  <SelectInput source="rank" label="Rank" choices={RANK_CHOICES} />,
   <BooleanInput source="is_identifier" />,
 ];
 
-const ScientificNameList = props => (
+const TaxonList = props => (
   <List filters={listFilters} {...props}>
   <Datagrid>
   <TextField source="id" />
@@ -26,4 +33,4 @@ const ScientificNameList = props => (
   </List>
 );
 
-export default ScientificNameList;
+export default TaxonList;

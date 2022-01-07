@@ -41,7 +41,7 @@ def register_blueprint_api(app):
         OrganizationMethodView,
         IdentificationMethodView,
         MeasurementOrFactsMethodView,
-        ScientificNameMethodView,
+        TaxonMethodView,
     )
     #app.register_blueprint(api_bp, url_prefix='/api')
     api_person_view = PersonMethodView.as_view('api-person')
@@ -159,16 +159,16 @@ def register_blueprint_api(app):
         view_func=api_mof_view,
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
-    api_scientificname_view = ScientificNameMethodView.as_view('api-scientificname')
+    api_taxon_view = TaxonMethodView.as_view('api-taxon')
     api_bp.add_url_rule(
-        '/scientific_names',
+        '/taxa',
         defaults={'item_id': None},
-        view_func=api_scientificname_view,
+        view_func=api_taxon_view,
         methods=['GET', 'POST', 'OPTIONS']
     )
     api_bp.add_url_rule(
-        '/scientific_namess/<int:item_id>',
-        view_func=api_scientificname_view,
+        '/taxa/<int:item_id>',
+        view_func=api_taxon_view,
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
     app.register_blueprint(api_bp, url_prefix='/api/v1')

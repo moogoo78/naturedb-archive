@@ -33,7 +33,7 @@ import people from './people';
 import units from './units';
 import collections from './collections';
 import measurementorfacts from './measurementorfacts';
-import scientificnames from './scientificnames';
+import taxa from './taxa';
 import identifications from './identifications';
 import Dashboard from './Dashboard';
 
@@ -53,7 +53,7 @@ const App = () => (
     <Resource name="identifications" {...identifications} />
     <Resource name="measurement_or_facts" {...measurementorfacts} />
     <Resource name="datasets" list={DatasetList} icon={CategoryIcon} />
-    <Resource name="scientific_names" {...scientificnames} />
+    <Resource name="taxa" {...taxa} />
   </Admin>
 );
 

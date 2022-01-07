@@ -24,7 +24,7 @@ from app.models import (
     CollectionNamedArea,
 )
 from app.taxon.models import (
-    ScientificName,
+    Taxon,
 )
 from app.api import api
 from .helpers import (
@@ -33,9 +33,9 @@ from .helpers import (
     make_cors_preflight_response,
 )
 
-class ScientificNameMethodView(MethodView):
-    RESOURCE_NAME = 'scientificname'
-    model = ScientificName
+class TaxonMethodView(MethodView):
+    RESOURCE_NAME = 'taxon'
+    model = Taxon
     def get(self, item_id):
         if item_id is None:
             # item_list
@@ -43,7 +43,10 @@ class ScientificNameMethodView(MethodView):
             if filter_str := request.args.get('filter', ''):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
-                    query = query.filter(ScientificName.full_scientific_name.ilike(f'%{keyword}%') | ScientificName.common_name.ilike(f'%{keyword}%'))
+                    query = query.filter(Taxon.full_scientific_name.ilike(f'%{keyword}%') | Taxon.common_name.ilike(f'%{keyword}%'))
+                if rank := filter_dict.get('rank'):
+                    query = query.filter(Taxon.rank==rank)
+
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
             # single item
@@ -243,7 +246,7 @@ class CollectionMethodView(MethodView):
             if filter_str := request.args.get('filter', ''):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
-                    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.scientific_name).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | ScientificName.full_scientific_name.ilike(f'%{keyword}%'))
+                    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.taxon).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | Taxon.full_scientific_name.ilike(f'%{keyword}%'))
                 if collector_id := filter_dict.get('collector_id'):
                     query = query.filter(Person.id==collector_id)
             return ra_get_list_response('collections', request, query)
@@ -461,7 +464,7 @@ class IdentificationMethodView(MethodView):
             # post from collection ouick button
             print (data, flush=True)
             obj.collection_id = data.get('id')
-            obj.scientific_name_id = data.get('scientific_name_id__quick')
+            obj.taxon_id = data.get('taxon_id__quick')
             obj.identifier_id = data.get('identifier_id__quick')
             obj.date = data.get('date__quick')
             obj.date_text = data.get('date_text__quick')

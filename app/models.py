@@ -18,7 +18,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from app.utils import get_time
 from app.database import Base
-from app.taxon.models import ScientificName
+from app.taxon.models import Taxon
 
 def get_hast_parameters(obj=None):
     '''obj is Collection.biotope_measurement_or_facts
@@ -199,8 +199,8 @@ class Identification(Base):
     collection = relationship('Collection', back_populates='identifications')
     identifier_id = Column(Integer, ForeignKey('person.id', ondelete='SET NULL'), nullable=True)
     identifier = relationship('Person')
-    scientific_name_id = Column(Integer, ForeignKey('scientific_name.id', ondelete='set NULL'), nullable=True)
-    scientific_name = relationship('ScientificName', backref=backref('scientific_name'))
+    taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True)
+    taxon = relationship('Taxon', backref=backref('taxon'))
     date = Column(DateTime)
     date_text = Column(String(50)) #格式不完整的鑑訂日期, helper: ex: 1999-1
     created = Column(DateTime, default=get_time)
@@ -219,8 +219,8 @@ class Identification(Base):
             'collection_id': self.collection_id,
             'identifier_id': self.identifier_id,
             'identifier': self.identifier.to_dict() if self.identifier else None,
-            'scientific_name_id': self.scientific_name_id,
-            'scientific_name': self.scientific_name.to_dict() if self.scientific_name else None,
+            'taxon_id': self.taxon_id,
+            'taxon': self.taxon.to_dict() if self.taxon else None,
             'date': self.date,
             'date_text': self.date_text,
             'verification_level': self.verification_level,

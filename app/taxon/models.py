@@ -12,10 +12,12 @@ from sqlalchemy.dialects.postgresql import JSONB
 from app.database import Base
 
 
-class ScientificName(Base):
+class Taxon(Base):
+    '''abcd: TaxonIdentified
+    '''
     RANK_HIERARCHY = ['family', 'genus', 'species']
 
-    __tablename__ = 'scientific_name'
+    __tablename__ = 'taxon'
     id = Column(Integer, primary_key=True)
     rank = Column(String(50))
     full_scientific_name = Column(String(500))
@@ -25,7 +27,8 @@ class ScientificName(Base):
     author = Column(String(500))
     canonical_name = Column(String(500))
     status = Column(String(50))
-    common_name = Column(String(500))
+    common_name = Column(String(500)) # abcd: InformalName
+    code = Column(String(500))
     #hybrid_flag =
     #author_team_parenthesis
     #author_team

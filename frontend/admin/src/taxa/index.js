@@ -1,13 +1,13 @@
 import LibraryBooksIcon from '@material-ui/icons/LibraryBooks';
 
-import ScientificNameList from './ScientificNameList';
+import TaxonList from './TaxonList';
 //import PersonCreate from './PersonCreate';
 //import PersonEdit from './PersonEdit';
 
 const item =  {
   //create: PersonCreate,
   //edit: PersonEdit,
-  list: ScientificNameList,
+  list: TaxonList,
   //  show: CommentShow,
   icon: LibraryBooksIcon,
 };
