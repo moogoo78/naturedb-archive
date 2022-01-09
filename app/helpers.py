@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine
 
 from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation
-from app.taxon.models import Taxon
+from app.taxon.models import Taxon, TaxonTree, TaxonRelation
 from app.database import session
+
 
 def make_person(con):
     rows = con.execute('SELECT * FROM specimen_person ORDER BY id')
@@ -79,7 +80,7 @@ def make_collection(con):
     for r in rows:
         #print(r)
         cid = r[0]
-        field_number = r[2].replace('::', '')
+        field_number = r[2].replace('::', '') if r[2] else ''
 
         # Collection
         col = Collection(
@@ -229,26 +230,80 @@ def make_collection(con):
 
 
 def make_taxon(con):
-    rows = con.execute(f"SELECT * FROM taxon_taxon")
+    rows_init = con.execute(f"SELECT * FROM taxon_taxon")
+    rows = [x for x in rows_init]
+    tree = TaxonTree(name='HAST-legacy')
+    session.add(tree)
+    session.commit()
+    #tree = TaxonTree.query.filter(TaxonTree.id==1).first()
+
     for r in rows:
         sn = Taxon(
             id=r[0],
             rank=r[1],
             full_scientific_name=r[2],
             common_name=r[6],
-            source_data=r[7],
+            source_data=r[8],
+            tree_id=tree.id,
         )
         session.add(sn)
     session.commit()
 
+    # relation
+    ## self
+    for r in rows:
+        tr = TaxonRelation(
+            parent_id=r[0],
+            child_id=r[0],
+            depth=0,
+        )
+        session.add(tr)
+    session.commit()
 
-def conv_hast21():
+    for r in rows:
+        if r[1] == 'species' and r[8]:
+            #print(type(r[8]), r[8].get('genusE'), flush=True)
+            if gen := r[8].get('genusE'):
+                t_g = Taxon.query.filter(Taxon.rank=='genus', Taxon.full_scientific_name==gen).first()
+                if t_g:
+                    tr = TaxonRelation(
+                        parent_id=t_g.id,
+                        child_id=r[0],
+                        depth=1,
+                    )
+                    session.add(tr)
+            if fam := r[8].get('familyE'):
+                t_f = Taxon.query.filter(Taxon.rank=='family', Taxon.full_scientific_name==fam).first()
+                if t_f:
+                    tr = TaxonRelation(
+                        parent_id=t_f.id,
+                        child_id=r[0],
+                        depth=2,
+                    )
+                    session.add(tr)
+        if r[1] == 'genus' and r[8]:
+            if fam := r[8].get('familyE'):
+                t_f = Taxon.query.filter(Taxon.rank=='family', Taxon.full_scientific_name==fam).first()
+                if t_f:
+                    tr = TaxonRelation(
+                        parent_id=t_f.id,
+                        child_id=r[0],
+                        depth=1,
+                    )
+                    session.add(tr)
+    session.commit()
+
+
+
+def conv_hast21(key):
     engine2 = create_engine('postgresql+psycopg2://postgres:example@postgres:5432/hast21', convert_unicode=True)
     with engine2.connect() as con:
-        #make_person(con)
 
-        #make_geospatial(con)
-
-        #make_taxon(con)
-
-        make_collection(con)
+        if key == 'person':
+            make_person(con)
+        elif key == 'geo':
+            make_geospatial(con)
+        elif key == 'taxon':
+            make_taxon(con)
+        elif key == 'collection':
+            make_collection(con)

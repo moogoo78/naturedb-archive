@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 3d81d4467a46
+Revision ID: f2c40b530b73
 Revises: 
-Create Date: 2022-01-07 20:00:36.645762
+Create Date: 2022-01-08 03:10:30.576620
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '3d81d4467a46'
+revision = 'f2c40b530b73'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,18 +30,10 @@ def upgrade():
     sa.Column('abbreviation', sa.String(length=500), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('taxon',
+    op.create_table('taxon_tree',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('rank', sa.String(length=50), nullable=True),
-    sa.Column('full_scientific_name', sa.String(length=500), nullable=True),
-    sa.Column('first_epithet', sa.String(length=500), nullable=True),
-    sa.Column('infraspecific_epithet', sa.String(length=500), nullable=True),
-    sa.Column('author', sa.String(length=500), nullable=True),
-    sa.Column('canonical_name', sa.String(length=500), nullable=True),
-    sa.Column('status', sa.String(length=50), nullable=True),
-    sa.Column('common_name', sa.String(length=500), nullable=True),
-    sa.Column('code', sa.String(length=500), nullable=True),
-    sa.Column('source_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('name', sa.String(length=1000), nullable=True),
+    sa.Column('memo', sa.String(length=1000), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('dataset',
@@ -78,6 +70,22 @@ def upgrade():
     sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('taxon',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('rank', sa.String(length=50), nullable=True),
+    sa.Column('full_scientific_name', sa.String(length=500), nullable=True),
+    sa.Column('first_epithet', sa.String(length=500), nullable=True),
+    sa.Column('infraspecific_epithet', sa.String(length=500), nullable=True),
+    sa.Column('author', sa.String(length=500), nullable=True),
+    sa.Column('canonical_name', sa.String(length=500), nullable=True),
+    sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('common_name', sa.String(length=500), nullable=True),
+    sa.Column('code', sa.String(length=500), nullable=True),
+    sa.Column('tree_id', sa.Integer(), nullable=True),
+    sa.Column('source_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.ForeignKeyConstraint(['tree_id'], ['taxon_tree.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('collection',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('collect_date', sa.DateTime(), nullable=True),
@@ -87,8 +95,8 @@ def upgrade():
     sa.Column('companion_text', sa.String(length=500), nullable=True),
     sa.Column('sex', sa.String(length=500), nullable=True),
     sa.Column('age', sa.String(length=500), nullable=True),
-    sa.Column('locality_text', sa.String(length=500), nullable=True),
-    sa.Column('locality_text2', sa.String(length=500), nullable=True),
+    sa.Column('locality_text', sa.String(length=1000), nullable=True),
+    sa.Column('locality_text2', sa.String(length=1000), nullable=True),
     sa.Column('altitude', sa.Integer(), nullable=True),
     sa.Column('altitude2', sa.Integer(), nullable=True),
     sa.Column('latitude_decimal', sa.Numeric(precision=9, scale=6), nullable=True),
@@ -99,6 +107,15 @@ def upgrade():
     sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('changed', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['collector_id'], ['person.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('taxon_relation',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('parent_id', sa.Integer(), nullable=True),
+    sa.Column('child_id', sa.Integer(), nullable=True),
+    sa.Column('depth', sa.SmallInteger(), nullable=True),
+    sa.ForeignKeyConstraint(['child_id'], ['taxon.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['parent_id'], ['taxon.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('collection_named_area',
@@ -212,11 +229,13 @@ def downgrade():
     op.drop_table('identification')
     op.drop_table('collection_person')
     op.drop_table('collection_named_area')
+    op.drop_table('taxon_relation')
     op.drop_table('collection')
+    op.drop_table('taxon')
     op.drop_table('person')
     op.drop_table('named_area')
     op.drop_table('dataset')
-    op.drop_table('taxon')
+    op.drop_table('taxon_tree')
     op.drop_table('organization')
     op.drop_table('area_class')
     # ### end Alembic commands ###

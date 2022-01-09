@@ -36,16 +36,16 @@ const ListFilters = [
 const CollectionList = props => (
   <List filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
     <Datagrid>
-      <TextField source="id" />
-      <ArrayField source="units">
+      <TextField source="id"/>
+      <ArrayField source="units" label="館號">
         <SingleFieldList>
           <ChipField source="accession_number" />
         </SingleFieldList>
       </ArrayField>
-      <TextField source="collector.display_name" sortBy="person.full_name" />
-      <TextField source="field_number" />
-      <TextField source="identifications[0].scientific_name.full_scientific_name" sortable={false} />
-      <DateField source="collect_date" locales="zh-TW" />
+      <TextField source="collector.display_name" sortBy="person.full_name" label="採集者"/>
+      <TextField source="field_number" label="採集號"/>
+      <TextField source="identification_last.taxon.full_scientific_name" sortable={false} label="學名" />
+      <DateField source="collect_date" locales="zh-TW" label="採集日期" />
       <EditButton />
     </Datagrid>
   </List>

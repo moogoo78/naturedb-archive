@@ -16,9 +16,27 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 
-from app.utils import get_time
+from app.utils import (
+    get_time,
+    dd2dms,
+)
 from app.database import Base
 from app.taxon.models import Taxon
+
+
+def get_structed_list(options, value_dict={}):
+    '''structed_list
+    dict key must use id (str)
+    '''
+    res = []
+    for i, v in enumerate(options):
+        res.append({
+            'id': v['id'],
+            'name': v['name'],
+            'label': v['label'],
+            'data': value_dict.get(str(v['id']))
+        })
+    return res
 
 def get_hast_parameters(obj=None):
     '''obj is Collection.biotope_measurement_or_facts
@@ -126,6 +144,14 @@ class AreaClass(Base):
 #HAST: country (249), province (142), hsienCity (97), hsienTown (371), additionalDesc(specimen.locality_text): ref: hast_id: 144954
 
     __tablename__ = 'area_class'
+    DEFAULT_OPTIONS = [
+        {'id': 1, 'name': 'country', 'label': '國家'},
+        {'id': 2, 'name': 'province', 'label': '省/州'},
+        {'id': 3, 'name': 'hsien', 'label': '縣/市'},
+        {'id': 4, 'name': 'town', 'label': '鄉/鎮'},
+        {'id': 5, 'name': 'national_park', 'label': '國家公園'},
+        {'id': 6, 'name': 'locality', 'label': '地名'},
+    ]
 
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
@@ -255,6 +281,8 @@ class CollectionPerson(Base):
 class Collection(Base):
     __tablename__ = 'collection'
 
+    #NAMED_AREA_LIST = ['country', 'province', 'hsien', 'town', 'national_park', 'locality']
+
     id = Column(Integer, primary_key=True)
     #project
     #method
@@ -274,11 +302,11 @@ class Collection(Base):
     age = Column(String(500))
 
     # Locality
-    locality_text = Column(String(500))
-    locality_text2 = Column(String(500)) #DEPRICATED
+    locality_text = Column(String(1000))
+    locality_text2 = Column(String(1000)) #DEPRICATED
 
     #country
-    named_areas = relationship('CollectionNamedArea')
+    named_area_relations = relationship('CollectionNamedArea')
 
     altitude = Column(Integer)
     altitude2 = Column(Integer)
@@ -300,12 +328,13 @@ class Collection(Base):
     # collection.to_dict
     def to_dict(self):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
+
         data = {
             'id': self.id,
             'collect_date': self.collect_date,
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
-            'named_area_list': [x.named_area.to_dict() for x in self.named_areas],
+            'named_area_list': self.get_named_area_list(),
             'altitude': self.altitude,
             'altitude2':self.altitude2,
             'longitude_decimal': self.longitude_decimal,
@@ -313,28 +342,52 @@ class Collection(Base):
             'locality_text': self.locality_text,
             #'measurement_or_facts': [x.to_dict() for x in self.biotope_measurement_or_facts],
             'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
+            'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
             'identifications': ids,
+            'identification_last': ids[-1], # React-Admin cannot read identifications[-1]
         }
 
-
-        for i in data['named_area_list']:
-            if i['area_class_id'] == 1:
-                data['named_area_country_id'] = i['id']
-            elif i['area_class_id'] == 2:
-                data['named_area_province_id'] = i['id']
-            elif i['area_class_id'] == 3:
-                data['named_area_hsien_id'] = i['id']
-            elif i['area_class_id'] == 4:
-                data['named_area_town_id'] = i['id']
-            elif i['area_class_id'] == 5:
-                data['named_area_park_id'] = i['id']
-            elif i['area_class_id'] == 6:
-                data['named_area_locality_id'] = i['id']
         return data
 
+
+    def get_parameter(self, parameter_list=[]):
+        pass
+
+    def get_coordinates(self, type_=''):
+        if self.longitude_decimal and self.latitude_decimal:
+            if type_ == '' or type_ == 'dd':
+                return {
+                    'x': self.longitude_decimal,
+                    'y': self.latitude_decimal
+                }
+            elif type_ == 'dms':
+                dms_lng = dd2dms(self.longitude_decimal)
+                dms_lat = dd2dms(self.latitude_decimal)
+                x_label = '{}{}\u00b0{:02d}\'{:02d}"'.format('N' if dms_lng[0] > 0 else 'S', dms_lng[0], dms_lng[1], int(dms_lng[2]))
+                y_label = '{}{}\u00b0{}\'{:02d}"'.format('E' if dms_lat[0] > 0 else 'W', dms_lat[0], dms_lat[1], int(dms_lat[2]))
+                return {
+                    'x': dms_lng,
+                    'y': dms_lat,
+                    'x_label': x_label,
+                    'y_label': y_label,
+                }
+        else:
+            return None
+
+    def get_named_area_list(self, key=''):
+        if key == '':
+            named_area_dict = {f'{x.named_area.area_class_id}': x.named_area.to_dict() for x in self.named_area_relations}
+            data = get_structed_list(AreaClass.DEFAULT_OPTIONS,  named_area_dict)
+            print(data, flush=True)
+            return data
+        else:
+            for x in self.named_area_relations:
+                na = x.named_area
+                if na.area_class.name == key:
+                    return na.to_dict()
 
     def display_field_number(self, delimeter='', is_list=False):
         '''DEPRICATED'''
@@ -454,10 +507,17 @@ class Person(Base):
                 return '{} {}'.format(en_name['inherited_name'], en_name['given_name'])
         return ''
 
-    def display_name(self):
-        name = self.english_name
-        if self.full_name:
-            name = '{} ({})'.format(name, self.full_name)
+    def display_name(self, type_=None):
+        name = ''
+        if name := self.english_name:
+            if fname := self.full_name:
+                name = '{} ({})'.format(name, fname)
+        elif self.full_name:
+            name =  self.full_name
+
+        if type_ == 'label':
+            return name
+
         return name
 
     def to_dict(self):

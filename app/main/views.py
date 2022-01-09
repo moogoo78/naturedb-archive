@@ -1,8 +1,10 @@
 import json
+from datetime import datetime
 
 from flask import (
     request,
-    render_template
+    render_template,
+    jsonify,
 )
 
 from app.main import main
@@ -15,9 +17,16 @@ from app.helpers import conv_hast21
 
 @main.route('/conv-hast21')
 def foo():
-    conv_hast21()
-
-    return ('foo-data')
+    key = request.args.get('key')
+    start = datetime.now()
+    conv_hast21(key)
+    end = datetime.now()
+    return jsonify({
+        'start': start,
+        'end': end,
+        'dur': (end-start).total_seconds(),
+        'key': key,
+    })
 
 B_NAME = '''
 Begonia acutis
@@ -234,9 +243,9 @@ def bego():
 def print_label():
     ids = request.args.get('ids')
     rows = Collection.query.filter(Collection.id.in_(ids.split(','))).all()
-    item_list = []
-    for r in rows:
-        d = r.to_dict()
-        item_list.append(d)
+    #item_list = []
+    #for r in rows:
+    #    d = r.to_dict()
+    #    item_list.append(d)
 
-    return render_template('print-label.html', item_list=item_list)
+    return render_template('print-label.html', item_list=rows)

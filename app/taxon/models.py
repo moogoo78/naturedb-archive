@@ -1,16 +1,35 @@
 from sqlalchemy import (
     Column,
     Integer,
+    SmallInteger,
     String,
     Text,
     DateTime,
     Boolean,
+    ForeignKey,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 
 from app.database import Base
 
+class TaxonTree(Base):
+
+    __tablename__ = 'taxon_tree'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(1000))
+    memo = Column(String(1000))
+    # tree_hierarchy
+
+class TaxonRelation(Base):
+
+    __tablename__ = 'taxon_relation'
+    id = Column(Integer, primary_key=True)
+    parent_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'))
+    child_id = Column(Integer, ForeignKey('taxon.id', ondelete='SET NULL'))
+    depth = Column(SmallInteger)
+    parent = relationship('Taxon', foreign_keys='TaxonRelation.parent_id')
+    child = relationship('Taxon', foreign_keys='TaxonRelation.child_id')
 
 class Taxon(Base):
     '''abcd: TaxonIdentified
@@ -29,6 +48,7 @@ class Taxon(Base):
     status = Column(String(50))
     common_name = Column(String(500)) # abcd: InformalName
     code = Column(String(500))
+    tree_id = Column(ForeignKey('taxon_tree.id', ondelete='SET NULL'))
     #hybrid_flag =
     #author_team_parenthesis
     #author_team
@@ -43,18 +63,31 @@ class Taxon(Base):
     #Breed
     source_data = Column(JSONB)
 
-    @property
-    def display_name(self):
-        s = '[{}] {}'.format(self.rank, self.full_scientific_name)
-        if self.common_name:
-            s = '{} ({})'.format(s, self.common_name)
-        return s
+    def display_name(self, by=''):
+        if by == 'label':
+            s = self.full_scientific_name
+            if self.common_name:
+                return f'{s} {self.common_name}'
+            return s
+        else:
+            s = '[{}] {}'.format(self.rank, self.full_scientific_name)
+            if self.common_name:
+                s = '{} ({})'.format(s, self.common_name)
+            return s
 
+    def get_parents(self):
+        res = TaxonRelation.query.filter(TaxonRelation.child_id==self.id).order_by(TaxonRelation.depth).all()
+        return [x.parent for x in res]
 
-    #def taxon(self):
-
-    #print (map((lambda x: ), self.RANK_HIERARCHY))
-    #    if self.rank ==
+    def get_higher_taxon(self, rank=''):
+        if rank:
+            if parents:= self.get_parents():
+                for p in parents:
+                    if p.rank == rank:
+                        return p
+        else:
+            return self.get_parents()
+        return None
 
     def to_dict(self):
         return {
@@ -62,5 +95,5 @@ class Taxon(Base):
             'full_scientific_name': self.full_scientific_name,
             'rank': self.rank,
             'common_name': self.common_name,
-            'display_name': self.display_name,
+            'display_name': self.display_name(),
         }

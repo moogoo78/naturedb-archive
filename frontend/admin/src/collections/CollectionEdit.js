@@ -177,23 +177,28 @@ const CollectionEdit = props => {
         <TextInput source="latitude_decimal" />
         <TextInput source="altitude" label="alt" />
         <TextInput source="altitude2" label="alt2" />
-        <ReferenceInput source="named_area_country_id" reference="named_areas" allowEmpty filter={{area_class_id: 1}} fullWidth>
+        <ReferenceInput source="named_area_list[0].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 1}} fullWidth label="國家">
           <AutocompleteInput optionText="name_mix" />
         </ReferenceInput>
-        <ReferenceInput source="named_area_province_id" reference="named_areas" allowEmpty filter={{area_class_id: 2}} fullWidth>
+
+        <ReferenceInput source="named_area_list[1].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 2}} fullWidth label="省份">
           <AutocompleteInput optionText="name_mix" />
         </ReferenceInput>
-        <ReferenceInput source="named_area_hsien_id" reference="named_areas" allowEmpty filter={{area_class_id: 3}} fullWidth>
-          <AutocompleteInput optionText="name_mix"/>
+
+        <ReferenceInput source="named_area_list[2].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 3}} fullWidth label="縣/市">
+          <AutocompleteInput optionText="name_mix" />
         </ReferenceInput>
-        <ReferenceInput source="named_area_town_id" reference="named_areas" allowEmpty filter={{area_class_id: 4}} fullWidth>
-          <AutocompleteInput optionText="name_mix"/>
+
+        <ReferenceInput source="named_area_list[3].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 4}} fullWidth label="鄉/鎮">
+          <AutocompleteInput optionText="name_mix" />
         </ReferenceInput>
-        <ReferenceInput source="named_area_park_id" reference="named_areas" allowEmpty filter={{area_class_id: 5}} fullWidth>
-          <AutocompleteInput optionText="name_mix"/>
+
+        <ReferenceInput source="named_area_list[4].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 5}} fullWidth label="國家公園">
+          <AutocompleteInput optionText="name_mix" />
         </ReferenceInput>
-        <ReferenceInput source="named_area_locality_id" reference="named_areas" allowEmpty filter={{area_class_id: 6}} fullWidth>
-          <AutocompleteInput optionText="name_mix"/>
+
+        <ReferenceInput source="named_area_list[5].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 6}} fullWidth label="地點">
+          <AutocompleteInput optionText="name_mix" />
         </ReferenceInput>
         <TextInput source="locality_text" multiline={true} fullWidth />
       </FormTab>
