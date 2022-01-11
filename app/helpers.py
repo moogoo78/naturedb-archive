@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 
-from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation
+from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter
 from app.taxon.models import Taxon, TaxonTree, TaxonRelation
 from app.database import session
 
@@ -67,6 +67,13 @@ MOF_PARAM_LIST = [
     ('topography', 'annotation_topography_choice_id', 'annotation_topography_text', (28, 29)),
     ('veget', 'annotation_veget_choice_id', 'annotation_veget_text', (30, 31)),
 ]
+MOF_PARAM_LIST2a = [
+    ('plant-h', 'annotation_plant_h'),
+    ('sex-char', 'annotation_sex_char'),
+    ('memo', 'annotation_memo'),
+    ('memo2', 'annotation_memo2'),
+    ('is-greenhouse', 'annotation_category')
+]
 MOF_PARAM_LIST2 = [
     ('life-form', 'annotation_life_form_choice_id', 'annotation_life_form_text'),
     ('flower', 'annotation_flower_choice_id', 'annotation_flower_text'),
@@ -74,9 +81,29 @@ MOF_PARAM_LIST2 = [
     ('flower-color', 'annotation_flower_color_choice_id', 'annotation_flower_color_text'),
     ('fruit-color', 'annotation_fruit_color_choice_id', 'annotation_fruit_color_text'),
 ]
+param_map = '''1,1,abundance,
+2,1,habitat,
+3,1,humidity,
+4,1,light-intensity,
+5,1,naturalness,
+6,1,topography,
+7,1,veget,
+8,1,plant-h,
+9,1,sex-char,
+10,1,memo,
+11,1,memo2,
+12,1,is-greenhouse,
+13,1,life-form,
+14,1,flower,
+15,1,fruit,
+16,1,flower-color,
+17,1,fruit-color'''
+
+PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity': '4', 'naturalness': '5', 'topography': '6', 'veget': '7', 'plant-h': '8', 'sex-char': '9', 'memo': '10', 'memo2': '11', 'is-greenhouse': '12', 'life-form': '13', 'flower': '14', 'fruit': '15', 'flower-color': '16', 'fruit-color': '17'}
 
 def make_collection(con):
-    rows = con.execute('SELECT * FROM specimen_specimen ORDER BY id')
+    LIMIT = ' LIMIT 1000'
+    rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
         #print(r)
         cid = r[0]
@@ -143,8 +170,10 @@ def make_collection(con):
             if x := r[param[2]]:
                 mof = MeasurementOrFact(
                     collection_id=cid,
-                    parameter=param[0],
-                    text=x,
+                    #parameter=param[0],
+                    #text=x,
+                    parameter_id=PARAM_MAP[param[0]],
+                    value=x,
                 )
                 session.add(mof)
         session.commit()
@@ -170,6 +199,7 @@ def make_collection(con):
                 source_data=r[4],
                 created=r3[5],
                 changed=r3[4],
+                dataset_id=1,
             )
             session.add(u)
             session.commit()
@@ -179,8 +209,19 @@ def make_collection(con):
                 if x := r3[param[2]]:
                     mof = MeasurementOrFact(
                         unit_id=u.id,
-                        parameter=param[0],
-                        text=x,
+                        #parameter=param[0],
+                        parameter_id=PARAM_MAP[param[0]],
+                        value=x,
+                    )
+                    session.add(mof)
+            # MeasurementOrFact2a
+            for param in MOF_PARAM_LIST2a:
+                if x := r3[param[1]]:
+                    mof = MeasurementOrFact(
+                        unit_id=u.id,
+                        #parameter=param[0],
+                        parameter_id=PARAM_MAP[param[0]],
+                        value=x,
                     )
                     session.add(mof)
 
@@ -293,6 +334,17 @@ def make_taxon(con):
                     session.add(tr)
     session.commit()
 
+def make_param(con):
+    for i in MOF_PARAM_LIST:
+        p = MeasurementOrFactParameter(dataset_id=1, name=i[0])
+        session.add(p)
+    for i in MOF_PARAM_LIST2a:
+        p = MeasurementOrFactParameter(dataset_id=1, name=i[0])
+        session.add(p)
+    for i in MOF_PARAM_LIST2:
+        p = MeasurementOrFactParameter(dataset_id=1, name=i[0])
+        session.add(p)
+    session.commit()
 
 
 def conv_hast21(key):
@@ -303,6 +355,13 @@ def conv_hast21(key):
             make_person(con)
         elif key == 'geo':
             make_geospatial(con)
+        elif key == 'param':
+            #make_param(con)
+            pmap = {}
+            for i in param_map.split('\n'):
+                plist = i.split(',')
+                pmap[plist[2]] = plist[0]
+            print(pmap, flush=True)
         elif key == 'taxon':
             make_taxon(con)
         elif key == 'collection':

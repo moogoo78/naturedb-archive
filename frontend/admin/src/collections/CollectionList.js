@@ -6,7 +6,7 @@ import {
   TextField,
   DateField,
   ArrayField,
-  ChipField,
+  //ChipField,
   SingleFieldList,
   TextInput,
   ReferenceInput,
@@ -36,10 +36,11 @@ const ListFilters = [
 const CollectionList = props => (
   <List filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
     <Datagrid>
-      <TextField source="id"/>
+      <TextField source="id" style={{color:'#9f9f9f'}}/>
+      <TextField source="key" />
       <ArrayField source="units" label="館號">
         <SingleFieldList>
-          <ChipField source="accession_number" />
+          <TextField source="accession_number" />
         </SingleFieldList>
       </ArrayField>
       <TextField source="collector.display_name" sortBy="person.full_name" label="採集者"/>

@@ -242,10 +242,9 @@ def bego():
 @main.route('/print-label')
 def print_label():
     ids = request.args.get('ids')
-    rows = Collection.query.filter(Collection.id.in_(ids.split(','))).all()
-    #item_list = []
-    #for r in rows:
-    #    d = r.to_dict()
-    #    item_list.append(d)
+    collections = Collection.query.filter(Collection.id.in_(ids.split(','))).all()
+    item_list = []
+    for i in collections:
+        item_list += i.units
 
-    return render_template('print-label.html', item_list=rows)
+    return render_template('print-label.html', item_list=item_list)

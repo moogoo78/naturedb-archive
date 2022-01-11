@@ -60,7 +60,7 @@ const PageActions = ({ basePath, data }) => (
 );
 
 const PageTitle = ({ record }) => {
-    return <span>Post {record ? `"${record.id}"` : ''}</span>;
+    return <span>編輯 {record ? `#${record.id} :: ${record.key}` : ''}</span>;
 };
 
 const UnitEditButton = ({ record }) => (
@@ -143,14 +143,14 @@ const CollectionEdit = props => {
   const handleUnitChange = React.useCallback(() => setVersion(version + 1), [version]);
   const handleIdentificationChange = React.useCallback(() => setVersion2(version2 + 1), [version2]);
   //<UnitCreateButton />
-  console.log('CollectionEdit::props', props);
+  //console.log('CollectionEdit::props', props);
   return (
   <Edit title={<PageTitle />} actions={<PageActions />} {...props}>
     <TabbedForm>
       <FormTab label="gathering">
         <TextInput disabled label="ID" source="id" />
         <ReferenceInput source="collector_id" reference="people" allowEmpty>
-          <AutocompleteInput optionText="full_name"/>
+          <AutocompleteInput optionText="full_name" />
         </ReferenceInput>
         <TextInput source="field_number" />
         <DateInput source="collect_date" />
@@ -158,12 +158,13 @@ const CollectionEdit = props => {
           <Datagrid>
             <TextField source="accession_number" />
             <TextField source="duplication_number" />
-            <SelectField source="preparation_type" choices={UnitPreparationTypeChoices}/>
+            <SelectField source="preparation_type" choices={UnitPreparationTypeChoices} />
             <DateField source="preparation_date" />
-            <ArrayField source="mof_list" label="Measurement or Fact/物候">
+            <ArrayField source="measurement_or_facts" label="Measurement or Fact/物候">
               <Datagrid>
-                <TextField source="parameter" />
-                <TextField source="text" />
+                {/*<TextField source="id" />*/}
+                <TextField source="parameter.label" label="參數" />
+                <TextField source="value" label="數值"/>
               </Datagrid>
             </ArrayField>
             <UnitEditButton />
@@ -204,10 +205,10 @@ const CollectionEdit = props => {
       </FormTab>
       <FormTab label="MeasurementOrFact">
         {/*<MyField source="measurement_or_facts" label="mofx" />*/}
-        <ArrayField source="measurement_or_facts">
+        <ArrayField source="biotope_measurement_or_facts">
           <Datagrid>
-            <TextField source="label" />
-            <TextField source="text" />
+            <TextField source="parameter.label" />
+            <TextField source="value" />
           </Datagrid>
         </ArrayField>
         <MeasurementOrFactEditButton />
@@ -216,7 +217,7 @@ const CollectionEdit = props => {
         <ArrayField source="identifications">
           <Datagrid>
             <TextField source="id" />
-            <TextField source="scientific_name.full_scientific_name" fullWidth />
+            <TextField source="taxon.full_scientific_name" fullWidth />
             <TextField source="identifier.full_name" />
             <DateField source="date" />
             <TextField source="date_text" />

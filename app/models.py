@@ -30,11 +30,12 @@ def get_structed_list(options, value_dict={}):
     '''
     res = []
     for i, v in enumerate(options):
+        id_ = v.get('id', '')
         res.append({
-            'id': v['id'],
-            'name': v['name'],
-            'label': v['label'],
-            'data': value_dict.get(str(v['id']))
+            'id': id_,
+            'name': v.get('name', ''),
+            'label': v.get('label', ''),
+            'data': value_dict.get(str(id_)) if id_ else ''
         })
     return res
 
@@ -67,10 +68,20 @@ def get_hast_parameters(obj=None):
 #    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True, primary_key=True)
 #    annotation_id =  Column(Integer, ForeignKey('annotation.id', ondelete='SET NULL'), nullable=True, primary_key=True)
 
-#class MeasurementOrFactParamenter
-# dataset_id
-# parameter_choices
+class MeasurementOrFactParameter(Base):
+    __tablename__ = 'measurement_or_fact_parameter'
+    id = Column(Integer, primary_key=True)
+    dataset_id = Column(Integer, ForeignKey('dataset.id', ondelete='SET NULL'), nullable=True)
+    name = Column(String(500))
+    label = Column(String(500))
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'label': self.label if self.label else self.name,
+            'dataset_id': self.dataset_id,
+        }
 
 class MeasurementOrFact(Base):
     __tablename__ = 'measurement_or_fact'
@@ -96,8 +107,11 @@ class MeasurementOrFact(Base):
     id = Column(Integer, primary_key=True)
     collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
-    parameter = Column(String(500))
-    text = Column(String(500))
+    parameter_id = Column(ForeignKey('measurement_or_fact_parameter.id', ondelete='SET NULL'))
+    parameter = relationship('MeasurementOrFactParameter')
+    #parameter = Column(String(500))
+    #text = Column(String(500))
+    value = Column(String(500))
     #lower_value
     #upper_value
     #accuracy
@@ -105,12 +119,12 @@ class MeasurementOrFact(Base):
     #unit_of_measurement
     #applies_to
     def to_dict(self):
-        item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
+        #item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
         return {
             'id': self.id,
-            'label': item[1],
-            'parameter': self.parameter,
-            'text': self.text,
+            #'label': item[1],
+            'parameter': self.parameter.to_dict(),
+            'value': self.value,
             'collection_id': self.collection_id,
         }
 
@@ -325,12 +339,32 @@ class Collection(Base):
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
 
+    @property
+    def key(self):
+        unit_keys = [x.key for x in self.units]
+        if len(unit_keys):
+            return ','.join(unit_keys)
+        else:
+            return '--'
+
+    def get_parameters(self, parameter_list=[]):
+        params = {f'{x.parameter.name}': x for x in self.biotope_measurement_or_facts}
+
+        rows = []
+        if len(parameter_list) == 0:
+            parameter_list = [x for x in params]
+        for key in parameter_list:
+            if p := params.get(key, ''):
+                rows.append(p.to_dict())
+        return rows
+
     # collection.to_dict
     def to_dict(self):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
 
         data = {
             'id': self.id,
+            'key': self.key,
             'collect_date': self.collect_date,
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
@@ -340,9 +374,9 @@ class Collection(Base):
             'longitude_decimal': self.longitude_decimal,
             'latitude_decimal': self.latitude_decimal,
             'locality_text': self.locality_text,
-            #'measurement_or_facts': [x.to_dict() for x in self.biotope_measurement_or_facts],
-            'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
-            'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
+            'biotope_measurement_or_facts': [x.to_dict() for x in self.biotope_measurement_or_facts],
+            #'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
+            #'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
@@ -351,10 +385,6 @@ class Collection(Base):
         }
 
         return data
-
-
-    def get_parameter(self, parameter_list=[]):
-        pass
 
     def get_coordinates(self, type_=''):
         if self.longitude_decimal and self.latitude_decimal:
@@ -381,7 +411,6 @@ class Collection(Base):
         if key == '':
             named_area_dict = {f'{x.named_area.area_class_id}': x.named_area.to_dict() for x in self.named_area_relations}
             data = get_structed_list(AreaClass.DEFAULT_OPTIONS,  named_area_dict)
-            print(data, flush=True)
             return data
         else:
             for x in self.named_area_relations:
@@ -461,7 +490,7 @@ class Unit(Base):
     acquired_from = Column(Integer, ForeignKey('person.id'), nullable=True)
     acquisition_source_text = Column(Text)
     specimen_marks = relationship('SpecimenMark')
-
+    dataset = relationship('Dataset')
     collection = relationship('Collection', overlaps='units') # TODO warning
     # abcd: Disposition (in collection/missing...)
 
@@ -470,15 +499,54 @@ class Unit(Base):
     information_withheld = Column(Text)
     annotations = relationship('Annotation')
 
+    @property
+    def key(self):
+        pre = []
+        seperator = '/'
+        if self.accession_number:
+            if self.dataset.organization.abbreviation == self.dataset.name:
+                # ignore double display
+                pre.append(self.dataset.organization.abbreviation)
+            else:
+                pre.append(self.dataset.organization.abbreviation)
+                pre.append(self.dataset.name)
+            pre.append(self.accession_number)
+        else:
+            # use field_number
+            p = '--'
+            if person := self.collection.collector:
+                p = person.full_name
+            if fn := self.collection.field_number:
+                p = '{} {}'.format(p, fn)
+            pre.append(p)
+
+        if self.duplication_number:
+            pre.append(self.duplication_number)
+        return f'{seperator}'.join(pre)
+
+    # unit.to_dict
     def to_dict(self):
         return {
             'id': self.id,
+            'key': self.key,
             'accession_number': self.accession_number,
             'collection_id': self.collection_id,
             'preparation_type': self.preparation_type,
             'preparation_date': self.preparation_date,
-            'mof_list': [x.to_dict() for x in self.measurement_or_facts],
+            'measurement_or_facts': [x.to_dict() for x in self.measurement_or_facts],
+            #'dataset': self.dataset.to_dict(), # too many
         }
+
+    def get_parameters(self, parameter_list=[]):
+        params = {f'{x.parameter.name}': x for x in self.measurement_or_facts}
+
+        rows = []
+        if len(parameter_list) == 0:
+            parameter_list = [x for x in params]
+        for key in parameter_list:
+            if p := params.get(key, ''):
+                rows.append(p.to_dict())
+        return rows
 
 class Person(Base):
     '''
@@ -563,3 +631,12 @@ class Dataset(Base):
             'name': self.name,
             'organization': self.organization.to_dict(),
         }
+
+class Transaction(Base):
+    __tablename__ = 'transaction'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(500))
+    transaction_type = Column(String(500)) #  (DiversityWorkbench) e.g. gift in or out, exchange in or out, purchase in or out
+    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    organization_text = Column(String(500))
