@@ -11,7 +11,7 @@ from app.main import main
 from app.database import session
 #from app.database import session
 #from app.models import Dataset, Collection
-from app.models import Collection
+from app.models import Collection, Person
 from app.helpers import conv_hast21
 
 
@@ -242,9 +242,12 @@ def bego():
 @main.route('/print-label')
 def print_label():
     ids = request.args.get('ids')
-    collections = Collection.query.filter(Collection.id.in_(ids.split(','))).all()
+    query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
+    #print(query, flush=True)
+    collections = query.all()
     item_list = []
     for i in collections:
+        #print (i.key, flush=True)
         item_list += i.units
 
     return render_template('print-label.html', item_list=item_list)

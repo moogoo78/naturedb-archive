@@ -6,11 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/print-label.css') }}"/>
   </head>
-  <body>
-    <div class="page">
-      <ul class="hast-label-container">
+  <body class="A4">
+    <div class="sheet">
+    <h1 class="page-title">page 1</h1>
+    <div class="hast-label-container">
       {% for item in item_list %}
-        <li class="hast-label-item">
+        <div class="hast-label-item">
           {% for id in item.collection.identifications[1:] %}
           <div class="id-container">
             <div class="taxon">
@@ -53,7 +54,7 @@
           {% set param2b = item.get_parameters(['plant-h', 'fruit', 'fruit-color', 'flower', 'flower-color', 'sex-char'])|map(attribute='value')|join(', ') %}
           {% set param3 = item.collection.get_parameters(['habitat', 'light', 'humidity', 'abundance', 'naturalness'])|map(attribute='value')|join(', ')|capitalize() %}
           {% if param1 %}<div class="annotations">{{ param1 }}.</div>{% endif %}
-          {% if param2a %}<div class="annotations">{{ param2a }}; {% if param2b %}{{ param2b }}.{% endif %}{% endif %}</div>
+          {% if param2a or param2b %}<div class="annotations">{% if param2a %}{{ param2a }};{% endif %}{% if param2b %} {{ param2b }}.{% endif %}</div>{% endif %}
           {% if param3 %}<div class="annotations">{{ param3 }}.</div>{% endif %}
           MEMOLIST
         </div>
@@ -68,9 +69,53 @@
           <span class="box">{{ text }}</span>
           {% endfor %}
         </div>
-      </li>
+        </div>
       {% endfor %}
-    </ul>
-    </page>
+    </div>
+    </div>
+    <script>
+      (function() {
+        'use strict';
+        const wrapper = document.getElementsByClassName('A4')[0];
+        const items = document.getElementsByClassName('hast-label-item');
+        const pages = [];
+        let limit = 1123*2;
+        let countHeight = 0;
+        let countSheet = 0;
+        for (let i=0; i<items.length;i++) {
+          // margin: 10px, padding: 10px, border: 1px
+          countHeight += items[i].offsetHeight + 42;
+          const nextHeight = (i < items.length -1) ? countHeight + items[i+1].offsetHeight +42 : 0;
+          //console.log(i, countHeight, items[i].offsetHeight, nextHeight, countHeight+nextHeight, limit, countHeight+nextHeight > limit, countSheet);
+          console.log(i, countHeight, nextHeight, limit);
+          if (nextHeight >= limit) { /* A4 height px in 96 PPI */
+            //items[i].style.display = 'none';
+
+            // create new sheet
+            countSheet++;
+            countHeight = items[i+1].offsetHeight;
+            const sheetContainer = document.createElement('div');
+            const sheetTitle = document.createElement('h1');
+            const itemsContainer = document.createElement('div');
+            sheetContainer.appendChild(sheetTitle)
+            sheetTitle.classList.add('page-title');
+            sheetTitle.innerHTML = `page ${countSheet+1}`;
+            sheetContainer.classList.add('sheet');
+            itemsContainer.classList.add('hast-label-container');
+            sheetContainer.appendChild(itemsContainer);
+            wrapper.appendChild(sheetContainer);
+            pages.push(itemsContainer);
+            console.log('create new sheet', countSheet);
+          }
+          // move label to other sheet/page
+          if (countSheet > 0) {
+            //console.log(sheets[countSheet-1], 'move', countSheet, sheets);
+            console.log(i, 'move');
+            pages[countSheet-1].appendChild(items[i]);
+            //items[i].style.display = 'none';
+          }
+        }
+      })();
+      q</script>
   </body>
 </html>

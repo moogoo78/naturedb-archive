@@ -50,6 +50,7 @@ table {
 
 body {
   color: black;
+  margin: 0;
   /*font-family: "Yu Gothic Medium", sans-serif;*/
   font-family: "Microsoft JhengHei", sans-serif;
   line-hight: 18px;
@@ -62,14 +63,19 @@ body {
   font-variant-numeric: normal;
   font-size: 12px;
 }
+h1.page-title {
+}
 .hast-label-container {
   display: flex;
-  flex-flow: row wrap;
+  flex-flow: column wrap;
   justify-content: flex-start;
-  align-itmes: stretch:
+  align-items: stretch;
   padding: 0;
   margin: 0;
-  list-style: none;
+  /*background: #def;*/
+  /*height: 296mm;*/
+  height: 1123px;/* 96dpi */
+  width: 794px;/*210mm;*/
 }
 
 .hast-label-item {
@@ -78,74 +84,74 @@ body {
   height: auto;
   /*text-align: center;*/
   border: 1px solid black;
-  margin: 10px;
+  margin: 10px 20px;
   font-size: 12px;
 }
-.institution {
+.hast-label-item .institution {
   font-weight: bold;
   text-align: center;
   line-height: 15px;
   margin-top: 20px;
   font-size: 11px;
 }
-.institution-name{
+.hast-label-item .institution-name {
   display: block;
 }
-.institution-code{
+.hast-label-item .institution-code {
   /*margin-left: 10px;*/
   display: block;
 }
-.collection-name {
+.hast-label-item .collection-name {
   display: block;
   font-size: 15px;
   font-weight: 700;
 }
-.taxon {
+.hast-label-item .taxon {
   font-size: 12px;
   font-weight: 600;
   line-height: 14px;
   margin: 6px 0;
   border: 1px dashed green;
 }
-.id-container {
+.hast-label-item .id-container {
   margin: 20px 0;
   border: 1px solid orange;
 }
-.taxon > span {
+.hast-label-item .taxon > span {
   display: block;
 }
-.locality {
+.hast-label-item .locality {
 }
-.geographic-position {
+.hast-label-item .geographic-position {
   display: flex;
   justify-content: space-between;
   margin: 8px 0;
 }
-.left-right {
+.hast-label-item .left-right {
   display: flex;
   justify-content: space-between;
 }
-.annotations {
+.hast-label-item .annotations {
   margin: 2px 0;
 }
-.annotation-container{
+.hast-label-item .annotation-container{
   margin: 8px 0;
 }
-.collect {
+.hast-label-item .collect {
   display: flex;
   justify-content: space-between;
 }
-.collect-num {
+.hast-label-item .collect-num {
 }
-.collect-date {
+.hast-label-item .collect-date {
 }
-.box {
+.hast-label-item .box {
   display: block;
 }
-.companion {
+.hast-label-item .companion {
   margin: 2px 0;
 }
-.footer {
+.hast-label-item .footer {
   margin-top: 6px;
   font-weight: bold;
   font-size:10px;
@@ -157,17 +163,34 @@ body {
   font-size: 3em;
 */
 
+@page {
+  margin: 0;
+}
+.sheet {
+  margin: 0;
+  box-sizing: border-box;
+  break-after: page;
+}
+body.A4 .sheet {
+  width: 210mm;
+  height: 296mm;
+}
 @media screen {
-
+  body {background: #e0e0e0;}
+  .sheet {
+    background: white;
+    box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
+    margin: 5mm auto;
+  }
 }
 @media print{
   .hast-label-item {
-    border: 0;;
+    border: 0;
   }
   @page{
     /*size: A4 portrait;*/
-    /*width: 21cm;*/
-    /*height: 29.7cm;*/
+    width: 210mm;
+    height: 296mm;
     /*margin: 30mm 45mm 30mm 45mm;*/
     /*size: 7in 9.25in;*/
     /*margin: 27mm 16mm 27mm 16mm;*/
@@ -177,14 +200,14 @@ body {
     size: auto;
     margin: 0mm;
   }
-  .page {
+  .sheet {
     margin: 0;
     box-shadow: 0;
   }
-  .id-container {
+  .hast-label-item .id-container {
     border: unset;
   }
-  .taxon {
+  .hast-label-item .taxon {
     border: unset;
   }
 }

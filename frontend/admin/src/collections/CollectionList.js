@@ -7,6 +7,7 @@ import {
   DateField,
   ArrayField,
   //ChipField,
+  FunctionField,
   SingleFieldList,
   TextInput,
   ReferenceInput,
@@ -45,7 +46,7 @@ const CollectionList = props => (
       </ArrayField>
       <TextField source="collector.display_name" sortBy="person.full_name" label="採集者"/>
       <TextField source="field_number" label="採集號"/>
-      <TextField source="identification_last.taxon.full_scientific_name" sortable={false} label="學名" />
+      <FunctionField label="Name" render={record => `${record.identification_last.taxon.full_scientific_name} / ${record.identification_last.taxon.common_name}`} label="物種"/>  
       <DateField source="collect_date" locales="zh-TW" label="採集日期" />
       <EditButton />
     </Datagrid>
