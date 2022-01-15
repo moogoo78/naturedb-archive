@@ -242,7 +242,8 @@ def bego():
 @main.route('/print-label')
 def print_label():
     ids = request.args.get('ids')
-    query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
+    #query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
+    query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Collection.id)#.all()
     #print(query, flush=True)
     collections = query.all()
     item_list = []

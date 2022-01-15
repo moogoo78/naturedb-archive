@@ -358,6 +358,13 @@ class Collection(Base):
                 rows.append(p.to_dict())
         return rows
 
+    @property
+    def latest_scientific_name(self):
+        latest_id = self.identifications.order_by(desc(Identification.verification_level)).first()
+        if taxon := latest_id.taxon:
+            return taxon.full_scientific_name
+        return ''
+
     # collection.to_dict
     def to_dict(self):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
@@ -417,24 +424,6 @@ class Collection(Base):
                 na = x.named_area
                 if na.area_class.name == key:
                     return na.to_dict()
-
-    def display_field_number(self, delimeter='', is_list=False):
-        '''DEPRICATED'''
-        fn_list = []
-        for fn in self.field_numbers:
-            x = fn.todict()
-
-            if is_list == True:
-                fn_list.append((x['collector']['other_name'], x['value']))
-
-            else:
-                if delimeter == '':
-                    delimeter = ' '
-                    fn_list.append('{}{}{}'.format(x['collector']['other_name'], delimeter, x['value']))
-        if is_list == True:
-            return fn_list
-        else:
-            return ','.join(fn_list)
 
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'
@@ -547,6 +536,15 @@ class Unit(Base):
             if p := params.get(key, ''):
                 rows.append(p.to_dict())
         return rows
+
+    def __str__(self):
+        collector = ''
+        if p := self.collection.collector:
+            collector = p.display_name()
+
+        record_number = f'{collector} | {self.collection.field_number}::{self.duplication_number}'
+        taxon = '--'
+        return f'<Unit #{self.id} {record_number} | {self.collection.latest_scientific_name}>'
 
 class Person(Base):
     '''

@@ -7,10 +7,26 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/print-label.css') }}"/>
   </head>
   <body class="A4">
+    {#
     <div class="sheet">
-    <h1 class="page-title">page 1</h1>
-    <div class="hast-label-container">
-      {% for item in item_list %}
+      <h1 class="page-title">page 1</h1>
+      <div class="page-item-wrapper">
+        <div class="page-item-column">
+          <div class="hast-label-item height300">aa</div>
+          <div class="hast-label-item height300">bb</div>
+          <div class="hast-label-item height300">cc</div>
+        </div>
+        <div class="page-item-column">
+          <div class="hast-label-item height300">dd</div>
+        </div>
+      </div>
+    </div>
+    #}
+    <div class="sheet">
+      <h1 class="page-title">page 1</h1>
+      <div class="page-item-wrapper">
+        <div class="page-item-column">
+          {% for item in item_list %}
         <div class="hast-label-item">
           {% for id in item.collection.identifications[1:] %}
           <div class="id-container">
@@ -70,52 +86,94 @@
           {% endfor %}
         </div>
         </div>
-      {% endfor %}
-    </div>
-    </div>
+          {% endfor %}
+        </div><!-- end page-item-column -->
+        <div class="page-item-column column-1-2"></div>
+      </div><!-- end page-item-wrapper -->
+    </div><!-- end sheet -->
     <script>
       (function() {
         'use strict';
-        const wrapper = document.getElementsByClassName('A4')[0];
-        const items = document.getElementsByClassName('hast-label-item');
-        const pages = [];
-        let limit = 1123*2;
-        let countHeight = 0;
-        let countSheet = 0;
-        for (let i=0; i<items.length;i++) {
-          // margin: 10px, padding: 10px, border: 1px
-          countHeight += items[i].offsetHeight + 42;
-          const nextHeight = (i < items.length -1) ? countHeight + items[i+1].offsetHeight +42 : 0;
-          //console.log(i, countHeight, items[i].offsetHeight, nextHeight, countHeight+nextHeight, limit, countHeight+nextHeight > limit, countSheet);
-          console.log(i, countHeight, nextHeight, limit);
-          if (nextHeight >= limit) { /* A4 height px in 96 PPI */
-            //items[i].style.display = 'none';
+        const bodyElement = document.getElementsByClassName('A4')[0];
+        //const items = document.getElementsByClassName('hast-label-item');
+        // return nodeList, if  getElementsByClassName will return HTMLCollection, automatically change DOM, cause "move to" side effect bug
+        const items = document.querySelectorAll('.hast-label-item');
 
-            // create new sheet
-            countSheet++;
-            countHeight = items[i+1].offsetHeight;
-            const sheetContainer = document.createElement('div');
-            const sheetTitle = document.createElement('h1');
-            const itemsContainer = document.createElement('div');
-            sheetContainer.appendChild(sheetTitle)
-            sheetTitle.classList.add('page-title');
-            sheetTitle.innerHTML = `page ${countSheet+1}`;
-            sheetContainer.classList.add('sheet');
-            itemsContainer.classList.add('hast-label-container');
-            sheetContainer.appendChild(itemsContainer);
-            wrapper.appendChild(sheetContainer);
-            pages.push(itemsContainer);
-            console.log('create new sheet', countSheet);
-          }
-          // move label to other sheet/page
-          if (countSheet > 0) {
-            //console.log(sheets[countSheet-1], 'move', countSheet, sheets);
-            console.log(i, 'move');
-            pages[countSheet-1].appendChild(items[i]);
-            //items[i].style.display = 'none';
+        //console.log(items);
+        const heightLimit = 1123;
+        let sheetCount = 1;
+        let heightCount = 12; // h1 height
+        const buffer = [];
+        const columns = []
+        let itemRanges = [];
+
+        const createSheet = (page) => {
+          console.log('create page', page);
+          const newSheet = document.createElement('div')
+          const newPageTitle = document.createElement('h1');
+          const newPageItemWrapper = document.createElement('div');
+          const newPageItemColumnLeft = document.createElement('div');
+          const newPageItemColumnRight = document.createElement('div');
+          newSheet.classList.add('sheet');
+          newPageTitle.classList.add('page-title');
+          newPageTitle.innerHTML = `page ${page}`;
+          newPageItemWrapper.classList.add('page-item-wrapper');
+          newPageItemColumnLeft.classList.add('page-item-column', `column-${page}-1`);
+          newPageItemColumnRight.classList.add('page-item-column', `column-${page}-2`);
+          newSheet.appendChild(newPageTitle);
+          newSheet.appendChild(newPageItemWrapper);
+          newPageItemWrapper.appendChild(newPageItemColumnLeft);
+          newPageItemWrapper.appendChild(newPageItemColumnRight);
+          bodyElement.appendChild(newSheet);
+        }
+
+        for (let i=0; i<items.length;i++) {
+          itemRanges.push(i);
+          heightCount += items[i].offsetHeight + 20; // margin: 10px
+          const nextHeight = (i < items.length -1) ? items[i+1].offsetHeight + 20 : 0;
+          //console.log(i, items[i].offsetHeight, nextHeight, heightCount);
+          if (heightCount + nextHeight >= heightLimit) { // A4 height px in 96 PPI
+            columns.push(itemRanges);
+            heightCount = 0;
+            itemRanges = [];
+
+            console.log(items.length, columns.length, i);
+            if (i >= 2 && i % 2 === 0) {
+              sheetCount++;
+              createSheet( (columns.length+1)/2+1);
+            }
           }
         }
+        // last
+        if (itemRanges.length > 0) {
+          columns.push(itemRanges);
+        }
+        console.log(columns);
+
+        if (columns.length > 2) {
+          const firstContainer = document.getElementsByClassName('column-1-2')[0];
+          const itemsToMove = columns[1].map((x)=>{
+            firstContainer.appendChild(items[x])
+            return items[x]
+          });
+
+          // start move after 2 columns
+          for (let i=2; i < columns.length; i++) {
+            //if (i % 2 === 0) {
+            const page = parseInt(i/2) + 1;
+            const columnIndex = (i%2 === 0) ? '1' : '2';
+            const container = document.getElementsByClassName(`column-${page}-${columnIndex}`)[0];
+            const itemsToMove = columns[i].map((x)=>{
+              //console.log(items[x]);
+              container.appendChild(items[x])
+              return items[x]
+            });
+            //console.log(itemsToMove);
+          }
+        } else {
+          console.log('no need to move');
+        }
       })();
-      q</script>
+     </script>
   </body>
 </html>
