@@ -1,11 +1,13 @@
 import subprocess
 import click
+import json
 #import logging
 from logging.config import dictConfig
 
 from flask import Flask
 
 from app.database import session
+from scripts import load_data
 #from app.models import Specimen
 
 ALEMBIC_BIN_PATH = '/root/.local/bin/alembic'
@@ -207,4 +209,9 @@ def create_app():
         cmd_list = [ALEMBIC_BIN_PATH, 'upgrade', 'head']
         subprocess.call(cmd_list)
 
+    @app.cli.command('load_data')
+    def func_load_data():
+        import load_data_conf
+        load_data.import_csv(load_data_conf.conf)
+        return None
     return app

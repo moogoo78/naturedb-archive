@@ -150,7 +150,11 @@ class Annotation(Base):
     # abcd: Annotator
     # abcd: Date
 
-
+    def to_dict(self):
+        return {
+            'category': self.category,
+            'text': self.text,
+        }
 
 # Geospatial
 class AreaClass(Base):
@@ -196,11 +200,10 @@ class NamedArea(Base):
     source_data = Column(JSONB)
     #parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True)
 
-    @property
     def display_name(self):
         return '{}{}'.format(
-            self.name if self.name else '',
-            f' ({self.name_en})' if self.name_en else ''
+            self.name_en if self.name_en else '',
+            f' ({self.name})' if self.name else ''
         )
 
     def to_dict(self):
@@ -211,6 +214,7 @@ class NamedArea(Base):
             'area_class_id': self.area_class_id,
             'area_class': self.area_class.to_dict(),
             'name_mix': '/'.join([self.name, self.name_en]),
+            'display_name': self.display_name(),
         }
 
 class CollectionNamedArea(Base):
@@ -309,6 +313,7 @@ class Collection(Base):
     collector = relationship('Person')
     companions = relationship('CollectionPerson') # companion
     companion_text = Column(String(500)) # unformatted value, # HAST:companions
+    companion_text_en = Column(String(500))
 
     #biotope = Column(String(500))
     biotope_measurement_or_facts = relationship('MeasurementOrFact')
@@ -317,7 +322,7 @@ class Collection(Base):
 
     # Locality
     locality_text = Column(String(1000))
-    locality_text2 = Column(String(1000)) #DEPRICATED
+    locality_text_en = Column(String(1000))
 
     #country
     named_area_relations = relationship('CollectionNamedArea')
@@ -332,7 +337,8 @@ class Collection(Base):
     latitude_text = Column(String(50))
     longitude_text = Column(String(50))
 
-    note = Column(Text)
+    field_note = Column(Text)
+    field_note_en = Column(Text)
     other_field_numbers = relationship('FieldNumber')
     identifications = relationship('Identification', back_populates='collection', lazy='dynamic')
     units = relationship('Unit')
@@ -425,6 +431,7 @@ class Collection(Base):
                 if na.area_class.name == key:
                     return na.to_dict()
 
+
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'
 
@@ -477,7 +484,7 @@ class Unit(Base):
     acquisition_type = Column(String(500)) # bequest, purchase, donation
     acquisition_date = Column(DateTime)
     acquired_from = Column(Integer, ForeignKey('person.id'), nullable=True)
-    acquisition_source_text = Column(Text)
+    acquisition_source_text = Column(Text) # hast: provider
     specimen_marks = relationship('SpecimenMark')
     dataset = relationship('Dataset')
     collection = relationship('Collection', overlaps='units') # TODO warning
@@ -528,6 +535,17 @@ class Unit(Base):
 
     def get_parameters(self, parameter_list=[]):
         params = {f'{x.parameter.name}': x for x in self.measurement_or_facts}
+
+        rows = []
+        if len(parameter_list) == 0:
+            parameter_list = [x for x in params]
+        for key in parameter_list:
+            if p := params.get(key, ''):
+                rows.append(p.to_dict())
+        return rows
+
+    def get_annotations(self, parameter_list=[]):
+        params = {f'{x.category}': x for x in self.annotations}
 
         rows = []
         if len(parameter_list) == 0:
@@ -633,8 +651,17 @@ class Dataset(Base):
 class Transaction(Base):
     __tablename__ = 'transaction'
 
+    EXCHANGE_TYPE_CHOICES = (
+        ('0', '無'),
+        ('1', 'Exchange to (交換出去)'),
+        ('2', 'Exchange from (交換來的)'),
+        ('3', 'From (贈送來的)'),
+        ('4' ,'To (贈送給)'),
+    )
+
     id = Column(Integer, primary_key=True)
     title = Column(String(500))
+    unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     transaction_type = Column(String(500)) #  (DiversityWorkbench) e.g. gift in or out, exchange in or out, purchase in or out
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     organization_text = Column(String(500))

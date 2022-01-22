@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 
-from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter
+from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction
 from app.taxon.models import Taxon, TaxonTree, TaxonRelation
 from app.database import session
 
@@ -70,9 +70,9 @@ MOF_PARAM_LIST = [
 MOF_PARAM_LIST2a = [
     ('plant-h', 'annotation_plant_h'),
     ('sex-char', 'annotation_sex_char'),
-    ('memo', 'annotation_memo'),
-    ('memo2', 'annotation_memo2'),
-    ('is-greenhouse', 'annotation_category')
+    #('memo', 'annotation_memo'),
+    #('memo2', 'annotation_memo2'),
+    #('is-greenhouse', 'annotation_category')
 ]
 MOF_PARAM_LIST2 = [
     ('life-form', 'annotation_life_form_choice_id', 'annotation_life_form_text'),
@@ -102,7 +102,8 @@ param_map = '''1,1,abundance,
 PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity': '4', 'naturalness': '5', 'topography': '6', 'veget': '7', 'plant-h': '8', 'sex-char': '9', 'memo': '10', 'memo2': '11', 'is-greenhouse': '12', 'life-form': '13', 'flower': '14', 'fruit': '15', 'flower-color': '16', 'fruit-color': '17'}
 
 def make_collection(con):
-    LIMIT = ' LIMIT 1000'
+    #LIMIT = ' LIMIT 1600'
+    LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
         #print(r)
@@ -115,12 +116,16 @@ def make_collection(con):
             collect_date=r[32],
             collector_id=r[6],
             field_number=field_number,
-            companion_text='{}::{}'.format(r[14] if r[14] else '', r[15] if r[15] else ''),
-            locality_text='{}::{}'.format(r[5] if r[5] else '', r[13] if r[13] else ''),
+            companion_text=r[14],
+            companion_text_en=r[15],
+            locality_text=r[5],
+            locality_text_en=r[13],
             altitude=r[11],
             altitude2=r[12],
             latitude_decimal=r[9],
             longitude_decimal=r[10],
+            field_note=r[16],
+            field_note_en=r[17],
         )
         if r[39] or r[41] or r[42] or r[43]:
             col.latitude_text = "{}{}°{}'{}\"".format(r[39], r[41], r[42], r[43])
@@ -227,46 +232,59 @@ def make_collection(con):
 
             a = Annotation(
                 unit_id=u.id,
-                category='add_char',
+                category='add-char',
                 text=r3['annotation_memo'],
-                memo='converted from legacy',
+                #memo='converted from legacy',
             )
             session.add(a)
             a = Annotation(
                 unit_id=u.id,
-                category='name_comment',
+                category='name-comment',
                 text=r3['annotation_memo2'],
-                memo='converted from legacy',
+                #memo='converted from legacy',
             )
             session.add(a)
             a = Annotation(
                 unit_id=u.id,
-                category='plant_h',
-                text=r3['annotation_plant_h'],
-                memo='converted from legacy',
+                category='is-greenhouse',
+                text=r3['annotation_category'],
+                #memo='converted from legacy',
             )
             session.add(a)
-            a = Annotation(
+            #a = Annotation(
+            #    unit_id=u.id,
+            #    category='plant_h',
+            #    text=r3['annotation_plant_h'],
+            #    memo='converted from legacy',
+            #)
+            #session.add(a)
+            #a = Annotation(
+            #    unit_id=u.id,
+            #    category='sex_char',
+            #    text=r3['annotation_sex_char'],
+            #    memo='converted from legacy',
+            #)
+            #session.add(a)
+            #a = Annotation(
+            #    unit_id=u.id,
+            #    category='exchange_dept',
+            #    text=r3['annotation_exchange_dept'],
+            #    memo='converted from legacy',
+            #)
+            #session.add(a)
+            #a = Annotation(
+            #    unit_id=u.id,
+            #    category='exchange_id',
+            #    text=r3['annotation_exchange_type'],
+            #    memo='converted from legacy',
+            #)
+            #session.add(a)
+            tr = Transaction(
                 unit_id=u.id,
-                category='sex_char',
-                text=r3['annotation_sex_char'],
-                memo='converted from legacy',
+                transaction_type=r3['annotation_exchange_type'],
+                organization_text=r3['annotation_exchange_dept'],
             )
-            session.add(a)
-            a = Annotation(
-                unit_id=u.id,
-                category='exchange_dept',
-                text=r3['annotation_exchange_dept'],
-                memo='converted from legacy',
-            )
-            session.add(a)
-            a = Annotation(
-                unit_id=u.id,
-                category='exchange_id',
-                text=r3['annotation_exchange_type'],
-                memo='converted from legacy',
-            )
-            session.add(a)
+            session.add(tr)
         session.commit()
 
 

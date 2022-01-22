@@ -41,6 +41,7 @@ def ra_get_list_response(res_name, req, query):
     '''
     model must has to_dict method
     res_name: for debug
+    range: default 20, max 1000
     '''
     if req.method == 'OPTIONS':
         return make_cors_preflight_response()
@@ -69,7 +70,12 @@ def ra_get_list_response(res_name, req, query):
     if 'range' in payload and payload['range'] != '':
         start = payload['range'][0]
         end = payload['range'][1]
-        query = query.limit((end-start)+1).offset(start)
+        limit = min(((end-start)+1), 1000)
+        query = query.limit(limit).offset(start)
+
+    # must limit items
+    if payload['range'] == '':
+        query = query.limit(20).offset(0)
 
     #print(query, 'query!!', query.all())
     rows = [x.to_dict() for x in query.all()]

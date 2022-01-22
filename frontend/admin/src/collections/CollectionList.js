@@ -38,7 +38,7 @@ const CollectionList = props => (
   <List filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
     <Datagrid>
       <TextField source="id" style={{color:'#9f9f9f'}}/>
-      <TextField source="key" />
+      {/*<TextField source="key" />*/}
       <ArrayField source="units" label="館號">
         <SingleFieldList>
           <TextField source="accession_number" />
