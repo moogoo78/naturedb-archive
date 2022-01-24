@@ -236,6 +236,17 @@ class Identification(Base):
     #     ('3', '四次鑑定'),
     #)
 
+    # code: International Code of Botanical Nomenclature
+    TYPE_STATUS_CHOICES = (
+        ('holotype', 'holotype'),
+        ('lectotype', 'lectotype'),
+        ('isotype', 'isotype'),
+        ('syntype', 'syntype'),
+        ('paratype', 'paratype'),
+        ('neotype', 'neotype'),
+        ('epitype', 'epitype'),
+    )
+
     __tablename__ = 'identification'
 
     id = Column(Integer, primary_key=True)
@@ -245,6 +256,8 @@ class Identification(Base):
     identifier = relationship('Person')
     taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True)
     taxon = relationship('Taxon', backref=backref('taxon'))
+    type_status = Column(String(50), nullable=True)
+    type_text = Column(String(1000))
     date = Column(DateTime)
     date_text = Column(String(50)) #格式不完整的鑑訂日期, helper: ex: 1999-1
     created = Column(DateTime, default=get_time)
@@ -394,7 +407,7 @@ class Collection(Base):
             'field_number': self.field_number,
             'units': [x.to_dict() for x in self.units],
             'identifications': ids,
-            'identification_last': ids[-1], # React-Admin cannot read identifications[-1]
+            'identification_last': ids[-1] if len(ids) else None, # React-Admin cannot read identifications[-1]
         }
 
         return data

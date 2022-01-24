@@ -29,6 +29,7 @@ import {
   OrganizationList,
 } from './organizations';
 
+import specimens from './specimens';
 import people from './people';
 import units from './units';
 import collections from './collections';
@@ -38,12 +39,12 @@ import identifications from './identifications';
 import Dashboard from './Dashboard';
 
 import authProvider from './authProvider';
-
-//const dataProvider = jsonServerProvider('https://jsonplaceholder.typicode.com');
 import dataProvider from './dataProvider';
+//const dataProvider = jsonServerProvider('https://jsonplaceholder.typicode.com');
 
 const App = () => (
-  <Admin dataProvider={dataProvider} dashboard={Dashboard} authProvider={authProvider} title="NatureDB">
+  <Admin authProvider={authProvider} dataProvider={dataProvider} dashboard={Dashboard} title="NatureDB">
+    <Resource name="specimens" {...specimens} />
     <Resource name="collections" {...collections} />
     <Resource name="units" {...units} />
     <Resource name="people" {...people} />

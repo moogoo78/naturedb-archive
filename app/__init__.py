@@ -44,8 +44,23 @@ def register_blueprint_api(app):
         IdentificationMethodView,
         MeasurementOrFactsMethodView,
         TaxonMethodView,
+        SpecimenMethodView,
     )
     #app.register_blueprint(api_bp, url_prefix='/api')
+
+    api_specimen_view = SpecimenMethodView.as_view('api-specimen')
+    api_bp.add_url_rule(
+        '/specimens',
+        defaults={'item_id': None},
+        view_func=api_specimen_view,
+        methods=['GET', 'POST', 'OPTIONS']
+    )
+    api_bp.add_url_rule(
+        '/specimens/<int:item_id>',
+        view_func=api_specimen_view,
+        methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
+    )
+
     api_person_view = PersonMethodView.as_view('api-person')
     api_bp.add_url_rule(
         '/people',
@@ -173,6 +188,7 @@ def register_blueprint_api(app):
         view_func=api_taxon_view,
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
+
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
 
@@ -187,9 +203,9 @@ def create_app():
 
     register_blueprint_api(app)
 
-    @app.route('/')
-    def index():
-        return 'hello'
+    #@app.route('/')
+    #def index():
+    #return 'hello'
 
     @app.teardown_appcontext
     def shutdown_session(exception=None):

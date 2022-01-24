@@ -5,6 +5,7 @@ from flask import (
     jsonify,
     request,
     current_app,
+    abort,
 )
 from sqlalchemy import select
 
@@ -31,7 +32,104 @@ from .helpers import (
     ra_get_list_response,
     ra_item_response,
     make_cors_preflight_response,
+    make_react_admin_response,
 )
+
+@api.route('/auth', methods=['POST', 'OPTIONS'])
+def auth():
+    if request.method == 'OPTIONS':
+        return make_cors_preflight_response()
+    elif request.method == 'POST':
+        payload = request.json
+
+        data = {
+            'err_msg': 'need check'
+        }
+        if payload['username'] == 'root' and payload['password'] == '1234':
+            #data.update({'err_msg': ''})
+            resp = jsonify(data)
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            resp.headers.add('Access-Control-Allow-Methods', '*')
+            return resp
+        else:
+            #data.update({'err_msg': ''})
+            return abort(401)
+
+
+
+
+
+class SpecimenMethodView(MethodView):
+    RESOURCE_NAME = 'collections'
+    model = Collection
+
+    def get(self, item_id):
+        if item_id is None:
+            # item_list
+            #query = Collection.query.join(Person).join(Identification).join(ScientificName)
+            #query = Collection.query.join(Person)
+            query = Collection.query
+            if filter_str := request.args.get('filter', ''):
+                filter_dict = json.loads(filter_str)
+                if keyword := filter_dict.get('q', ''):
+                    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.taxon).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | Taxon.full_scientific_name.ilike(f'%{keyword}%') | Unit.accession_number.ilike(f'%{keyword}%'))
+                if collector_id := filter_dict.get('collector_id'):
+                    query = query.filter(Person.id==collector_id)
+                if dataset_ids := filter_dict.get('dataset_id'):
+                    # TODO, query 順序不對
+                    query = query.join(Unit.collection).filter(Unit.dataset_id.in_(dataset_ids))
+
+            return ra_get_list_response('collections', request, query)
+        else:
+            # single item
+            obj = session.get(self.model, item_id)
+            return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def post(self, item_id):
+        # create
+        obj = self.model()
+        obj = self._modify(obj, request.json)
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def delete(self, item_id):
+        # delete a single user
+        obj = session.get(self.model, item_id)
+        session.delete(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def put(self, item_id):
+        # update
+        obj = session.get(self.model, item_id)
+        obj = self._modify(obj, request.json)
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def options(self, item_id):
+        return make_cors_preflight_response()
+
+    def _modify(self, obj, data):
+        #print(data, flush=True)
+        named_area_list = []
+        for i, v in data.items():
+            # available types: str, int, NoneType
+            if 'named_area_' in i and i != 'named_area_list':
+                named_area_list.append(v)
+            elif i != 'id' and isinstance(v, str | int | None):
+                setattr(obj, i, v)
+
+        if not obj.id:
+            session.add(obj)
+
+        session.commit()
+
+        # NamedArea list
+        if len(named_area_list) > 0:
+            for i in named_area_list:
+                cna = CollectionNamedArea(collection_id=obj.id, named_area_id=i)
+                session.add(cna)
+            session.commit()
+
+        return obj
 
 class TaxonMethodView(MethodView):
     RESOURCE_NAME = 'taxon'

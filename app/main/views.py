@@ -239,6 +239,10 @@ def bego():
 
     return ('foo-bego')
 
+@main.route('/')
+def index():
+    return render_template('index.html')
+
 @main.route('/print-label')
 def print_label():
     ids = request.args.get('ids')

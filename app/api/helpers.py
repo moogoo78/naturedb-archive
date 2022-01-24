@@ -26,7 +26,7 @@ def _corsify_actual_response(response):
     response.headers.add("Content-Range", "bytes 0-19/50")
     return response
 
-def make_react_admin_response(result, ra_range):
+def make_react_admin_response(result, ra_range=None):
     resp = jsonify(result)
     resp.headers.add('Access-Control-Allow-Origin', '*')
     resp.headers.add('Access-Control-Allow-Methods', '*')
@@ -82,7 +82,8 @@ def ra_get_list_response(res_name, req, query):
 
     result = {
         'data': rows,
-        'total': total
+        'total': total,
+        'query': str(query),
     }
     return make_react_admin_response(result, payload['range'])
 

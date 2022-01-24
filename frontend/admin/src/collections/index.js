@@ -1,5 +1,4 @@
-//import LandscapeIcon from '@material-ui/icons/Landscape';
-import CollectionsIcon from '@material-ui/icons/Collections';
+import LandscapeIcon from '@material-ui/icons/Landscape';
 
 import CollectionList from './CollectionList';
 import CollectionCreate from './CollectionCreate';
@@ -10,6 +9,6 @@ const item =  {
   edit: CollectionEdit,
   list: CollectionList,
 //  show: CommentShow,
-  icon: CollectionsIcon,
+  icon: LandscapeIcon,
 };
 export default item;
