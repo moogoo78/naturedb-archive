@@ -392,6 +392,7 @@ class Collection(Base):
             'id': self.id,
             'key': self.key,
             'collect_date': self.collect_date,
+            'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
             'named_area_list': self.get_named_area_list(),

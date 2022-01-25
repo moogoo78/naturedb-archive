@@ -52,7 +52,7 @@ def auth():
             resp.headers.add('Access-Control-Allow-Methods', '*')
             return resp
         else:
-            #data.update({'err_msg': ''})
+            #data.update({'err_msg': 'aoeus'})
             return abort(401)
 
 
@@ -69,15 +69,19 @@ class SpecimenMethodView(MethodView):
             #query = Collection.query.join(Person).join(Identification).join(ScientificName)
             #query = Collection.query.join(Person)
             query = Collection.query
+            #print(request.args, flush=True)
             if filter_str := request.args.get('filter', ''):
+                #print(filter_str, request.args, flush=True)
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
-                    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.taxon).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | Taxon.full_scientific_name.ilike(f'%{keyword}%') | Unit.accession_number.ilike(f'%{keyword}%'))
+                    query = query.filter(Person.full_name.ilike(f'%{keyword}%'))
+                #if keyword := filter_dict.get('q', ''):
+                #    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.taxon).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | Taxon.full_scientific_name.ilike(f'%{keyword}%') | Unit.accession_number.ilike(f'%{keyword}%'))
                 if collector_id := filter_dict.get('collector_id'):
                     query = query.filter(Person.id==collector_id)
-                if dataset_ids := filter_dict.get('dataset_id'):
-                    # TODO, query 順序不對
-                    query = query.join(Unit.collection).filter(Unit.dataset_id.in_(dataset_ids))
+                #if dataset_ids := filter_dict.get('dataset_id'):
+                # TODO, query 順序不對
+                #    query = query.join(Unit.collection).filter(Unit.dataset_id.in_(dataset_ids))
 
             return ra_get_list_response('collections', request, query)
         else:

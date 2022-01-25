@@ -243,6 +243,11 @@ def bego():
 def index():
     return render_template('index.html')
 
+@main.route('/specimens/<int:id>')
+def specimen_detail(id):
+    item = Collection.query.get(id)
+    return render_template('specimen-detail.html', item=item)
+
 @main.route('/print-label')
 def print_label():
     ids = request.args.get('ids')
