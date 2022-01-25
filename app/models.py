@@ -138,6 +138,11 @@ class MeasurementOrFact(Base):
 
 class Annotation(Base):
 
+    CATEGORY_MAP = {
+        'add-char': '特徵',
+        'name-comment': '分類評註',
+        'is-greenhouse': '溫室標本',
+    }
     __tablename__ = 'annotation'
 
     id = Column(Integer, primary_key=True)
@@ -149,6 +154,9 @@ class Annotation(Base):
     # todo: english
     # abcd: Annotator
     # abcd: Date
+
+    def display_category(self):
+        return self.CATEGORY_MAP.get(self.category, '--')
 
     def to_dict(self):
         return {
@@ -385,7 +393,7 @@ class Collection(Base):
         return ''
 
     # collection.to_dict
-    def to_dict(self):
+    def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
 
         data = {
@@ -406,12 +414,25 @@ class Collection(Base):
             #'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
-            'units': [x.to_dict() for x in self.units],
             'identifications': ids,
             'identification_last': ids[-1] if len(ids) else None, # React-Admin cannot read identifications[-1]
         }
+        if include_units == True:
+            data['units'] = [x.to_dict() for x in self.units]
 
         return data
+
+    def display_altitude(self):
+        alt = []
+        if x := self.altitude:
+            alt.append(x)
+        if x := self.altitude2:
+            alt.append(x)
+
+        if len(alt) == 1:
+            return alt[0]
+        elif len(alt) > 1:
+            return '-'.join(alt)
 
     def get_coordinates(self, type_=''):
         if self.longitude_decimal and self.latitude_decimal:
@@ -430,6 +451,7 @@ class Collection(Base):
                     'y': dms_lat,
                     'x_label': x_label,
                     'y_label': y_label,
+                    'simple': f'{x_label}, {y_label}'
                 }
         else:
             return None
@@ -468,6 +490,8 @@ class Unit(Base):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
     '''
+    KIND_OF_UNIT_MAP = {'HS': 'Herbarium Sheet'}
+
     __tablename__ = 'unit'
 
     id = Column(Integer, primary_key=True)
@@ -509,6 +533,11 @@ class Unit(Base):
     information_withheld = Column(Text)
     annotations = relationship('Annotation')
 
+    def display_kind_of_unit(self):
+        if self.kind_of_unit:
+            return self.KIND_OF_UNIT_MAP.get(self.kind_of_unit, 'error')
+        return ''
+
     @property
     def key(self):
         pre = []
@@ -535,8 +564,8 @@ class Unit(Base):
         return f'{seperator}'.join(pre)
 
     # unit.to_dict
-    def to_dict(self):
-        return {
+    def to_dict(self, has_collection=''):
+        data = {
             'id': self.id,
             'key': self.key,
             'accession_number': self.accession_number,
@@ -546,6 +575,10 @@ class Unit(Base):
             'measurement_or_facts': [x.to_dict() for x in self.measurement_or_facts],
             #'dataset': self.dataset.to_dict(), # too many
         }
+        if has_collection != '':
+            data['collection'] = self.collection.to_dict(include_units=False)
+
+        return data
 
     def get_parameters(self, parameter_list=[]):
         params = {f'{x.parameter.name}': x for x in self.measurement_or_facts}
@@ -569,6 +602,15 @@ class Unit(Base):
                 rows.append(p.to_dict())
         return rows
 
+    def get_image(self, thumbnail='_s'):
+
+        if self.accession_number:
+            acc_id = f'{self.accession_number:06}'
+            first_3 = acc_id[0:3]
+            img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{acc_id}{thumbnail}.jpg'
+            return img_url
+        else:
+            return None
     def __str__(self):
         collector = ''
         if p := self.collection.collector:

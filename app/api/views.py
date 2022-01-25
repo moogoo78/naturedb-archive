@@ -58,7 +58,7 @@ def auth():
 
 
 
-
+from app.helpers import query_specimen
 class SpecimenMethodView(MethodView):
     RESOURCE_NAME = 'collections'
     model = Collection
@@ -66,24 +66,25 @@ class SpecimenMethodView(MethodView):
     def get(self, item_id):
         if item_id is None:
             # item_list
-            #query = Collection.query.join(Person).join(Identification).join(ScientificName)
-            #query = Collection.query.join(Person)
-            query = Collection.query
+            query = query_specimen()
+            #result = session.execute(stmt)
+            #query = result.scalars()
+            #print(len(query), flush=True)
             #print(request.args, flush=True)
-            if filter_str := request.args.get('filter', ''):
+            #if filter_str := request.args.get('filter', ''):
                 #print(filter_str, request.args, flush=True)
-                filter_dict = json.loads(filter_str)
-                if keyword := filter_dict.get('q', ''):
-                    query = query.filter(Person.full_name.ilike(f'%{keyword}%'))
+            #    filter_dict = json.loads(filter_str)
+            #    if keyword := filter_dict.get('q', ''):
+            #        query = query.filter(Person.full_name.ilike(f'%{keyword}%'))
                 #if keyword := filter_dict.get('q', ''):
                 #    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.taxon).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | Taxon.full_scientific_name.ilike(f'%{keyword}%') | Unit.accession_number.ilike(f'%{keyword}%'))
-                if collector_id := filter_dict.get('collector_id'):
-                    query = query.filter(Person.id==collector_id)
+            #    if collector_id := filter_dict.get('collector_id'):
+            #        query = query.filter(Person.id==collector_id)
                 #if dataset_ids := filter_dict.get('dataset_id'):
                 # TODO, query 順序不對
                 #    query = query.join(Unit.collection).filter(Unit.dataset_id.in_(dataset_ids))
 
-            return ra_get_list_response('collections', request, query)
+            return ra_get_list_response('specimens', request, query)
         else:
             # single item
             obj = session.get(self.model, item_id)

@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import {
+  useListContext,
   List,
   Datagrid,
   TextField,
@@ -28,6 +29,13 @@ const BulkActionButtons = props => {
   </>)
 }
 
+const ListTitle = () => {
+  const context = useListContext();
+  const firstItem = context.data[context.ids[0]];
+  const queryElapsed = (firstItem && firstItem.query_elapsed) ? ` (query elapsed: ${firstItem.query_elapsed.toFixed(2)} secs)` : '';
+  //const title = `Specimen${queryElapsed}`;
+  return <span>Specimens<span style={{fontSize:'14px', color:'#d0d0d0'}}>{queryElapsed}</span></span>;
+}
 const ListFilters = [
   <TextInput source="q" label="Search" alwaysOn />,
   <CheckboxGroupInput source="dataset_id" choices={[
@@ -40,19 +48,15 @@ const ListFilters = [
 ];
 
 const SpecimenList = props => (
-  <List filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
+  <List title={<ListTitle/>} filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
     <Datagrid>
       <TextField source="id" style={{color:'#9f9f9f'}}/>
       {/*<TextField source="key" />*/}
-      <ArrayField source="units" label="館號">
-        <SingleFieldList>
-          <TextField source="accession_number" />
-        </SingleFieldList>
-      </ArrayField>
-      <TextField source="collector.display_name" sortBy="person.full_name" label="採集者"/>
-      <TextField source="field_number" label="採集號"/>
-      <FunctionField render={record => (record.identification_last) ? `${record.identification_last.taxon.full_scientific_name} / ${record.identification_last.taxon.common_name}`: ''} label="物種" />
-      <DateField source="collect_date" locales="zh-TW" label="採集日期" />
+      <TextField source="accession_number" label="館號" />
+      <TextField source="collection.collector.display_name" sortBy="person.full_name" label="採集者"/>
+      <TextField source="collection.field_number" label="採集號"/>
+      <FunctionField render={record => (record.collection.identification_last) ? `${record.collection.identification_last.taxon.full_scientific_name} / ${record.collection.identification_last.taxon.common_name}`: ''} label="物種" />
+      <DateField source="collection.collect_date" locales="zh-TW" label="採集日期" />
       <EditButton />
     </Datagrid>
   </List>

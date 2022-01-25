@@ -11,12 +11,28 @@ from app.main import main
 from app.database import session
 #from app.database import session
 #from app.models import Dataset, Collection
-from app.models import Collection, Person
-from app.helpers import conv_hast21
+from app.models import (
+    Collection,
+    Person,
+    Unit,
+    Identification,
+)
+from app.helpers import conv_hast21, query_specimen
 
+@main.route('/foo')
+def foo():
+    query = query_specimen()
+    # result = session.execute(query)
+    #print (result.count())
+    #for x in result.scalars().all():
+    #    print(x)
+    print(query.count(), flush=True)
+    for x in query.limit(10).all():
+        print(x)
+    return jsonify({'query': str(query)})
 
 @main.route('/conv-hast21')
-def foo():
+def conv_hast21():
     key = request.args.get('key')
     start = datetime.now()
     conv_hast21(key)
@@ -243,10 +259,11 @@ def bego():
 def index():
     return render_template('index.html')
 
-@main.route('/specimens/<int:id>')
-def specimen_detail(id):
-    item = Collection.query.get(id)
-    return render_template('specimen-detail.html', item=item)
+@main.route('/specimens/<collection_id>')
+def specimen_detail(collection_id):
+    ids = collection_id.split(':')
+    if item := Unit.query.filter(Unit.accession_number==ids[1]).first():
+        return render_template('specimen-detail.html', item=item)
 
 @main.route('/print-label')
 def print_label():

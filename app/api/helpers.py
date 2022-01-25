@@ -1,4 +1,5 @@
 import json
+import time
 
 from flask import (
     jsonify,
@@ -56,7 +57,7 @@ def ra_get_list_response(res_name, req, query):
     # filter apply before
     #if f := req.args.get('filter'):
     #    payload['filter'] = json.loads(f)
-
+    begin_time = time.time()
     total = query.count()
     # order_by must apply before limit/offset
     # apply payload from react-admin
@@ -78,12 +79,22 @@ def ra_get_list_response(res_name, req, query):
         query = query.limit(20).offset(0)
 
     #print(query, 'query!!', query.all())
-    rows = [x.to_dict() for x in query.all()]
+    if res_name == 'specimens':
+        rows = [x.to_dict('collection') for x in query.all()]
+    else:
+        rows = [x.to_dict() for x in query.all()]
+
+    end_time = time.time()
+
+    elapsed = end_time - begin_time
+    if rows[0]:
+        rows[0]['query_elapsed'] = elapsed # for react admin display
 
     result = {
         'data': rows,
         'total': total,
         'query': str(query),
+        'elapsed': elapsed,
     }
     return make_react_admin_response(result, payload['range'])
 

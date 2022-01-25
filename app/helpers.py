@@ -1,9 +1,22 @@
-from sqlalchemy import create_engine
+from sqlalchemy import (
+    create_engine,
+    select,
+    func,
+)
 
 from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction
 from app.taxon.models import Taxon, TaxonTree, TaxonRelation
 from app.database import session
 
+
+def query_specimen():
+    #query =  select(Unit).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+    query =  session.query(Unit).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+    #query =  session.query(Unit,func.count(Unit.id).over().label('total')).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+    #query = query.where(Collection.id.in_([9321, 9322, 9323]))
+    #query = query.where(Collection.id > 13400)
+    #query = query.limit(10)
+    return query
 
 def make_person(con):
     rows = con.execute('SELECT * FROM specimen_person ORDER BY id')
