@@ -13,15 +13,15 @@ export default {
             range: JSON.stringify([(page - 1) * perPage, page * perPage - 1]),
             filter: JSON.stringify(params.filter),
         };
-       //console.log(resource, query, params);
+        //console.log(resource, query, params);
         const url = `${apiUrl}/${resource}?${stringify(query)}`;
 
       return httpClient(url).then(({ headers, json }) => {
         console.log('query elapsed', json.elapsed);
+        console.log('query', json.query);
         return ({
-            data: json.data,
+          data: json.data,
           total: json.total, //parseInt(headers.get('content-range').split('/').pop(), 10),
-          defaultTitle: 'foo',
         })
       });
     },

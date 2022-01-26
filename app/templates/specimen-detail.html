@@ -54,10 +54,10 @@
             {% for i in item.collection.identifications.all() %}
             <div class="id-wrapper">
               <div class="scientific-name">{{ i.taxon.full_scientific_name }}</div>
-              {{ display_data('鑑定者', i.identifier.display_name()) }}
+              {{ display_data('鑑定者', i.identifier.display_name() if i.identifier else "") }}
               {{ display_data('鑑定日期', i.date) }}
-              {% endfor %}
             </div>
+              {% endfor %}
             <h4>基本資訊</h4>
             {{ display_data('採集者', item.collection.collector.display_name()) }}
             {{ display_data('隨同人員', item.collection.companion_text) }}

@@ -6,10 +6,11 @@ import {
   Datagrid,
   TextField,
   DateField,
-  ArrayField,
+  //ArrayField,
+  ImageField,
   //ChipField,
   FunctionField,
-  SingleFieldList,
+  //SingleFieldList,
   TextInput,
   ReferenceInput,
   AutocompleteInput,
@@ -20,6 +21,18 @@ import {
 import Button from '@material-ui/core/Button';
 //import { Link } from 'react-router-dom';
 import { Link as MuiLink } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+
+const useStyles = makeStyles({
+  imgContainer: {
+    '& img': {
+      height: 75,
+      width: 75,
+      objectFit: "contain"
+    }
+  }
+});
+
 const BulkActionButtons = props => {
   const HOST = 'http://127.0.0.1:5000';
   const printUrl = `${HOST}/print-label?ids=${props.selectedIds.join(",")}`;
@@ -37,18 +50,24 @@ const ListTitle = () => {
   return <span>Specimens<span style={{fontSize:'14px', color:'#d0d0d0'}}>{queryElapsed}</span></span>;
 }
 const ListFilters = [
-  <TextInput source="q" label="Search" alwaysOn />,
+  <TextInput source="q" label="全文搜尋" alwaysOn />,
+  <TextInput source="accession_number" label="館號" alwaysOn />,
+  <ReferenceInput source="collector_id" label="採集者" reference="people" alwaysOn >
+    <AutocompleteInput optionText="full_name" />
+  </ReferenceInput>,
+  <ReferenceInput source="taxon_id" label="物種" reference="taxa" alwaysOn>
+    <AutocompleteInput optionText="display_name" />
+  </ReferenceInput>,
   <CheckboxGroupInput source="dataset_id" choices={[
     { id: '1', name: 'HAST' },
     { id: '2', name: '紅藻' },
-]} />,
-  <ReferenceInput source="collector_id" label="Collector" reference="people">
-    <AutocompleteInput optionText="full_name" />
-  </ReferenceInput>,
+  ]} />,
 ];
 
-const SpecimenList = props => (
-  <List title={<ListTitle/>} filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
+const SpecimenList = props => {
+  const classes = useStyles();
+  return (
+  <List title={<ListTitle/>} filters={ListFilters} {...props} sort={{field: 'unit.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
     <Datagrid>
       <TextField source="id" style={{color:'#9f9f9f'}}/>
       {/*<TextField source="key" />*/}
@@ -56,10 +75,12 @@ const SpecimenList = props => (
       <TextField source="collection.collector.display_name" sortBy="person.full_name" label="採集者"/>
       <TextField source="collection.field_number" label="採集號"/>
       <FunctionField render={record => (record.collection.identification_last) ? `${record.collection.identification_last.taxon.full_scientific_name} / ${record.collection.identification_last.taxon.common_name}`: ''} label="物種" />
+      <ImageField source="image_url" title="照片" className={classes.imgContainer} />
       <DateField source="collection.collect_date" locales="zh-TW" label="採集日期" />
       <EditButton />
     </Datagrid>
   </List>
-);
+  );
+}
 
 export default SpecimenList;

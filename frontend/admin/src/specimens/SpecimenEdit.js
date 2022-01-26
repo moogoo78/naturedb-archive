@@ -44,8 +44,8 @@ import { useInput } from 'react-admin';
 import { Link } from 'react-router-dom';
 
 
-//import UnitQuickCreateButton from './UnitQuickCreateButton';
-//import IdentificationQuickCreateButton from './IdentificationQuickCreateButton';
+import UnitQuickCreateButton from './UnitQuickCreateButton';
+import IdentificationQuickCreateButton from './IdentificationQuickCreateButton';
 
 const UnitPreparationTypeChoices = [
   {id: 'S', name: 'specimen'},
@@ -132,7 +132,7 @@ const MeasurementOrFactEditButton = ({ record }) => (
 
 
 
-const CollectionEdit = props => {
+const SpecimenEdit = props => {
   const [open, setOpen] = React.useState(false);
   const toggle = (open) => {
     //console.log(open, 'tog');
@@ -144,8 +144,6 @@ const CollectionEdit = props => {
   const handleIdentificationChange = React.useCallback(() => setVersion2(version2 + 1), [version2]);
   //<UnitCreateButton />
   //console.log('CollectionEdit::props', props);
-  //<UnitQuickCreateButton onChange={handleUnitChange} collectionId={props.id}/>
-  //<IdentificationQuickCreateButton onChange={handleIdentificationChange} collectionId={props.id}/>
   return (
   <Edit title={<PageTitle />} actions={<PageActions />} {...props}>
     <TabbedForm>
@@ -172,7 +170,7 @@ const CollectionEdit = props => {
             <UnitEditButton />
           </Datagrid>
         </ArrayField>
-
+        <UnitQuickCreateButton onChange={handleUnitChange} collectionId={props.id}/>
       </FormTab>
       <FormTab label="locality">
         {/*<MyTextField source="longitude_decimal" />*/}
@@ -227,6 +225,7 @@ const CollectionEdit = props => {
             <IdentificationEditButton />
           </Datagrid>
         </ArrayField>
+        <IdentificationQuickCreateButton onChange={handleIdentificationChange} collectionId={props.id}/>
       </FormTab>
     </TabbedForm>
   </Edit>
@@ -280,4 +279,4 @@ const MyField = (props) => {
           )
         }} />
 */
-export default CollectionEdit;
+export default SpecimenEdit;

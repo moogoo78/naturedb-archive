@@ -33,7 +33,7 @@ const Dashboard = () => {
       <CardHeader title="Admin Dashboard" />
       <CardContent>
         <Typography variant="h4" component="h3">Dataset Stats</Typography>
-        <Typography variant="textPrimary" component="h4">HAST</Typography>
+        <Typography variant="subtitle1" color="textPrimary" component="h4">HAST</Typography>
         <div className={classes.root}>
           <Paper elevation={2}>
             <Typography className={classes.title} color="textSecondary" gutterBottom>

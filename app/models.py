@@ -262,7 +262,7 @@ class Identification(Base):
     collection = relationship('Collection', back_populates='identifications')
     identifier_id = Column(Integer, ForeignKey('person.id', ondelete='SET NULL'), nullable=True)
     identifier = relationship('Person')
-    taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True)
+    taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True, index=True)
     taxon = relationship('Taxon', backref=backref('taxon'))
     type_status = Column(String(50), nullable=True)
     type_text = Column(String(1000))
@@ -330,7 +330,7 @@ class Collection(Base):
     collect_date_text = Column(String(500)) # DEPRECATED
     # abcd: GatheringAgent, DiversityCollectinoModel: CollectionAgent
     collector_id = Column(Integer, ForeignKey('person.id'))
-    field_number = Column(String(500))
+    field_number = Column(String(500), index=True)
     collector = relationship('Person')
     companions = relationship('CollectionPerson') # companion
     companion_text = Column(String(500)) # unformatted value, # HAST:companions
@@ -362,6 +362,7 @@ class Collection(Base):
     field_note_en = Column(Text)
     other_field_numbers = relationship('FieldNumber')
     identifications = relationship('Identification', back_populates='collection', lazy='dynamic')
+    last_taxon = Column(Text)
     units = relationship('Unit')
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
@@ -496,7 +497,7 @@ class Unit(Base):
 
     id = Column(Integer, primary_key=True)
     #guid =
-    dataset_id = Column(Integer, ForeignKey('dataset.id', ondelete='SET NULL'), nullable=True)
+    dataset_id = Column(Integer, ForeignKey('dataset.id', ondelete='SET NULL'), nullable=True, index=True)
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
     #last_editor = Column(String(500))
@@ -513,7 +514,7 @@ class Unit(Base):
     #propagation
 
     # abcd: SpecimenUnit
-    accession_number = Column(String(500))
+    accession_number = Column(String(500), index=True)
     duplication_number = Column(String(500)) # ==Think==
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
@@ -573,6 +574,7 @@ class Unit(Base):
             'preparation_type': self.preparation_type,
             'preparation_date': self.preparation_date,
             'measurement_or_facts': [x.to_dict() for x in self.measurement_or_facts],
+            'image_url': self.get_image(),
             #'dataset': self.dataset.to_dict(), # too many
         }
         if has_collection != '':
@@ -603,14 +605,15 @@ class Unit(Base):
         return rows
 
     def get_image(self, thumbnail='_s'):
-
         if self.accession_number:
-            acc_id = f'{self.accession_number:06}'
-            first_3 = acc_id[0:3]
-            img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{acc_id}{thumbnail}.jpg'
+            accession_number_int = int(self.accession_number)
+            instance_id = f'{accession_number_int:06}'
+            first_3 = instance_id[0:3]
+            img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
             return img_url
         else:
             return None
+
     def __str__(self):
         collector = ''
         if p := self.collection.collector:

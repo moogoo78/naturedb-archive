@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import './musubii.min.css';
 
+const apiURL = 'http://127.0.0.1:5000/api/v1/specimens';
+
 export function QuerySpecimen() {
-  const apiURL = 'http://127.0.0.1:5000/api/v1/specimens';
+
   const [result, setResult] = useState(null);
   const [formData, setFormData] = useState(null);
   const [errMsg,setErrMsg] = useState(null);
-
 
   const handleSubmit = (e) => {
     const filter = JSON.stringify(formData);
@@ -37,9 +38,9 @@ export function QuerySpecimen() {
         });
       });
   }
-  const findAccessionNumber = (units) => {
+  /*const findAccessionNumber = (units) => {
     return (units.length > 0) ? units[0].accession_number : '';
-  }
+  }*/
 
   const handleInput = (e) => {
     const name = e.target.name;
@@ -88,7 +89,7 @@ export function QuerySpecimen() {
               </thead>
               <tbody>
                 {(result) ? result.data.map((v, i)=>
-                  (<tr key={i}><td><a href={`/specimen/${v.id}`} className="text is-link">link</a></td><td>{findAccessionNumber(v.units)}</td><td>{(v.collector) ? v.collector.display_name: ""}</td><td>{v.field_number}</td><td>{(v.identification_last)? v.identification_last.taxon.full_scientific_name:''}</td><td>{v.display_collect_date}</td></tr>)
+                  (<tr key={i}><td><a href={`http://localhost:5000/specimens/hast:${v.accession_number}`} className="text is-link">view</a></td><td>{ v.accession_number }</td><td>{ v.collection.collector.display_name }</td><td>{v.collection.field_number}</td><td>{(v.identification_last)? v.identification_last.taxon.full_scientific_name:''}</td><td>{v.collection.collect_date}</td></tr>)
                 )
                   : null}
               </tbody>

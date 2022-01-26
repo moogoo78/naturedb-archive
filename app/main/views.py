@@ -17,19 +17,8 @@ from app.models import (
     Unit,
     Identification,
 )
-from app.helpers import conv_hast21, query_specimen
+from app.helpers import conv_hast21
 
-@main.route('/foo')
-def foo():
-    query = query_specimen()
-    # result = session.execute(query)
-    #print (result.count())
-    #for x in result.scalars().all():
-    #    print(x)
-    print(query.count(), flush=True)
-    for x in query.limit(10).all():
-        print(x)
-    return jsonify({'query': str(query)})
 
 @main.route('/conv-hast21')
 def conv_hast21():
@@ -156,6 +145,19 @@ Begonia zhangii
 Begonia zhengyiana
 Begonia zhuoyuniae
 Begonia ×breviscapa'''
+
+@main.route('/foo')
+def foo():
+    count = 0
+    for x in Collection.query.all():
+        count += 1
+        ids = [x for x in x.identifications.order_by(Identification.verification_level).all()]
+        if len(ids):
+            x.last_taxon = '{}|{}'.format(ids[-1].taxon.full_scientific_name if ids[-1].taxon else '', ids[-1].taxon.common_name if ids[-1].taxon else '')
+            #x.save()
+            session.commit()
+            count += 1
+            print(count, flush=True)
 
 def find_coel():
     from sqlalchemy import create_engine

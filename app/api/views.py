@@ -1,4 +1,5 @@
 import json
+import time
 
 from flask import (
     render_template,
@@ -7,7 +8,7 @@ from flask import (
     current_app,
     abort,
 )
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from flask.views import MethodView
 
@@ -33,6 +34,7 @@ from .helpers import (
     ra_item_response,
     make_cors_preflight_response,
     make_react_admin_response,
+    ra_get_specimen_list_response,
 )
 
 @api.route('/auth', methods=['POST', 'OPTIONS'])
@@ -56,20 +58,90 @@ def auth():
             return abort(401)
 
 
+def make_specimen_list_response(req):
+    payload = {
+        'range': '',
+    }
+    if r := req.args.get('range'):
+        payload['range'] = json.loads(r)
+    if s := req.args.get('sort'):
+        payload['sort'] = json.loads(s)
 
+    begin_time = time.time()
+    query = Unit.query.join(Unit.collection).join(Collection.collector).join(Collection.identifications)
 
-from app.helpers import query_specimen
+    #stmt =  select(Unit).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+    #query = session.query(Unit.id, Unit.dataset_id, Unit.accession_number, Unit.collection_id).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+
+    #query =  session.query(Unit,func.count(Unit.id).over().label('total')).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+    #query = query.where(Collection.id.in_([9321, 9322, 9323]))
+    #query = query.where(Collection.id > 13400)
+
+    #stmt = stmt.limit(10).offset(200)
+    #result = session.execute(stmt)
+    #query = session.query(instance).from_statement(stmt)
+    total = query.count()
+
+    if 'range' in payload and payload['range'] != '':
+        start = payload['range'][0]
+        end = payload['range'][1]
+        limit = min(((end-start)+1), 1000)
+        query = query.limit(limit).offset(start)
+
+    rows = []
+    for u in query.all():
+        #stmt = select(func.max(Identification.verification_level)).join(Taxon).where(u.collection.id==Identification.collection_id)
+        #print(stmt)
+        #result = session.execute(stmt)
+        #for r in result:
+        #    print(r)
+        #print(result, flush=True)
+        ids = u.collection.identifications.order_by(Identification.verification_level).all()
+        last_id = None
+        if len(ids) > 0:
+            last_id = ids[-1]
+
+        item = {
+            'id': u.id,
+            'accession_number': u.accession_number,
+            'image_url': u.get_image(),
+            'identification_last': last_id.to_dict(),
+            'collection': {
+                'field_number': u.collection.field_number,
+                'collector': u.collection.collector.to_dict(),
+                'collect_date': u.collection.collect_date.strftime('%Y-%m-%d'),
+                #'identification_last': None,#u.collection.rder_by(Identification.verification_level).all()[0].to_dict() if u.collection.identifications else None, TODO JOIN
+            }
+        }
+        rows.append(item)
+
+    end_time = time.time()
+    elapsed = end_time - begin_time
+    if len(rows) > 0:
+        rows[0]['query_elapsed'] = elapsed
+
+    result = {
+        'data': rows,
+        'total': total,
+        'query': str(query),
+        'elapsed': elapsed,
+    }
+    print('---', flush=True)
+    return make_react_admin_response(result, payload['range'])
+
 class SpecimenMethodView(MethodView):
     RESOURCE_NAME = 'collections'
-    model = Collection
+    model = Unit
 
     def get(self, item_id):
         if item_id is None:
             # item_list
-            query = query_specimen()
-            #result = session.execute(stmt)
-            #query = result.scalars()
-            #print(len(query), flush=True)
+            #stmt = select([Unit.id, Unit.accession_number]).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+
+            #subquery = session.query(Identification.collection_id).filter().subquery()
+            #print(query, flush=True)
+            #for x in query.all()[:10]:
+            #    print(x.to_dict())
             #print(request.args, flush=True)
             #if filter_str := request.args.get('filter', ''):
                 #print(filter_str, request.args, flush=True)
@@ -83,8 +155,9 @@ class SpecimenMethodView(MethodView):
                 #if dataset_ids := filter_dict.get('dataset_id'):
                 # TODO, query 順序不對
                 #    query = query.join(Unit.collection).filter(Unit.dataset_id.in_(dataset_ids))
-
-            return ra_get_list_response('specimens', request, query)
+            #return jsonify({})
+            #return ra_get_list_response('specimens', request, query)
+            return make_specimen_list_response(request)
         else:
             # single item
             obj = session.get(self.model, item_id)
