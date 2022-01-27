@@ -22,14 +22,19 @@ import Button from '@material-ui/core/Button';
 //import { Link } from 'react-router-dom';
 import { Link as MuiLink } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import Typography from '@material-ui/core/Typography';
+import Box from '@material-ui/core/Box';
 
 const useStyles = makeStyles({
   imgContainer: {
     '& img': {
-      height: 75,
-      width: 75,
+      height: 50,
+      width: 50,
       objectFit: "contain"
     }
+  },
+  typoGap: {
+    margin: '0 2px'
   }
 });
 
@@ -51,11 +56,12 @@ const ListTitle = () => {
 }
 const ListFilters = [
   <TextInput source="q" label="全文搜尋" alwaysOn />,
-  <TextInput source="accession_number" label="館號" alwaysOn />,
-  <ReferenceInput source="collector_id" label="採集者" reference="people" alwaysOn >
+  <TextInput source="accession_number" label="館號" />,
+  <ReferenceInput source="collector_id" label="採集者" reference="people" >
     <AutocompleteInput optionText="full_name" />
   </ReferenceInput>,
-  <ReferenceInput source="taxon_id" label="物種" reference="taxa" alwaysOn>
+  <TextInput source="field_number" label="採集號" />,
+  <ReferenceInput source="taxon_id" label="學名" reference="taxa">
     <AutocompleteInput optionText="display_name" />
   </ReferenceInput>,
   <CheckboxGroupInput source="dataset_id" choices={[
@@ -63,6 +69,25 @@ const ListFilters = [
     { id: '2', name: '紅藻' },
   ]} />,
 ];
+
+
+const concatLocality = (data, typoGap) => {
+  console.log(data);
+  let idx = (data[0].data && data[0].data.id == 2) ? 1 : 0;
+  return (
+    <>
+      {(data[idx].data) ?
+       <Typography variant="body2" display="inline" className={typoGap}>{data[idx].data.name}</Typography>
+       : null}
+      {(data[idx+1].data) ?
+       <Typography variant="body2" display="inline" className={typoGap}>{data[idx+1].data.name}</Typography>
+              : null}
+    {(data[idx+2].data) ?
+     <Typography variant="body2" display="inline" className={typoGap}>{data[idx+2].data.name}</Typography>
+     : null}
+    </>
+  );
+}
 
 const SpecimenList = props => {
   const classes = useStyles();
@@ -72,11 +97,24 @@ const SpecimenList = props => {
       <TextField source="id" style={{color:'#9f9f9f'}}/>
       {/*<TextField source="key" />*/}
       <TextField source="accession_number" label="館號" />
-      <TextField source="collection.collector.display_name" sortBy="person.full_name" label="採集者"/>
-      <TextField source="collection.field_number" label="採集號"/>
-      <FunctionField render={record => (record.collection.identification_last) ? `${record.collection.identification_last.taxon.full_scientific_name} / ${record.collection.identification_last.taxon.common_name}`: ''} label="物種" />
+      <FunctionField render={record => (
+        <>
+          <Typography variant="body2">{(record.collection.identification_last.taxon) ? record.collection.identification_last.taxon.full_scientific_name : ''}</Typography>
+          <Typography variant="body2">{(record.collection.identification_last.taxon) ? record.collection.identification_last.taxon.common_name : ''}</Typography>
+        </>
+      )} label="學名/中文名" />
+      <FunctionField render={record => {
+        const collector = (record.collection.collector) ? record.collection.collector.display_name : '';
+        const collectionKey = `${collector} ${record.collection.field_number}`;
+        return (
+        <>
+          <Typography variant="body2">{collectionKey}</Typography>
+          <Typography variant="body2">{record.collection.collect_date}</Typography>
+        </>)
+      }
+      } label="採集者/號/日期" />
+      <FunctionField render={record => (concatLocality(record.collection.named_area_list, classes.typoGap))} label="地點" />
       <ImageField source="image_url" title="照片" className={classes.imgContainer} />
-      <DateField source="collection.collect_date" locales="zh-TW" label="採集日期" />
       <EditButton />
     </Datagrid>
   </List>
@@ -84,3 +122,9 @@ const SpecimenList = props => {
 }
 
 export default SpecimenList;
+
+/*
+      <TextField source="collection.collector.display_name" sortBy="person.full_name" label="採集者"/>
+      <TextField source="collection.field_number" label="採集號"/>
+      <DateField source="collection.collect_date" locales="zh-TW" label="採集日期" />
+*/

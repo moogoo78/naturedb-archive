@@ -100,17 +100,18 @@ def make_specimen_list_response(req):
         last_id = None
         if len(ids) > 0:
             last_id = ids[-1]
-
+        #'identification_last': None,#u.collection.rder_by(Identification.verification_level).all()[0].to_dict() if u.collection.identifications else None, TODO JOIN
+        named_area_list = u.collection.get_named_area_list()
         item = {
             'id': u.id,
             'accession_number': u.accession_number,
             'image_url': u.get_image(),
-            'identification_last': last_id.to_dict(),
             'collection': {
+                'identification_last': last_id.to_dict(),
                 'field_number': u.collection.field_number,
                 'collector': u.collection.collector.to_dict(),
                 'collect_date': u.collection.collect_date.strftime('%Y-%m-%d'),
-                #'identification_last': None,#u.collection.rder_by(Identification.verification_level).all()[0].to_dict() if u.collection.identifications else None, TODO JOIN
+                'named_area_list': named_area_list,
             }
         }
         rows.append(item)
@@ -126,7 +127,6 @@ def make_specimen_list_response(req):
         'query': str(query),
         'elapsed': elapsed,
     }
-    print('---', flush=True)
     return make_react_admin_response(result, payload['range'])
 
 class SpecimenMethodView(MethodView):

@@ -17,8 +17,7 @@ export default {
         const url = `${apiUrl}/${resource}?${stringify(query)}`;
 
       return httpClient(url).then(({ headers, json }) => {
-        console.log('query elapsed', json.elapsed);
-        console.log('query', json.query);
+        console.log('getList', json);
         return ({
           data: json.data,
           total: json.total, //parseInt(headers.get('content-range').split('/').pop(), 10),
