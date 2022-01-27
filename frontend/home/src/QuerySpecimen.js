@@ -13,28 +13,24 @@ export function QuerySpecimen() {
   });
   const [formData, setFormData] = useState({});
 
-  const handleSubmit = (e) => {
-    const filter = JSON.stringify(formData);
-      //ange=[0%2C9]&sort=["collection.id"%2C"DESC"]'
-    const filterQS = encodeURIComponent(filter);
-    const rangeQS = encodeURIComponent('[0,9]')
-    const url = `${apiURL}?filter=${filterQS}&range=${rangeQS}&sort=["unit.id","DESC"]`;
-    console.log(apiURL);
 
+  const fetchServer = (url, page) => {
     setData({
       ...data,
       isLoading: true,
     });
-    fetch(url, {
+
+    return fetch(url, {
       method: 'GET',
     })
       .then(response => response.json())
       .then((resp)=>{
-        console.log('resp', resp);
+        console.log('resp', resp, data);
         setData({
           ...data,
           isLoading: false,
           result: resp,
+          currentPage: page,
         });
       })
       .catch(error => {
@@ -44,10 +40,16 @@ export function QuerySpecimen() {
           isCloseErrMsg: false,
         });
       });
+  };
+
+  const handleSubmit = (e) => {
+    const filter = JSON.stringify(formData);
+    const filterQS = encodeURIComponent(filter);
+    const rangeQS = encodeURIComponent('[0,9]')
+    const url = `${apiURL}?filter=${filterQS}&range=${rangeQS}&sort=["unit.id","DESC"]`;
+
+    return fetchServer(url);
   }
-  /*const findAccessionNumber = (units) => {
-    return (units.length > 0) ? units[0].accession_number : '';
-  }*/
 
   const handleInput = (e) => {
     const name = e.target.name;
@@ -59,9 +61,29 @@ export function QuerySpecimen() {
     });
   }
 
-  const RenderTable = (result) => {
+  const lastPage = (data.result && data.result.total) ? Math.ceil(data.result.total / 10) : 1;
+
+  const handlePagination = (page) => {
+    let p = Math.max(1, page);
+    console.log(p);
+    p = Math.min(p, lastPage);
+
+    const start = (page-1) * 10;
+    const end = start + 9;
+    const filter = JSON.stringify(formData);
+    const filterQS = encodeURIComponent(filter);
+    const rangeQS = encodeURIComponent(`[${start},${end}]`);
+    const url = `${apiURL}?filter=${filterQS}&range=${rangeQS}&sort=["unit.id","DESC"]`;
+    console.log('cur page', p);
+
+    return fetchServer(url, p)
+  }
+  console.log(data);
+  const RenderTable = ({result, currentPage}) => {
+    //console.log(result);
       return (
         <>
+          <div>found: {result.total.toLocaleString()} in {result.elapsed.toFixed(2)} seconds</div>
           <table className="table is-border is-stripe">
             <thead>
               <tr><th></th><th>館號</th><th>物種</th><th>採集者/號</th><th></th><th></th></tr>
@@ -72,14 +94,14 @@ export function QuerySpecimen() {
               )}
             </tbody>
           </table>
+          <div className="is-padding-vertical-lg">
+            <button className="button is-outline is-info" type="button" onClick={(e)=>handlePagination(1)}>1</button>{(lastPage > 1) ? <> <button className="button is-outline is-primary" type="button" onClick={(e)=>handlePagination(currentPage-1)}>上一頁</button> {data.currentPage} <button className="button is-outline is-primary" type="button" onClick={(e)=>handlePagination(currentPage+1)}>下一頁</button> <button className="button is-outline is-info" type="button" onClick={(e)=>handlePagination(lastPage)}>{lastPage}</button></> : null}
+          </div>
         </>
       )
   }
 
-  const lastPage = (data.result && data.result.total) ? Math.ceil(data.result.total / 10) : 1;
-  const handlePagination = (page) => {
-    console.log('page', page);
-  }
+
   //console.log(data, 'xxx');
   return (
     <>
@@ -112,14 +134,10 @@ export function QuerySpecimen() {
         }
         <div className="box is-padding-vertical-md is-margin-top-md">
           {(data.isLoading) ? <h1>loading...</h1> :
-           (data.result) ? <RenderTable data={data.result.data} /> : null
+           (data.result) ? <RenderTable result={data.result} currentPage={data.currentPage}/> : null
           }
         </div>
       </div>
     </>
   )
 }
-
-/*
-        <button className="button is-outline is-info" type="button" onClick={handlePagination(1)}>1</button>{(lastPage > 1) ? <> <button className="button is-outline is-primary" type="button">上一頁</button> 1 <button className="button is-outline is-primary" type="button">下一頁</button> <button className="button is-outline is-info" type="button">{result.total}</button></> : null}
-*/

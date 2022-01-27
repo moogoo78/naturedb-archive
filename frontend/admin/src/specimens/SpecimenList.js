@@ -5,7 +5,7 @@ import {
   List,
   Datagrid,
   TextField,
-  DateField,
+  //DateField,
   //ArrayField,
   ImageField,
   //ChipField,
@@ -25,7 +25,6 @@ import Button from '@material-ui/core/Button';
 import { Link as MuiLink } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import Box from '@material-ui/core/Box';
 
 const useStyles = makeStyles({
   imgContainer: {
@@ -78,7 +77,7 @@ const ListFilters = [
 
 
 const concatLocality = (data, typoGap) => {
-  let idx = (data[0].data && data[0].data.id == 2) ? 1 : 0;
+  let idx = (data[0].data && data[0].data.id === 2) ? 1 : 0;
   return (
     <>
       {(data[idx].data) ?
