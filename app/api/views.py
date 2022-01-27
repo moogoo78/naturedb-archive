@@ -76,7 +76,7 @@ def make_specimen_list_response(req):
     begin_time = time.time()
     query = Unit.query.join(Unit.collection).join(Collection.collector).join(Collection.identifications)
 
-    print('payload', payload, flush=True)
+    #print('payload', payload, flush=True)
     # filter
     if x:= payload['filter'].get('accession_number'):
         query = query.filter(Unit.accession_number.ilike(f'%{x}%'))
