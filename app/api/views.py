@@ -8,7 +8,16 @@ from flask import (
     current_app,
     abort,
 )
-from sqlalchemy import select, func
+from sqlalchemy import (
+    select,
+    func,
+    text,
+    desc,
+    cast,
+    between,
+    Integer,
+    extract,
+)
 
 from flask.views import MethodView
 
@@ -59,28 +68,65 @@ def auth():
 
 
 def make_specimen_list_response(req):
-    payload = {
-        'range': '',
-    }
-    if r := req.args.get('range'):
-        payload['range'] = json.loads(r)
-    if s := req.args.get('sort'):
-        payload['sort'] = json.loads(s)
+    payload = {}
+    for k in ['range', 'sort', 'filter']:
+        if v := req.args.get(k, ''):
+            payload[k] = json.loads(v)
 
     begin_time = time.time()
     query = Unit.query.join(Unit.collection).join(Collection.collector).join(Collection.identifications)
 
-    #stmt =  select(Unit).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
-    #query = session.query(Unit.id, Unit.dataset_id, Unit.accession_number, Unit.collection_id).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+    print('payload', payload, flush=True)
+    # filter
+    if x:= payload['filter'].get('accession_number'):
+        query = query.filter(Unit.accession_number.ilike(f'%{x}%'))
 
-    #query =  session.query(Unit,func.count(Unit.id).over().label('total')).join(Unit.collection).join(Collection.collector).join(Collection.identifications)
-    #query = query.where(Collection.id.in_([9321, 9322, 9323]))
-    #query = query.where(Collection.id > 13400)
+    has_query_field_number = False
+    if collector_id := payload['filter'].get('collector_id'):
+        has_query_field_number = False
+        query = query.filter(Person.id == collector_id)
+    if fn2:= payload['filter'].get('field_number2'):
+        if fn1 := payload['filter'].get('field_number'):
+            fn1_int = int(fn1)
+            fn2_int = int(fn2)
+            if fn2_int - fn1_int > 0:
+                num_list = list(map(str, list(range(fn1_int, fn2_int+1))))
+                has_query_field_number = True
+                query = query.filter(Collection.field_number.in_(num_list))
+    elif x:= payload['filter'].get('field_number'):
+        has_query_field_number = True
+        query = query.filter(Collection.field_number.ilike(f'%{x}%'))
+    if has_query_field_number:
+        query = query.order_by(Collection.field_number)
 
-    #stmt = stmt.limit(10).offset(200)
-    #result = session.execute(stmt)
-    #query = session.query(instance).from_statement(stmt)
+    has_query_collect_date = False
+    if cd2 := payload['filter'].get('collect_date2'):
+        if cd1 := payload['filter'].get('collect_date'):
+            has_query_collect_date =True
+            query = query.filter(between(Collection.collect_date, cd1, cd2))
+    elif x:= payload['filter'].get('collect_date'):
+        has_query_collect_date =True
+        query = query.filter(Collection.collect_date==x)
+    if x:= payload['filter'].get('collect_date_month'):
+        has_query_collect_date =True
+        query = query.filter(extract('month', Collection.collect_date) == x)
+    if has_query_collect_date:
+        query = query.order_by(desc(Collection.collect_date))
+    #if x:= payload['filter'].get('field_number'):
+    #    query = query.filter(Collection.field_number.ilike(f'%{x}%'))
+
     total = query.count()
+
+    sort_by = payload['sort'][0]
+    if 'sort' in payload:
+        if sort_by == 'accession_number':
+            sort_by = cast(func.nullif(Unit.accession_number, ''), Integer)
+        elif sort_by == 'unit.id':
+            sort_by = text('unit.id')
+        if payload['sort'][1] == 'ASC':
+            query = query.order_by(sort_by)
+        elif payload['sort'][1] == 'DESC':
+            query = query.order_by(desc(sort_by))
 
     if 'range' in payload and payload['range'] != '':
         start = payload['range'][0]
@@ -90,17 +136,12 @@ def make_specimen_list_response(req):
 
     rows = []
     for u in query.all():
-        #stmt = select(func.max(Identification.verification_level)).join(Taxon).where(u.collection.id==Identification.collection_id)
-        #print(stmt)
-        #result = session.execute(stmt)
-        #for r in result:
-        #    print(r)
-        #print(result, flush=True)
+        #stmt = select(func.max(Identification.verification_level)).join(Taxon).where(u.collection.id==Identif
         ids = u.collection.identifications.order_by(Identification.verification_level).all()
         last_id = None
         if len(ids) > 0:
             last_id = ids[-1]
-        #'identification_last': None,#u.collection.rder_by(Identification.verification_level).all()[0].to_dict() if u.collection.identifications else None, TODO JOIN
+        #'identification_last': None,#u.collection.rder_by(Identification.verification_level).all()[0].to_dict0() if u.collection.identifications else None, TODO JOIN
         named_area_list = u.collection.get_named_area_list()
         item = {
             'id': u.id,
@@ -110,7 +151,7 @@ def make_specimen_list_response(req):
                 'identification_last': last_id.to_dict(),
                 'field_number': u.collection.field_number,
                 'collector': u.collection.collector.to_dict(),
-                'collect_date': u.collection.collect_date.strftime('%Y-%m-%d'),
+                'collect_date': u.collection.collect_date.strftime('%Y-%m-%d') if u.collection.collect_date else '',
                 'named_area_list': named_area_list,
             }
         }
@@ -377,7 +418,7 @@ class NamedAreaMethodView(MethodView):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
                     query = query.filter(NamedArea.name.ilike(f'%{keyword}%') | NamedArea.name_en.ilike(f'%{keyword}%'))
-                if area_class_id := filter_dict.get('area_class_id', ''):
+                if area_class_id := filter_dict.get('area_class_zid', ''):
                     query = query.filter(NamedArea.area_class_id==area_class_id)
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
@@ -492,6 +533,8 @@ class PersonMethodView(MethodView):
                     query = query.filter(Person.is_collector==True)
                 if is_identifier := filter_dict.get('is_identifier', ''):
                     query = query.filter(Person.is_identifier==True)
+                if x := filter_dict.get('collector_id', ''):
+                    query = query.filter(Person.id==x)
             return ra_get_list_response('people', request, query)
         else:
             # single item

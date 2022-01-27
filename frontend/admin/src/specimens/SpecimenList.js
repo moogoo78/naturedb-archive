@@ -12,6 +12,8 @@ import {
   FunctionField,
   //SingleFieldList,
   TextInput,
+  NumberInput,
+  DateInput,
   ReferenceInput,
   AutocompleteInput,
   CheckboxGroupInput,
@@ -58,9 +60,13 @@ const ListFilters = [
   <TextInput source="q" label="全文搜尋" alwaysOn />,
   <TextInput source="accession_number" label="館號" />,
   <ReferenceInput source="collector_id" label="採集者" reference="people" >
-    <AutocompleteInput optionText="full_name" />
+    <AutocompleteInput optionText="display_name" />
   </ReferenceInput>,
   <TextInput source="field_number" label="採集號" />,
+  <TextInput source="field_number2" label="採集號2" />,
+  <DateInput source="collect_date" label="採集日期" />,
+  <DateInput source="collect_date2" label="採集日期2" />,
+  <NumberInput source="collect_date_month" label="採集日期 (月份)" min="1" max="12" />,
   <ReferenceInput source="taxon_id" label="學名" reference="taxa">
     <AutocompleteInput optionText="display_name" />
   </ReferenceInput>,
@@ -72,7 +78,6 @@ const ListFilters = [
 
 
 const concatLocality = (data, typoGap) => {
-  console.log(data);
   let idx = (data[0].data && data[0].data.id == 2) ? 1 : 0;
   return (
     <>
@@ -114,7 +119,7 @@ const SpecimenList = props => {
       }
       } label="採集者/號/日期" />
       <FunctionField render={record => (concatLocality(record.collection.named_area_list, classes.typoGap))} label="地點" />
-      <ImageField source="image_url" title="照片" className={classes.imgContainer} />
+      <ImageField source="image_url" title="照片" className={classes.imgContainer} sortable={false}/>
       <EditButton />
     </Datagrid>
   </List>

@@ -61,8 +61,8 @@ def ra_get_list_response(res_name, req, query):
     # order_by must apply before limit/offset
     # apply payload from react-admin
 
-    sort_by = payload['sort'][0]
     if 'sort' in payload:
+        sort_by = payload['sort'][0]
         if payload['sort'][1] == 'ASC':
             query = query.order_by(text(sort_by))
         elif payload['sort'][1] == 'DESC':
