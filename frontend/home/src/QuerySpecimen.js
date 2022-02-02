@@ -133,6 +133,24 @@ export function QuerySpecimen() {
             <span style={{margin:'0 20px 0 -30px'}}> - </span><input className="input" type="text" name="field_number2" onChange={handleInput}  value={formData.field_number2} />
           </div>
         </div>
+        <div className="grid is-gap-horizontal-md is-padding-xs">
+          <div className="column is-2 is-lg">採集日期</div>
+          <div className="column is-10">
+            <input className="input" type="text" name="collect_date" onChange={handleInput} />
+          </div>
+        </div>
+        <div className="grid is-gap-horizontal-md is-padding-xs">
+          <div className="column is-2 is-lg">採集地點</div>
+          <div className="column is-10">
+            <input className="input" type="text" name="locality_text" onChange={handleInput} />
+          </div>
+        </div>
+        <div className="grid is-gap-horizontal-md is-padding-xs">
+          <div className="column is-2 is-lg">館號</div>
+          <div className="column is-10">
+            <input className="input" type="text" name="accession_number" onChange={handleInput} />
+          </div>
+        </div>
         <button className="button is-plain is-primary" type="button" onClick={handleSubmit}>查詢</button>
         { (data.errMsg) ?
           <div className="alert is-danger is-tail-top-left" onClick={()=>setData({...data, isCloseErrMsg: true})}>
