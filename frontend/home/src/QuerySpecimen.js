@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import './musubii.min.css';
+import Autocomplete from './Autocomplete';
 
-const apiURL = 'http://127.0.0.1:5000/api/v1/specimens';
+const apiUrlPrefix = 'http://127.0.0.1:5000/api/v1';
+const apiUrl = `${apiUrlPrefix}/specimens`;
 
 export function QuerySpecimen() {
   const [data, setData] = useState({
@@ -14,18 +16,18 @@ export function QuerySpecimen() {
   const [formData, setFormData] = useState({});
 
 
-  const fetchServer = (url, page) => {
+  const fetchServer = (url, page=1) => {
     setData({
       ...data,
       isLoading: true,
     });
-
+    console.log('fetch', url);
     return fetch(url, {
       method: 'GET',
     })
       .then(response => response.json())
-      .then((resp)=>{
-        console.log('resp', resp, data);
+      .then((resp) => {
+        console.log('resp', resp, data, page);
         setData({
           ...data,
           isLoading: false,
@@ -46,18 +48,18 @@ export function QuerySpecimen() {
     const filter = JSON.stringify(formData);
     const filterQS = encodeURIComponent(filter);
     const rangeQS = encodeURIComponent('[0,9]')
-    const url = `${apiURL}?filter=${filterQS}&range=${rangeQS}&sort=["unit.id","DESC"]`;
-
+    const url = `${apiUrl}?filter=${filterQS}&range=${rangeQS}&sort=["unit.id","DESC"]`;
     return fetchServer(url);
   }
 
-  const handleInput = (e) => {
-    const name = e.target.name;
-    const value = e.target.value
-    //console.log(value, name);
+  const handleInput = (e, name, value) => {
+    const getName = (name === undefined && e.target.name) ? e.target.name : name;
+    const getValue = (value === undefined && e.target.value) ? e.target.value : value;
+
+    console.log(getName, getValue);
     setFormData({
       ...formData,
-      [name]: value,
+      [getName]: getValue,
     });
   }
 
@@ -65,7 +67,6 @@ export function QuerySpecimen() {
 
   const handlePagination = (page) => {
     let p = Math.max(1, page);
-    console.log(p);
     p = Math.min(p, lastPage);
 
     const start = (page-1) * 10;
@@ -73,12 +74,11 @@ export function QuerySpecimen() {
     const filter = JSON.stringify(formData);
     const filterQS = encodeURIComponent(filter);
     const rangeQS = encodeURIComponent(`[${start},${end}]`);
-    const url = `${apiURL}?filter=${filterQS}&range=${rangeQS}&sort=["unit.id","DESC"]`;
-    console.log('cur page', p);
+    const url = `${apiUrl}?filter=${filterQS}&range=${rangeQS}&sort=["unit.id","DESC"]`;
 
     return fetchServer(url, p)
   }
-  console.log(data);
+
   const RenderTable = ({result, currentPage}) => {
     //console.log(result);
       return (
@@ -95,21 +95,21 @@ export function QuerySpecimen() {
             </tbody>
           </table>
           <div className="is-padding-vertical-lg">
-            <button className="button is-outline is-info" type="button" onClick={(e)=>handlePagination(1)}>1</button>{(lastPage > 1) ? <> <button className="button is-outline is-primary" type="button" onClick={(e)=>handlePagination(currentPage-1)}>上一頁</button> {data.currentPage} <button className="button is-outline is-primary" type="button" onClick={(e)=>handlePagination(currentPage+1)}>下一頁</button> <button className="button is-outline is-info" type="button" onClick={(e)=>handlePagination(lastPage)}>{lastPage}</button></> : null}
+            <button className="button is-outline is-info" type="button" onClick={(e)=>handlePagination(1)}>1</button>{(lastPage > 1) ? <> <button className="button is-outline is-primary" type="button" onClick={(e)=>handlePagination(currentPage-1)}>上一頁</button> {currentPage} <button className="button is-outline is-primary" type="button" onClick={(e)=>handlePagination(currentPage+1)}>下一頁</button> <button className="button is-outline is-info" type="button" onClick={(e)=>handlePagination(lastPage)}>{lastPage}</button></> : null}
           </div>
         </>
       )
   }
 
+  console.log('render', data);
 
-  //console.log(data, 'xxx');
   return (
     <>
       <div className="card is-padding-lg is-outline">
         <div className="grid is-gap-horizontal-md is-padding-xs">
           <div className="column is-2 is-lg">關鍵字</div>
           <div className="column is-10">
-            <input className="input" type="text" name="q" onChange={handleInput} />
+            <input className="input" type="text" name="q" onChange={handleInput} disabled />
           </div>
         </div>
         <div className="grid is-gap-horizontal-md is-padding-xs">
@@ -119,9 +119,18 @@ export function QuerySpecimen() {
           </div>
         </div>
         <div className="grid is-gap-horizontal-md is-padding-xs">
-          <div className="column is-2 is-lg">採集號</div>
+          <div className="column is-2 is-lg">採集者</div>
           <div className="column is-10">
-            <input className="input" type="text" name="text" placeholder="Text" />
+            <Autocomplete name="collector_id" label="採集者" apiUrl={`${apiUrlPrefix}/people`} source="display_name" onChange={handleInput} value={formData.collector_id}/>
+          </div>
+        </div>
+        <div className="grid is-gap-horizontal-md is-padding-xs">
+          <div className="column is-2 is-lg">採集號</div>
+          <div className="column is-3">
+            <input className="input" type="text" name="field_number" onChange={handleInput} />
+          </div>
+          <div className="column is-7">
+            <span style={{margin:'0 20px 0 -30px'}}> - </span><input className="input" type="text" name="field_number2" onChange={handleInput}  value={formData.field_number2} />
           </div>
         </div>
         <button className="button is-plain is-primary" type="button" onClick={handleSubmit}>查詢</button>

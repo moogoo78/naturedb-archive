@@ -76,7 +76,8 @@ def make_specimen_list_response(req):
     begin_time = time.time()
     query = Unit.query.join(Unit.collection).join(Collection.collector).join(Collection.identifications)
 
-    #print('payload', payload, flush=True)
+    print('payload', payload, flush=True)
+
     # filter
     if x:= payload['filter'].get('accession_number'):
         query = query.filter(Unit.accession_number.ilike(f'%{x}%'))
@@ -129,8 +130,13 @@ def make_specimen_list_response(req):
             query = query.order_by(desc(sort_by))
 
     if 'range' in payload and payload['range'] != '':
-        start = payload['range'][0]
-        end = payload['range'][1]
+        try:
+            start = int(payload['range'][0])
+            end = int(payload['range'][1])
+        except:
+            start = 0
+            end = 10
+
         limit = min(((end-start)+1), 1000)
         query = query.limit(limit).offset(start)
 

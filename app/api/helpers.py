@@ -86,7 +86,7 @@ def ra_get_list_response(res_name, req, query):
     end_time = time.time()
 
     elapsed = end_time - begin_time
-    if rows[0]:
+    if len(rows) and rows[0]:
         rows[0]['query_elapsed'] = elapsed # for react admin display
 
     result = {
