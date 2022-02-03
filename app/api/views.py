@@ -177,8 +177,8 @@ def make_specimen_list_response(req):
     return make_react_admin_response(result, payload['range'])
 
 class SpecimenMethodView(MethodView):
-    RESOURCE_NAME = 'collections'
-    model = Unit
+    RESOURCE_NAME = 'specimens'
+    #model = 
 
     def get(self, item_id):
         if item_id is None:
@@ -207,7 +207,7 @@ class SpecimenMethodView(MethodView):
             return make_specimen_list_response(request)
         else:
             # single item
-            obj = session.get(self.model, item_id)
+            obj = session.get(Collection, item_id)
             return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
