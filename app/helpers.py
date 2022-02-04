@@ -283,12 +283,15 @@ def make_collection(con):
             #    memo='converted from legacy',
             #)
             #session.add(a)
-            tr = Transaction(
-                unit_id=u.id,
-                transaction_type=r3['annotation_exchange_type'],
-                organization_text=r3['annotation_exchange_dept'],
-            )
+            if r3['annotation_exchange_type'] or r3['annotation_exchange_dept']:
+                tr = Transaction(
+                    unit_id=u.id,
+                    transaction_type=r3['annotation_exchange_type'],
+                    organization_text=r3['annotation_exchange_dept'],
+                )
             session.add(tr)
+
+        # save unit
         session.commit()
 
 

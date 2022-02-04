@@ -159,7 +159,7 @@ def make_specimen_list_response(req):
                 'collector': u.collection.collector.to_dict(),
                 'collect_date': u.collection.collect_date.strftime('%Y-%m-%d') if u.collection.collect_date else '',
                 'named_area_list': named_area_list,
-            }
+            },
         }
         rows.append(item)
 
@@ -178,7 +178,7 @@ def make_specimen_list_response(req):
 
 class SpecimenMethodView(MethodView):
     RESOURCE_NAME = 'specimens'
-    #model = 
+    #model =
 
     def get(self, item_id):
         if item_id is None:

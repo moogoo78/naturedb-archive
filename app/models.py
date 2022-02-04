@@ -524,9 +524,11 @@ class Unit(Base):
     acquisition_date = Column(DateTime)
     acquired_from = Column(Integer, ForeignKey('person.id'), nullable=True)
     acquisition_source_text = Column(Text) # hast: provider
+
     specimen_marks = relationship('SpecimenMark')
     dataset = relationship('Dataset')
     collection = relationship('Collection', overlaps='units') # TODO warning
+    transactions = relationship('Transaction')
     # abcd: Disposition (in collection/missing...)
 
     # observation
@@ -575,6 +577,7 @@ class Unit(Base):
             'preparation_date': self.preparation_date,
             'measurement_or_facts': [x.to_dict() for x in self.measurement_or_facts],
             'image_url': self.get_image(),
+            'transactions': [x.to_dict() for x in self.transactions],
             #'dataset': self.dataset.to_dict(), # too many
         }
         if has_collection != '':
@@ -724,3 +727,13 @@ class Transaction(Base):
     transaction_type = Column(String(500)) #  (DiversityWorkbench) e.g. gift in or out, exchange in or out, purchase in or out
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     organization_text = Column(String(500))
+
+    def to_dict(self):
+        display_type = list(filter(lambda x: str(self.transaction_type) == x[0], self.EXCHANGE_TYPE_CHOICES))
+        return {
+            'title': self.title,
+            'transaction_type': self.transaction_type,
+            'display_transaction_type': display_type[0][1] if len(display_type) else '',
+            'organization_id': self.organization_id,
+            'organization_text': self.organization_text,
+        }

@@ -18,10 +18,10 @@ import {
   DateField,
   ArrayField,
   SelectField,
-  //FunctionField,
+  FunctionField,
+  ImageField,
   //ReferenceManyField,
 //  SingleFieldList,
-//  ChipField,
   ReferenceInput,
   TextInput,
   DateInput,
@@ -40,6 +40,7 @@ import {
   Typography,
   Box,
   Toolbar,
+  Chip,
   //MenuItem,
   //Select,
 } from '@material-ui/core';
@@ -165,6 +166,7 @@ const SpecimenForm = props => {
                     <TextInput source="altitude2" label="海拔2 (m)" fullWidth />
                   </Box>
                 </Box>
+                <Box mt="1em" />
                 <Typography variant="h6" gutterBottom>鑑定</Typography>
                 <Box display="flex">
                   <ArrayField source="identifications">
@@ -181,7 +183,41 @@ const SpecimenForm = props => {
                   <IdentificationQuickCreateButton onChange={handleIdentificationChange} collectionId={props.id}/>
                 </Box>
                 <Box mt="1em" />
-                <Typography variant="h6" gutterBottom>實體</Typography>
+                <Typography variant="h6" gutterBottom>物候</Typography>
+                <ArrayField source="biotope_measurement_or_facts">
+                  <Datagrid>
+                    <TextField source="parameter.label" />
+                    <TextField source="value" />
+                  </Datagrid>
+                </ArrayField>
+              </Box>
+              <Box flex={1} ml="1em">
+                <Typography variant="h6" gutterBottom>標本</Typography>
+                <FunctionField render={record => {
+                  console.log(record.units);
+                  return (
+                    <>
+                      {record.units.map((unit)=>{
+                        return (
+                          <Box mt="0.5em" key={unit.id}>
+                            <Chip label={unit.accession_number} />
+                            <Box><img src={unit.image_url} /></Box>
+                            {unit.transactions.map((v,i) => (
+                              <Box key={i}>
+                                <Typography variant="subtitle1" >[交換] dept: {v.organization_text}, type: {v.display_transaction_type}</Typography>
+                              </Box>))
+                            }
+                            <Typography variant="subtitle1" >測量</Typography>
+                            {unit.measurement_or_facts.map((v,i) => (
+                              <Box key={i}>
+                                <Typography variant="subtitle2" >{`${v.parameter.label}: ${v.value}`}</Typography>
+                              </Box>))
+                            }
+                          </Box>)
+                      })}
+                    </>);
+                }} label="unit"/>
+                {/*
                 <ArrayField source="units">
                   <Datagrid>
                     <TextField source="accession_number" />
@@ -196,27 +232,8 @@ const SpecimenForm = props => {
                     </ArrayField>
                     <UnitEditButton />
                   </Datagrid>
-                </ArrayField>
-                {/*
-                   <TextInput resource="customers" source="address" multiline fullWidth />
-                   <Box display="flex">
-                   <Box flex={1} mr="0.5em">
-                   <TextInput source="zipcode" resource="customers" fullWidth />
-                   </Box>
-                   <Box flex={2} ml="0.5em">
-                   <TextInput source="city" resource="customers" fullWidth />
-                   </Box>
-                   </Box>
-                 */}
-              </Box>
-              <Box flex={1} ml="1em">
-                <Typography variant="h6" gutterBottom>物候</Typography>
-                <ArrayField source="biotope_measurement_or_facts">
-                  <Datagrid>
-                    <TextField source="parameter.label" />
-                    <TextField source="value" />
-                  </Datagrid>
-                </ArrayField>
+                  </ArrayField>
+         */}
               </Box>
             </Box>
           </Box>
