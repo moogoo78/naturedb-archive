@@ -197,9 +197,10 @@ const SpecimenForm = props => {
                   console.log(record.units);
                   return (
                     <>
-                      {record.units.map((unit)=>{
-                        return (
-                          <Box mt="0.5em" key={unit.id}>
+                      {(record.units) ?
+                       record.units.map((unit)=>{
+                         return (
+                           <Box mt="0.5em" key={unit.id}>
                             <Chip label={unit.accession_number} />
                             <Box><img src={unit.image_url} /></Box>
                             {unit.transactions.map((v,i) => (
@@ -214,7 +215,8 @@ const SpecimenForm = props => {
                               </Box>))
                             }
                           </Box>)
-                      })}
+                       })
+                    : null}
                     </>);
                 }} label="unit"/>
                 {/*

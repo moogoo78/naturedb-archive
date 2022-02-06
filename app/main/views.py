@@ -21,7 +21,7 @@ from app.helpers import conv_hast21
 
 
 @main.route('/conv-hast21')
-def conv_hast21():
+def conv_hast21_view():
     key = request.args.get('key')
     start = datetime.now()
     conv_hast21(key)

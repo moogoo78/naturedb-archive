@@ -68,10 +68,16 @@ def auth():
 
 
 def make_specimen_list_response(req):
-    payload = {}
+    payload = {
+        'filter': {},
+        'sort': {},
+        'range': [0, 10],
+    }
     for k in ['range', 'sort', 'filter']:
         if v := req.args.get(k, ''):
-            payload[k] = json.loads(v)
+            payload.update({
+                f'{k}': json.loads(v)
+            })
 
     begin_time = time.time()
     query = Unit.query.join(Unit.collection).join(Collection.collector).join(Collection.identifications)
@@ -118,8 +124,8 @@ def make_specimen_list_response(req):
 
     total = query.count()
 
-    sort_by = payload['sort'][0]
-    if 'sort' in payload:
+    if 'sort' in payload and len(payload['sort']):
+        sort_by = payload['sort'][0]
         if sort_by == 'accession_number':
             sort_by = cast(func.nullif(Unit.accession_number, ''), Integer)
         elif sort_by == 'unit.id':
@@ -154,7 +160,9 @@ def make_specimen_list_response(req):
             'accession_number': u.accession_number,
             'image_url': u.get_image(),
             'collection': {
-                'identification_last': last_id.to_dict(),
+                #'identification_last': last_id.to_dict(),
+                'last_taxon_id': u.collection.last_taxon_id,
+                'last_taxon_text': u.collection.last_taxon_text,
                 'field_number': u.collection.field_number,
                 'collector': u.collection.collector.to_dict(),
                 'collect_date': u.collection.collect_date.strftime('%Y-%m-%d') if u.collection.collect_date else '',

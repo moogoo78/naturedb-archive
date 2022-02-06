@@ -106,7 +106,7 @@ param_map = '''1,1,abundance,
 PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity': '4', 'naturalness': '5', 'topography': '6', 'veget': '7', 'plant-h': '8', 'sex-char': '9', 'memo': '10', 'memo2': '11', 'is-greenhouse': '12', 'life-form': '13', 'flower': '14', 'fruit': '15', 'flower-color': '16', 'fruit-color': '17'}
 
 def make_collection(con):
-    #LIMIT = ' LIMIT 1600'
+    #LIMIT = ' LIMIT 100'
     LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
@@ -157,8 +157,15 @@ def make_collection(con):
         session.commit()
 
         # Identification
-        rows2 = con.execute(f"SELECT * FROM specimen_identification WHERE specimen_id ={r[0]} ORDER BY id")
-        for r2 in rows2:
+        rows2 = con.execute(f"SELECT i.*, t.full_scientific_name FROM specimen_identification AS i LEFT JOIN taxon_taxon AS t ON t.id = i.taxon_id  WHERE specimen_id ={r[0]} ORDER BY verification_level")
+
+        id_list = [x for x in rows2]
+        if len(id_list) > 0:
+            last_id = id_list[-1]
+            col.last_taxon_text = last_id[10]
+            col.last_taxon_id = last_id[7]
+
+        for r2 in id_list:
             iden = Identification(
                 collection_id=cid,
                 identifier_id=r2[2],
@@ -289,7 +296,7 @@ def make_collection(con):
                     transaction_type=r3['annotation_exchange_type'],
                     organization_text=r3['annotation_exchange_dept'],
                 )
-            session.add(tr)
+                session.add(tr)
 
         # save unit
         session.commit()
@@ -386,7 +393,7 @@ def conv_hast21(key):
             for i in param_map.split('\n'):
                 plist = i.split(',')
                 pmap[plist[2]] = plist[0]
-            print(pmap, flush=True)
+            #print(pmap, flush=True)
         elif key == 'taxon':
             make_taxon(con)
         elif key == 'collection':

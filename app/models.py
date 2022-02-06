@@ -362,7 +362,8 @@ class Collection(Base):
     field_note_en = Column(Text)
     other_field_numbers = relationship('FieldNumber')
     identifications = relationship('Identification', back_populates='collection', lazy='dynamic')
-    last_taxon = Column(Text)
+    last_taxon_text = Column(Text)
+    last_taxon_id = Column(Integer, ForeignKey('taxon.id'))
     units = relationship('Unit')
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
@@ -417,6 +418,8 @@ class Collection(Base):
             'field_number': self.field_number,
             'identifications': ids,
             'identification_last': ids[-1] if len(ids) else None, # React-Admin cannot read identifications[-1]
+            'last_taxon_text': self.last_taxon_text,
+            'last_taxon_id': self.last_taxon_id,
         }
         if include_units == True:
             data['units'] = [x.to_dict() for x in self.units]

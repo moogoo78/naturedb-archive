@@ -77,20 +77,23 @@ const ListFilters = [
 
 
 const concatLocality = (data, typoGap) => {
-  let idx = (data[0].data && data[0].data.id === 2) ? 1 : 0;
-  return (
-    <>
-      {(data[idx].data) ?
-       <Typography variant="body2" display="inline" className={typoGap}>{data[idx].data.name}</Typography>
-       : null}
-      {(data[idx+1].data) ?
-       <Typography variant="body2" display="inline" className={typoGap}>{data[idx+1].data.name}</Typography>
-              : null}
-    {(data[idx+2].data) ?
-     <Typography variant="body2" display="inline" className={typoGap}>{data[idx+2].data.name}</Typography>
-     : null}
-    </>
-  );
+  if (data) {
+    let idx = (data[0].data && data[0].data.id === 2) ? 1 : 0;
+    return (
+      <>
+        {(data[idx].data) ?
+         <Typography variant="body2" display="inline" className={typoGap}>{data[idx].data.name}</Typography>
+         : null}
+        {(data[idx+1].data) ?
+         <Typography variant="body2" display="inline" className={typoGap}>{data[idx+1].data.name}</Typography>
+         : null}
+        {(data[idx+2].data) ?
+         <Typography variant="body2" display="inline" className={typoGap}>{data[idx+2].data.name}</Typography>
+         : null}
+      </>
+    );
+  }
+  return null;
 }
 
 const SpecimenList = props => {
@@ -102,26 +105,30 @@ const SpecimenList = props => {
       {/*<TextField source="key" />*/}
       <TextField source="accession_number" label="館號" />
       <FunctionField render={record => (
-        <>
-          <Typography variant="body2">{(record.collection.identification_last.taxon) ? record.collection.identification_last.taxon.full_scientific_name : ''}</Typography>
-          <Typography variant="body2">{(record.collection.identification_last.taxon) ? record.collection.identification_last.taxon.common_name : ''}</Typography>
-        </>
-      )} label="學名/中文名" />
+        (record && record.collection) ?
+          <>
+            <Typography variant="body2">{record.collection.last_taxon_text}</Typography>
+            <Typography variant="body2">common_name</Typography>
+          </> : null
+      )}
+       label="學名/中文名" />
       <FunctionField render={record => {
-        const collector = (record.collection.collector) ? record.collection.collector.display_name : '';
-        const collectionKey = `${collector} ${record.collection.field_number}`;
-        return (
-        <>
-          <Typography variant="body2">{collectionKey}</Typography>
-          <Typography variant="body2">{record.collection.collect_date}</Typography>
-        </>)
-      }
-      } label="採集者/號/日期" />
-      <FunctionField render={record => (concatLocality(record.collection.named_area_list, classes.typoGap))} label="地點" />
+        if (record && record.collection) {
+          const collector = (record.collection.collector) ? record.collection.collector.display_name : '';
+          const collectionKey = `${collector} ${record.collection.field_number}`;
+          return (
+            <>
+              <Typography variant="body2">{collectionKey}</Typography>
+              <Typography variant="body2">{record.collection.collect_date}</Typography>
+            </>)
+        }
+        return null;
+      }} label="採集者/號/日期" />
+      <FunctionField render={record => ((record && record.collection) ? concatLocality(record.collection.named_area_list, classes.typoGap) : null)} label="地點" />
       <ImageField source="image_url" title="照片" className={classes.imgContainer} sortable={false}/>
       <EditButton />
     </Datagrid>
-  </List>
+        </List>
   );
 }
 
