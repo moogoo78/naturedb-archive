@@ -8,7 +8,6 @@ from flask import Flask
 
 from app.database import session
 from scripts import load_data
-#from app.models import Specimen
 
 ALEMBIC_BIN_PATH = '/root/.local/bin/alembic'
 
@@ -44,20 +43,20 @@ def register_blueprint_api(app):
         IdentificationMethodView,
         MeasurementOrFactsMethodView,
         TaxonMethodView,
-        SpecimenMethodView,
+        CollectionSpecimenMethodView,
     )
     #app.register_blueprint(api_bp, url_prefix='/api')
 
-    api_specimen_view = SpecimenMethodView.as_view('api-specimen')
+    api_collection_specimen_view = CollectionSpecimenMethodView.as_view('api-collection-specimen')
     api_bp.add_url_rule(
-        '/specimens',
+        '/collection-specimens',
         defaults={'item_id': None},
-        view_func=api_specimen_view,
+        view_func=api_collection_specimen_view,
         methods=['GET', 'POST', 'OPTIONS']
     )
     api_bp.add_url_rule(
-        '/specimens/<int:item_id>',
-        view_func=api_specimen_view,
+        '/collection-specimens/<int:item_id>',
+        view_func=api_collection_specimen_view,
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
 

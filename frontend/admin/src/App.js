@@ -29,7 +29,7 @@ import {
   OrganizationList,
 } from './organizations';
 
-import specimens from './specimens';
+import collectionspecimens from './collectionspecimens';
 import people from './people';
 import units from './units';
 import collections from './collections';
@@ -44,7 +44,7 @@ import dataProvider from './dataProvider';
 
 const App = () => (
   <Admin authProvider={authProvider} dataProvider={dataProvider} dashboard={Dashboard} title="NatureDB">
-    <Resource name="specimens" {...specimens} />
+    <Resource name="collection-specimens" {...collectionspecimens} />
     <Resource name="collections" {...collections} />
     <Resource name="units" {...units} />
     <Resource name="people" {...people} />

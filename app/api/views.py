@@ -243,7 +243,7 @@ def make_specimen_list_response(req):
     }
     return make_react_admin_response(result, payload['range'])
 
-class SpecimenMethodView(MethodView):
+class CollectionSpecimenMethodView(MethodView):
     RESOURCE_NAME = 'specimens'
     model = Collection
 
@@ -306,15 +306,19 @@ class SpecimenMethodView(MethodView):
             setattr(obj, x, data.get(x))
 
         na_list = obj.get_named_area_list()
+        print(na_list, flush=True)
         # locality
         for idx, x in enumerate(['country', 'province', 'hsien', 'town', 'park', 'locality']):
             k = f'named_area__{x}_id'
             if v := data.get(k):
-                if v != na_list[idx]['data']['id']:
-                    cna = CollectionNamedArea.query.filter(CollectionNamedArea.collection_id==obj.id, CollectionNamedArea.named_area_id==na_list[idx]['data']['id']).first()
-                    if cna:
-                        cna.named_area_id = v
-
+                if na_list[idx]['data']:
+                    if v != na_list[idx]['data']['id']:
+                        cna = CollectionNamedArea.query.filter(CollectionNamedArea.collection_id==obj.id, CollectionNamedArea.named_area_id==v).first()
+                        if cna:
+                            cna.named_area_id = v
+                else:
+                    cna = CollectionNamedArea(collection_id=obj.id, named_area_id=v)
+                    session.add(cna)
         if not obj.id:
             session.add(obj)
 
