@@ -49,6 +49,11 @@ const App = () => (
     <Resource name="units" {...units} />
     <Resource name="people" {...people} />
     <Resource name="named_areas" list={NamedAreaList} icon={PlaceIcon} />
+    <Resource name="named_area_provinces" list={NamedAreaList} icon={PlaceIcon} />
+    <Resource name="named_area_hsiens" list={NamedAreaList} icon={PlaceIcon} />
+    <Resource name="named_area_towns" list={NamedAreaList} icon={PlaceIcon} />
+    <Resource name="named_area_parks" list={NamedAreaList} icon={PlaceIcon} />
+    <Resource name="named_area_localities" list={NamedAreaList} icon={PlaceIcon} />
     <Resource name="area_classes" list={AreaClassList} icon={MapIcon} />
     <Resource name="organizations" list={OrganizationList} icon={AccountBalanceIcon} />
     <Resource name="identifications" {...identifications} />

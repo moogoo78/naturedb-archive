@@ -90,7 +90,7 @@ export function QuerySpecimen() {
             </thead>
             <tbody>
               {result.data.map((v, i)=>
-                (<tr key={i}><td><a href={`http://localhost:5000/specimens/hast:${v.accession_number}`} className="text is-link">view</a></td><td>{ v.accession_number }</td><td>{(v.identification_last)? v.identification_last.taxon.full_scientific_name:''}</td><td><div>{ v.collection.collector.display_name } {v.collection.field_number}</div><span className="text is-dark9 font-size-xs">{v.collection.collect_date}</span>q</td><td></td><td></td></tr>)
+                (<tr key={i}><td><a href={`http://localhost:5000/specimens/hast:${v.accession_number}`} className="text is-link">view</a></td><td>{ v.accession_number }</td><td>{(v.identification_last)? v.identification_last.taxon.full_scientific_name:''}</td><td><div>{ v.collection.collector.display_name } {v.collection.field_number}</div><span className="text is-dark9 font-size-xs">{v.collection.collect_date}</span></td><td></td><td></td></tr>)
               )}
             </tbody>
           </table>

@@ -46,6 +46,65 @@ from .helpers import (
     ra_get_specimen_list_response,
 )
 
+@api.route('/named_area_provinces')
+def named_area_provinces():
+    query = NamedArea.query.filter(NamedArea.area_class_id==2)
+    if filter_str := request.args.get('filter', ''):
+        filter_dict = json.loads(filter_str)
+        if q := filter_dict.get('q'):
+            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
+        if ids := filter_dict.get('id'):
+            query = query.filter(NamedArea.id.in_(ids))
+    return ra_get_list_response('NamedAreaProvince', request, query)
+
+@api.route('/named_area_hsiens')
+def named_area_hsiens():
+    query = NamedArea.query.filter(NamedArea.area_class_id==3)
+    if filter_str := request.args.get('filter', ''):
+        filter_dict = json.loads(filter_str)
+        if q := filter_dict.get('q'):
+            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
+        if ids := filter_dict.get('id'):
+            query = query.filter(NamedArea.id.in_(ids))
+    return ra_get_list_response('NamedAreaHsien', request, query)
+
+@api.route('/named_area_towns')
+def named_area_towns():
+    query = NamedArea.query.filter(NamedArea.area_class_id==4)
+
+    if filter_str := request.args.get('filter', ''):
+        filter_dict = json.loads(filter_str)
+        if q := filter_dict.get('q'):
+            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
+        if ids := filter_dict.get('id'):
+            query = query.filter(NamedArea.id.in_(ids))
+    return ra_get_list_response('NamedAreaTown', request, query)
+
+@api.route('/named_area_parks')
+def named_area_parks():
+    query = NamedArea.query.filter(NamedArea.area_class_id==5)
+
+    if filter_str := request.args.get('filter', ''):
+        filter_dict = json.loads(filter_str)
+        if q := filter_dict.get('q'):
+            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
+        if ids := filter_dict.get('id'):
+            query = query.filter(NamedArea.id.in_(ids))
+    return ra_get_list_response('NamedAreaTown', request, query)
+
+@api.route('/named_area_localities')
+def named_area_localities():
+    query = NamedArea.query.filter(NamedArea.area_class_id==6)
+
+    if filter_str := request.args.get('filter', ''):
+        filter_dict = json.loads(filter_str)
+        if q := filter_dict.get('q'):
+            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
+        if ids := filter_dict.get('id'):
+            query = query.filter(NamedArea.id.in_(ids))
+    return ra_get_list_response('NamedAreaTown', request, query)
+
+
 @api.route('/auth', methods=['POST', 'OPTIONS'])
 def auth():
     if request.method == 'OPTIONS':
@@ -186,7 +245,7 @@ def make_specimen_list_response(req):
 
 class SpecimenMethodView(MethodView):
     RESOURCE_NAME = 'specimens'
-    #model =
+    model = Collection
 
     def get(self, item_id):
         if item_id is None:
@@ -241,14 +300,20 @@ class SpecimenMethodView(MethodView):
         return make_cors_preflight_response()
 
     def _modify(self, obj, data):
-        #print(data, flush=True)
-        named_area_list = []
-        for i, v in data.items():
-            # available types: str, int, NoneType
-            if 'named_area_' in i and i != 'named_area_list':
-                named_area_list.append(v)
-            elif i != 'id' and isinstance(v, str | int | None):
-                setattr(obj, i, v)
+        print(data, flush=True)
+
+        for x in ['collect_date', 'altitude', 'altitude2', 'collector_id', 'field_number', 'longitude_decimal', 'latitude_decimal', 'locality_text']:
+            setattr(obj, x, data.get(x))
+
+        na_list = obj.get_named_area_list()
+        # locality
+        for idx, x in enumerate(['country', 'province', 'hsien', 'town', 'park', 'locality']):
+            k = f'named_area__{x}_id'
+            if v := data.get(k):
+                if v != na_list[idx]['data']['id']:
+                    cna = CollectionNamedArea.query.filter(CollectionNamedArea.collection_id==obj.id, CollectionNamedArea.named_area_id==na_list[idx]['data']['id']).first()
+                    if cna:
+                        cna.named_area_id = v
 
         if not obj.id:
             session.add(obj)
@@ -256,11 +321,11 @@ class SpecimenMethodView(MethodView):
         session.commit()
 
         # NamedArea list
-        if len(named_area_list) > 0:
-            for i in named_area_list:
-                cna = CollectionNamedArea(collection_id=obj.id, named_area_id=i)
-                session.add(cna)
-            session.commit()
+        #if len(named_area_list) > 0:
+        #    for i in named_area_list:
+        #        cna = CollectionNamedArea(collection_id=obj.id, named_area_id=i)
+        #        session.add(cna)
+        #    session.commit()
 
         return obj
 
@@ -432,7 +497,7 @@ class NamedAreaMethodView(MethodView):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
                     query = query.filter(NamedArea.name.ilike(f'%{keyword}%') | NamedArea.name_en.ilike(f'%{keyword}%'))
-                if area_class_id := filter_dict.get('area_class_zid', ''):
+                if area_class_id := filter_dict.get('area_class_id', ''):
                     query = query.filter(NamedArea.area_class_id==area_class_id)
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
@@ -541,14 +606,23 @@ class PersonMethodView(MethodView):
             query = Person.query
             if filter_str := request.args.get('filter', ''):
                 filter_dict = json.loads(filter_str)
+                collector_id = None
                 if keyword := filter_dict.get('q', ''):
                     query = query.filter(Person.full_name.ilike(f'%{keyword}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{keyword}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{keyword}%'))
                 if is_collector := filter_dict.get('is_collector', ''):
                     query = query.filter(Person.is_collector==True)
                 if is_identifier := filter_dict.get('is_identifier', ''):
                     query = query.filter(Person.is_identifier==True)
+
                 if x := filter_dict.get('collector_id', ''):
-                    query = query.filter(Person.id==x)
+                    collector_id = x
+                if x := filter_dict.get('id', ''):
+                    collector_id = x
+                if collector_id:
+                    if isinstance(collector_id, list):
+                        collector_id = x[0]
+                    query = query.filter(Person.id==collector_id)
+
             return ra_get_list_response('people', request, query)
         else:
             # single item

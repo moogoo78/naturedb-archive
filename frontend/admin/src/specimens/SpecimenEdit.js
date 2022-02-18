@@ -17,9 +17,9 @@ import {
   TextField,
   DateField,
   ArrayField,
-  SelectField,
+  //SelectField,
   FunctionField,
-  ImageField,
+  //ImageField,
   //ReferenceManyField,
 //  SingleFieldList,
   ReferenceInput,
@@ -72,6 +72,7 @@ const PageActions = ({ basePath, data }) => (
 );
 
 const PageTitle = ({ record }) => {
+  console.log(record);
     return <span>編輯 {record ? `#${record.id} :: ${record.key}` : ''}</span>;
 };
 
@@ -96,6 +97,7 @@ const SpecimenForm = props => {
   return (
     <FormWithRedirect
       {...props}
+      redirect={false}
       render={formProps => (
         <form>
           <Box p="1em">
@@ -119,34 +121,34 @@ const SpecimenForm = props => {
                 <Typography variant="h6" gutterBottom>採集地點</Typography>
                 <Box display="flex">
                   <Box flex={1} mr="0.5em">
-                    <ReferenceInput source="named_area_list[0].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 1}} label="國家" fullWidth>
+                    <ReferenceInput source="named_area__country_id" reference="named_areas" allowEmpty filter={{area_class_id: 1}} label="國家" fullWidth>
                       <AutocompleteInput optionText="name" />
                     </ReferenceInput>
                   </Box>
                   <Box flex={1} ml="0.5em" mr="0.5em">
-                    <ReferenceInput source="named_area_list[1].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 2}} label="省份" fullWidth>
+                    <ReferenceInput source="named_area__province_id" reference="named_area_provinces" allowEmpty label="省份" fullWidth>
                       <AutocompleteInput optionText="name_mix" />
                     </ReferenceInput>
                   </Box>
                   <Box flex={1} ml="0.5em">
-                    <ReferenceInput source="named_area_list[2].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 3}} label="縣/市" fullWidth>
+                    <ReferenceInput source="named_area__hisen_id" reference="named_area_hsiens" allowEmpty label="縣/市" fullWidth>
                       <AutocompleteInput optionText="name_mix" />
                     </ReferenceInput>
                   </Box>
                 </Box>
                 <Box display="flex">
                   <Box flex={1} mr="0.5em">
-                    <ReferenceInput source="named_area_list[3].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 4}} label="鄉/鎮" fullWidth>
+                    <ReferenceInput source="named_area__town_id" reference="named_area_towns" allowEmpty label="鄉/鎮" fullWidth>
                       <AutocompleteInput optionText="name_mix" />
                     </ReferenceInput>
                   </Box>
                   <Box flex={1} mr="0.5em" ml="0.5em">
-                    <ReferenceInput source="named_area_list[4].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 5}} label="國家公園" fullWidth>
+                    <ReferenceInput source="named_area__park_id" reference="named_area_parks" allowEmpty label="國家公園" fullWidth>
                       <AutocompleteInput optionText="name_mix" />
                     </ReferenceInput>
                   </Box>
                   <Box flex={1} ml="0.5em">
-                    <ReferenceInput source="named_area_list[5].data.id" reference="named_areas" allowEmpty filter={{area_class_id: 6}} label="地點" fullWidth>
+                    <ReferenceInput source="named_area__locality_id" reference="named_area_localities" allowEmpty label="地點" fullWidth>
                       <AutocompleteInput optionText="name_mix" />
                     </ReferenceInput>
                   </Box>
@@ -194,7 +196,6 @@ const SpecimenForm = props => {
               <Box flex={1} ml="1em">
                 <Typography variant="h6" gutterBottom>標本</Typography>
                 <FunctionField render={record => {
-                  console.log(record.units);
                   return (
                     <>
                       {(record.units) ?
@@ -202,7 +203,7 @@ const SpecimenForm = props => {
                          return (
                            <Box mt="0.5em" key={unit.id}>
                             <Chip label={unit.accession_number} />
-                            <Box><img src={unit.image_url} /></Box>
+                            <Box><img src={unit.image_url} alt=""/></Box>
                             {unit.transactions.map((v,i) => (
                               <Box key={i}>
                                 <Typography variant="subtitle1" >[交換] dept: {v.organization_text}, type: {v.display_transaction_type}</Typography>

@@ -99,6 +99,11 @@ def register_blueprint_api(app):
         view_func=api_named_area_view,
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
+    api_bp.add_url_rule(
+        '/named_areas/<int:item_id>',
+        view_func=api_named_area_view,
+        methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
+    )
 
     api_area_class_view = AreaClassMethodView.as_view('api-area-class')
     api_bp.add_url_rule(

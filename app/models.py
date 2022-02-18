@@ -234,6 +234,11 @@ class CollectionNamedArea(Base):
     named_area = relationship('NamedArea')
     #units = relationship('Unit')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'named_area': self.named_area.to_dict(),
+        }
 
 class Identification(Base):
 
@@ -397,7 +402,7 @@ class Collection(Base):
     # collection.to_dict
     def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
-
+        na_list = self.get_named_area_list()
         data = {
             'id': self.id,
             'key': self.key,
@@ -405,7 +410,13 @@ class Collection(Base):
             'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
-            'named_area_list': self.get_named_area_list(),
+            'named_area_list': na_list,
+            'named_area__country_id': na_list[0]['data']['id'] if na_list[0]['data'] else '',
+            'named_area__province_id': na_list[1]['data']['id'] if na_list[1]['data'] else '',
+            'named_area__hsien_id': na_list[2]['data']['id'] if na_list[2]['data'] else '',
+            'named_area__town_id': na_list[3]['data']['id'] if na_list[3]['data'] else '',
+            'named_area__park_id': na_list[4]['data']['id'] if na_list[4]['data'] else '',
+            'named_area__locality_id': na_list[5]['data']['id'] if na_list[5]['data'] else '',
             'altitude': self.altitude,
             'altitude2':self.altitude2,
             'longitude_decimal': self.longitude_decimal,
