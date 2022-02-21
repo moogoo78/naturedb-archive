@@ -53,6 +53,8 @@ def named_area_provinces():
         filter_dict = json.loads(filter_str)
         if q := filter_dict.get('q'):
             query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
+        if parent_id := filter_dict.get('parent_id'):
+            query = query.filter(NamedArea.parent_id==parent_id)
         if ids := filter_dict.get('id'):
             query = query.filter(NamedArea.id.in_(ids))
     return ra_get_list_response('NamedAreaProvince', request, query)
@@ -503,6 +505,8 @@ class NamedAreaMethodView(MethodView):
                     query = query.filter(NamedArea.name.ilike(f'%{keyword}%') | NamedArea.name_en.ilike(f'%{keyword}%'))
                 if area_class_id := filter_dict.get('area_class_id', ''):
                     query = query.filter(NamedArea.area_class_id==area_class_id)
+                if parent_id := filter_dict.get('parent_id'):
+                    query = query.filter(NamedArea.parent_id==parent_id)
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
             # single item

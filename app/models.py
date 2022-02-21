@@ -39,6 +39,19 @@ def get_structed_list(options, value_dict={}):
         })
     return res
 
+def get_structed_map(options, value_dict={}):
+    '''structed_list
+    dict key must use id (str)
+    '''
+    res = {}
+    for opt in options:
+        key = opt['name']
+        res[key] = {
+            'field': opt,
+            'value': value_dict.get(key, '')
+        }
+    return res
+
 def get_hast_parameters(obj=None):
     '''obj is Collection.biotope_measurement_or_facts
     '''
@@ -172,9 +185,9 @@ class AreaClass(Base):
     __tablename__ = 'area_class'
     DEFAULT_OPTIONS = [
         {'id': 1, 'name': 'country', 'label': '國家'},
-        {'id': 2, 'name': 'province', 'label': '省/州'},
-        {'id': 3, 'name': 'hsien', 'label': '縣/市'},
-        {'id': 4, 'name': 'town', 'label': '鄉/鎮'},
+        {'id': 2, 'name': 'stateProvince', 'label': '省/州'},
+        {'id': 3, 'name': 'municipality', 'label': '縣/市'},
+        {'id': 4, 'name': 'county', 'label': '鄉/鎮'},
         {'id': 5, 'name': 'national_park', 'label': '國家公園'},
         {'id': 6, 'name': 'locality', 'label': '地名'},
     ]
@@ -206,7 +219,7 @@ class NamedArea(Base):
     area_class_id = Column(Integer, ForeignKey('area_class.id', ondelete='SET NULL'), nullable=True)
     area_class = relationship('AreaClass', backref=backref('named_area'))
     source_data = Column(JSONB)
-    #parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True)
+    parent_id = Column(Integer, ForeignKey('named_area.id', ondelete='SET NULL'), nullable=True)
 
     def display_name(self):
         return '{}{}'.format(
@@ -217,10 +230,11 @@ class NamedArea(Base):
     def to_dict(self):
         return {
             'id': self.id,
+            'parent_id': self.parent_id,
             'name': self.name,
             'name_en': self.name_en,
             'area_class_id': self.area_class_id,
-            'area_class': self.area_class.to_dict(),
+            #'area_class': self.area_class.to_dict(),
             'name_mix': '/'.join([self.name, self.name_en]),
             'display_name': self.display_name(),
         }
@@ -402,7 +416,8 @@ class Collection(Base):
     # collection.to_dict
     def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
-        na_list = self.get_named_area_list()
+        #na_list = self.get_named_area_list()
+        named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
         data = {
             'id': self.id,
             'key': self.key,
@@ -410,13 +425,8 @@ class Collection(Base):
             'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
-            'named_area_list': na_list,
-            'named_area__country_id': na_list[0]['data']['id'] if na_list[0]['data'] else '',
-            'named_area__province_id': na_list[1]['data']['id'] if na_list[1]['data'] else '',
-            'named_area__hsien_id': na_list[2]['data']['id'] if na_list[2]['data'] else '',
-            'named_area__town_id': na_list[3]['data']['id'] if na_list[3]['data'] else '',
-            'named_area__park_id': na_list[4]['data']['id'] if na_list[4]['data'] else '',
-            'named_area__locality_id': na_list[5]['data']['id'] if na_list[5]['data'] else '',
+            #'named_area_list': na_list,
+            'named_area_map': get_structed_map(AreaClass.DEFAULT_OPTIONS, named_area_map),
             'altitude': self.altitude,
             'altitude2':self.altitude2,
             'longitude_decimal': self.longitude_decimal,
@@ -432,6 +442,9 @@ class Collection(Base):
             'last_taxon_text': self.last_taxon_text,
             'last_taxon_id': self.last_taxon_id,
         }
+        for i,v in named_area_map.items():
+            data[f'named_area__{i}_id'] = v['id']
+
         if include_units == True:
             data['units'] = [x.to_dict() for x in self.units]
 
