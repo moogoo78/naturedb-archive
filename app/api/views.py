@@ -46,66 +46,6 @@ from .helpers import (
     ra_get_specimen_list_response,
 )
 
-@api.route('/named_area_provinces')
-def named_area_provinces():
-    query = NamedArea.query.filter(NamedArea.area_class_id==2)
-    if filter_str := request.args.get('filter', ''):
-        filter_dict = json.loads(filter_str)
-        if q := filter_dict.get('q'):
-            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
-        if parent_id := filter_dict.get('parent_id'):
-            query = query.filter(NamedArea.parent_id==parent_id)
-        if ids := filter_dict.get('id'):
-            query = query.filter(NamedArea.id.in_(ids))
-    return ra_get_list_response('NamedAreaProvince', request, query)
-
-@api.route('/named_area_hsiens')
-def named_area_hsiens():
-    query = NamedArea.query.filter(NamedArea.area_class_id==3)
-    if filter_str := request.args.get('filter', ''):
-        filter_dict = json.loads(filter_str)
-        if q := filter_dict.get('q'):
-            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
-        if ids := filter_dict.get('id'):
-            query = query.filter(NamedArea.id.in_(ids))
-    return ra_get_list_response('NamedAreaHsien', request, query)
-
-@api.route('/named_area_towns')
-def named_area_towns():
-    query = NamedArea.query.filter(NamedArea.area_class_id==4)
-
-    if filter_str := request.args.get('filter', ''):
-        filter_dict = json.loads(filter_str)
-        if q := filter_dict.get('q'):
-            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
-        if ids := filter_dict.get('id'):
-            query = query.filter(NamedArea.id.in_(ids))
-    return ra_get_list_response('NamedAreaTown', request, query)
-
-@api.route('/named_area_parks')
-def named_area_parks():
-    query = NamedArea.query.filter(NamedArea.area_class_id==5)
-
-    if filter_str := request.args.get('filter', ''):
-        filter_dict = json.loads(filter_str)
-        if q := filter_dict.get('q'):
-            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
-        if ids := filter_dict.get('id'):
-            query = query.filter(NamedArea.id.in_(ids))
-    return ra_get_list_response('NamedAreaTown', request, query)
-
-@api.route('/named_area_localities')
-def named_area_localities():
-    query = NamedArea.query.filter(NamedArea.area_class_id==6)
-
-    if filter_str := request.args.get('filter', ''):
-        filter_dict = json.loads(filter_str)
-        if q := filter_dict.get('q'):
-            query = query.filter(NamedArea.name.ilike(f'%{q}%') | NamedArea.name_en.ilike(f'%{q}%'))
-        if ids := filter_dict.get('id'):
-            query = query.filter(NamedArea.id.in_(ids))
-    return ra_get_list_response('NamedAreaTown', request, query)
-
 
 @api.route('/auth', methods=['POST', 'OPTIONS'])
 def auth():
@@ -215,7 +155,7 @@ def make_specimen_list_response(req):
         if len(ids) > 0:
             last_id = ids[-1]
         #'identification_last': None,#u.collection.rder_by(Identification.verification_level).all()[0].to_dict0() if u.collection.identifications else None, TODO JOIN
-        named_area_list = u.collection.get_named_area_list()
+        '''
         item = {
             'id': u.id,
             'accession_number': u.accession_number,
@@ -227,10 +167,12 @@ def make_specimen_list_response(req):
                 'field_number': u.collection.field_number,
                 'collector': u.collection.collector.to_dict(),
                 'collect_date': u.collection.collect_date.strftime('%Y-%m-%d') if u.collection.collect_date else '',
-                'named_area_list': named_area_list,
+                #'named_area_map': u.collection.get_named_area_map() #TODO
+                'named_area_list': u.collection.get_named_area_list()
             },
         }
-        rows.append(item)
+        '''
+        rows.append(u.to_dict())
 
     end_time = time.time()
     elapsed = end_time - begin_time
@@ -276,7 +218,8 @@ class CollectionSpecimenMethodView(MethodView):
             return make_specimen_list_response(request)
         else:
             # single item
-            obj = session.get(Collection, item_id)
+            #obj = session.get(Collection, item_id)
+            obj = session.get(Unit, item_id)
             return ra_item_response(self.RESOURCE_NAME, obj)
 
     def post(self, item_id):
@@ -346,6 +289,8 @@ class TaxonMethodView(MethodView):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
                     query = query.filter(Taxon.full_scientific_name.ilike(f'%{keyword}%') | Taxon.common_name.ilike(f'%{keyword}%'))
+                if ids := filter_dict.get('id', ''):
+                    query = query.filter(Taxon.id.in_(ids))
                 if rank := filter_dict.get('rank'):
                     query = query.filter(Taxon.rank==rank)
 
@@ -503,6 +448,8 @@ class NamedAreaMethodView(MethodView):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
                     query = query.filter(NamedArea.name.ilike(f'%{keyword}%') | NamedArea.name_en.ilike(f'%{keyword}%'))
+                if ids := filter_dict.get('id', ''):
+                    query = query.filter(NamedArea.id.in_(ids))
                 if area_class_id := filter_dict.get('area_class_id', ''):
                     query = query.filter(NamedArea.area_class_id==area_class_id)
                 if parent_id := filter_dict.get('parent_id'):

@@ -55,6 +55,11 @@ const ListTitle = () => {
   //const title = `Specimen${queryElapsed}`;
   return <span>Specimens<span style={{fontSize:'14px', color:'#d0d0d0'}}>{queryElapsed}</span></span>;
 }
+
+//const CollectionSpecimenEditButton = ({ record }) => (
+//    <EditButton basePath={`/collection-specimens/${record.id}`} label="Edit me" record={record} />
+//);
+
 const ListFilters = [
   <TextInput source="q" label="全文搜尋" alwaysOn />,
   <TextInput source="accession_number" label="館號" />,
@@ -77,18 +82,19 @@ const ListFilters = [
 
 
 const concatLocality = (data, typoGap) => {
+  //console.log(data)
   if (data) {
-    let idx = (data[0].data && data[0].data.id === 2) ? 1 : 0;
+    const keys = (data.country.value && data.country.value.id === 2) ? ['stateProvince', 'municipality', 'county'] : ['country', 'stateProvince', 'municipality'];
     return (
       <>
-        {(data[idx].data) ?
-         <Typography variant="body2" display="inline" className={typoGap}>{data[idx].data.name}</Typography>
+        {(data[keys[0]].value !== '') ?
+         <Typography variant="body2" display="inline" className={typoGap}>{data[keys[0]].value.name}</Typography>
          : null}
-        {(data[idx+1].data) ?
-         <Typography variant="body2" display="inline" className={typoGap}>{data[idx+1].data.name}</Typography>
+        {(data[keys[1]].value !== '') ?
+         <Typography variant="body2" display="inline" className={typoGap}>{data[keys[1]].value.name}</Typography>
          : null}
-        {(data[idx+2].data) ?
-         <Typography variant="body2" display="inline" className={typoGap}>{data[idx+2].data.name}</Typography>
+        {(data[keys[2]].value !== '') ?
+         <Typography variant="body2" display="inline" className={typoGap}>{data[keys[2]].value.name}</Typography>
          : null}
       </>
     );
@@ -124,7 +130,7 @@ const SpecimenList = props => {
         }
         return null;
       }} label="採集者/號/日期" />
-      <FunctionField render={record => ((record && record.collection) ? concatLocality(record.collection.named_area_list, classes.typoGap) : null)} label="地點" />
+      <FunctionField render={record => ((record && record.collection) ? concatLocality(record.collection.named_area_map, classes.typoGap) : null)} label="地點" />
       <ImageField source="image_url" title="照片" className={classes.imgContainer} sortable={false}/>
       <EditButton />
     </Datagrid>

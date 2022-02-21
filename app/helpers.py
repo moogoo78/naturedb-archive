@@ -50,64 +50,80 @@ def make_person(con):
     session.commit()
 
 def make_geospatial(con):
+    '''
     rows = con.execute('SELECT * FROM specimen_areaclass ORDER BY id')
     for r in rows:
         ac = AreaClass(name=r[1], label=r[2])
         session.add(ac)
     session.commit()
-
+    '''
     rows = con.execute('SELECT * FROM specimen_namedarea ORDER BY id')
     for r in rows:
         na = NamedArea(id=r[0], name=r[1], name_en=r[6], area_class_id=r[4], source_data=r[5])
         session.add(na)
     session.commit()
 
+    # add parent
+    children = NamedArea.query.filter(NamedArea.area_class_id>1).all()
+    for i in children:
+        qna = None
+        if i.area_class_id == 2:
+            p = i.source_data['countryNo']
+            jstr ='{"countryNo":"'+p+'"}'
+            qna = NamedArea.query.filter(
+                NamedArea.source_data.op('@>')(jstr),
+                NamedArea.area_class_id==1
+            )
+        elif i.area_class_id == 3:
+            p = i.source_data['provinceNo']
+            jstr ='{"provinceNo":"'+p+'"}'
+            qna = NamedArea.query.filter(
+                NamedArea.source_data.op('@>')(jstr),
+                NamedArea.area_class_id==2
+            )
+        elif i.area_class_id == 4:
+            p = i.source_data['hsienNo']
+            jstr ='{"hsienNo":"'+p+'"}'
+            qna = NamedArea.query.filter(
+                NamedArea.source_data.op('@>')(jstr),
+                NamedArea.area_class_id==3
+            )
+        if qna:
+            if na := qna.first():
+                i.parent_id = na.id
+    session.commit()
+
+
+
 MOF_PARAM_LIST = [
-    ('abundance', 'annotation_abundance_choice_id', 'annotation_abundance_text', (18, 19)),
-    ('habitat', 'annotation_habitat_choice_id', 'annotation_habitat_text', (20, 21)),
-    ('humidity', 'annotation_humidity_choice_id', 'annotation_humidity_text', (22, 23)),
-    ('light-intensity', 'annotation_light_choice_id', 'annotation_light_text', (24, 25)),
-    ('naturalness', 'annotation_naturalness_choice_id', 'annotation_naturalness_text', (26, 27)),
-    ('topography', 'annotation_topography_choice_id', 'annotation_topography_text', (28, 29)),
-    ('veget', 'annotation_veget_choice_id', 'annotation_veget_text', (30, 31)),
+    ('abundance', 'annotation_abundance_choice_id', 'annotation_abundance_text', (18, 19), '豐富度'),
+    ('habitat', 'annotation_habitat_choice_id', 'annotation_habitat_text', (20, 21), '微棲地'),
+    ('humidity', 'annotation_humidity_choice_id', 'annotation_humidity_text', (22, 23), '環境濕度'),
+    ('light-intensity', 'annotation_light_choice_id', 'annotation_light_text', (24, 25), '環境光度'),
+    ('naturalness', 'annotation_naturalness_choice_id', 'annotation_naturalness_text', (26, 27), '自然度'),
+    ('topography', 'annotation_topography_choice_id', 'annotation_topography_text', (28, 29),'地形位置'),
+    ('veget', 'annotation_veget_choice_id', 'annotation_veget_text', (30, 31),'植群型'),
 ]
 MOF_PARAM_LIST2a = [
-    ('plant-h', 'annotation_plant_h'),
-    ('sex-char', 'annotation_sex_char'),
+    ('plant-h', 'annotation_plant_h', '植株高度'),
+    ('sex-char', 'annotation_sex_char', '性狀描述'),
     #('memo', 'annotation_memo'),
     #('memo2', 'annotation_memo2'),
     #('is-greenhouse', 'annotation_category')
 ]
 MOF_PARAM_LIST2 = [
-    ('life-form', 'annotation_life_form_choice_id', 'annotation_life_form_text'),
-    ('flower', 'annotation_flower_choice_id', 'annotation_flower_text'),
-    ('fruit', 'annotation_fruit_choice_id', 'annotation_fruit_text'),
-    ('flower-color', 'annotation_flower_color_choice_id', 'annotation_flower_color_text'),
-    ('fruit-color', 'annotation_fruit_color_choice_id', 'annotation_fruit_color_text'),
+    ('life-form', 'annotation_life_form_choice_id', 'annotation_life_form_text', '生長型'),
+    ('flower', 'annotation_flower_choice_id', 'annotation_flower_text', '花'),
+    ('fruit', 'annotation_fruit_choice_id', 'annotation_fruit_text', '果'),
+    ('flower-color', 'annotation_flower_color_choice_id', 'annotation_flower_color_text', '花色'),
+    ('fruit-color', 'annotation_fruit_color_choice_id', 'annotation_fruit_color_text', '果色'),
 ]
-param_map = '''1,1,abundance,
-2,1,habitat,
-3,1,humidity,
-4,1,light-intensity,
-5,1,naturalness,
-6,1,topography,
-7,1,veget,
-8,1,plant-h,
-9,1,sex-char,
-10,1,memo,
-11,1,memo2,
-12,1,is-greenhouse,
-13,1,life-form,
-14,1,flower,
-15,1,fruit,
-16,1,flower-color,
-17,1,fruit-color'''
 
-PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity': '4', 'naturalness': '5', 'topography': '6', 'veget': '7', 'plant-h': '8', 'sex-char': '9', 'memo': '10', 'memo2': '11', 'is-greenhouse': '12', 'life-form': '13', 'flower': '14', 'fruit': '15', 'flower-color': '16', 'fruit-color': '17'}
+PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity': '4', 'naturalness': '5', 'topography': '6', 'veget': '7', 'plant-h': '8', 'sex-char': '9', 'life-form': '10', 'flower': '11', 'fruit': '12', 'flower-color': '13', 'fruit-color': '14'}
 
 def make_collection(con):
-    #LIMIT = ' LIMIT 100'
-    LIMIT = ''
+    LIMIT = ' LIMIT 500'
+    #LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
         #print(r)
@@ -172,7 +188,8 @@ def make_collection(con):
                 date=r2[1],
                 date_text=r2[9],
                 taxon_id=r2[7],
-                verification_level=r2[8],
+                #verification_level=r2[8],
+                sequence=r2[8],
                 created=r2[4],
                 changed=r2[3],
                 source_data=r2[6],
@@ -189,7 +206,7 @@ def make_collection(con):
                     #parameter=param[0],
                     #text=x,
                     parameter_id=PARAM_MAP[param[0]],
-                    value=x,
+                    value_en=x,
                 )
                 session.add(mof)
         session.commit()
@@ -227,7 +244,7 @@ def make_collection(con):
                         unit_id=u.id,
                         #parameter=param[0],
                         parameter_id=PARAM_MAP[param[0]],
-                        value=x,
+                        value_en=x,
                     )
                     session.add(mof)
             # MeasurementOrFact2a
@@ -237,7 +254,7 @@ def make_collection(con):
                         unit_id=u.id,
                         #parameter=param[0],
                         parameter_id=PARAM_MAP[param[0]],
-                        value=x,
+                        value_en=x,
                     )
                     session.add(mof)
 
@@ -368,13 +385,13 @@ def make_taxon(con):
 
 def make_param(con):
     for i in MOF_PARAM_LIST:
-        p = MeasurementOrFactParameter(dataset_id=1, name=i[0])
+        p = MeasurementOrFactParameter(dataset_id=1, name=i[0], label=i[4])
         session.add(p)
     for i in MOF_PARAM_LIST2a:
-        p = MeasurementOrFactParameter(dataset_id=1, name=i[0])
+        p = MeasurementOrFactParameter(dataset_id=1, name=i[0], label=i[2])
         session.add(p)
     for i in MOF_PARAM_LIST2:
-        p = MeasurementOrFactParameter(dataset_id=1, name=i[0])
+        p = MeasurementOrFactParameter(dataset_id=1, name=i[0], label=i[3])
         session.add(p)
     session.commit()
 
@@ -388,11 +405,11 @@ def conv_hast21(key):
         elif key == 'geo':
             make_geospatial(con)
         elif key == 'param':
-            #make_param(con)
-            pmap = {}
-            for i in param_map.split('\n'):
-                plist = i.split(',')
-                pmap[plist[2]] = plist[0]
+            make_param(con)
+            #pmap = {}
+            #for i in param_map.split('\n'):
+            #    plist = i.split(',')
+            #    pmap[plist[2]] = plist[0]
             #print(pmap, flush=True)
         elif key == 'taxon':
             make_taxon(con)

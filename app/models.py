@@ -125,6 +125,7 @@ class MeasurementOrFact(Base):
     #parameter = Column(String(500))
     #text = Column(String(500))
     value = Column(String(500))
+    value_en = Column(String(500))
     #lower_value
     #upper_value
     #accuracy
@@ -138,7 +139,8 @@ class MeasurementOrFact(Base):
             #'label': item[1],
             'parameter': self.parameter.to_dict(),
             'value': self.value,
-            'collection_id': self.collection_id,
+            'value_en': self.value_en,
+            #'collection_id': self.collection_id,
         }
 
 
@@ -289,7 +291,8 @@ class Identification(Base):
     date_text = Column(String(50)) #格式不完整的鑑訂日期, helper: ex: 1999-1
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
-    verification_level = Column(String(50)) # hast: verificationNo.
+    verification_level = Column(String(50))
+    sequence = Column(Integer)
 
     # abcd: IdentificationSource
     reference = Column(Text)
@@ -300,7 +303,7 @@ class Identification(Base):
         return {
             'id': self.id,
             'identification_id': self.id,
-            'collection_id': self.collection_id,
+            #'collection_id': self.collection_id,
             'identifier_id': self.identifier_id,
             'identifier': self.identifier.to_dict() if self.identifier else None,
             'taxon_id': self.taxon_id,
@@ -308,6 +311,7 @@ class Identification(Base):
             'date': self.date,
             'date_text': self.date_text,
             'verification_level': self.verification_level,
+            'sequence': self.sequence,
         }
 #class UnitSpecimenMark(Base):
 #    __tablename__ = 'unit_specimen_mark'
@@ -416,8 +420,7 @@ class Collection(Base):
     # collection.to_dict
     def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
-        #na_list = self.get_named_area_list()
-        named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
+        named_area_map = self.get_named_area_map()
         data = {
             'id': self.id,
             'key': self.key,
@@ -426,7 +429,7 @@ class Collection(Base):
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
             #'named_area_list': na_list,
-            'named_area_map': get_structed_map(AreaClass.DEFAULT_OPTIONS, named_area_map),
+            'named_area_map': named_area_map,
             'altitude': self.altitude,
             'altitude2':self.altitude2,
             'longitude_decimal': self.longitude_decimal,
@@ -443,7 +446,7 @@ class Collection(Base):
             'last_taxon_id': self.last_taxon_id,
         }
         for i,v in named_area_map.items():
-            data[f'named_area__{i}_id'] = v['id']
+            data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None
 
         if include_units == True:
             data['units'] = [x.to_dict() for x in self.units]
@@ -484,6 +487,11 @@ class Collection(Base):
         else:
             return None
 
+    def get_named_area_map(self):
+        named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
+        return get_structed_map(AreaClass.DEFAULT_OPTIONS, named_area_map)
+
+    # DEPRICATED
     def get_named_area_list(self, key=''):
         if key == '':
             named_area_dict = {f'{x.named_area.area_class_id}': x.named_area.to_dict() for x in self.named_area_relations}
@@ -594,12 +602,12 @@ class Unit(Base):
         return f'{seperator}'.join(pre)
 
     # unit.to_dict
-    def to_dict(self, has_collection=''):
+    def to_dict(self, mode='with-collection'):
         data = {
             'id': self.id,
             'key': self.key,
             'accession_number': self.accession_number,
-            'collection_id': self.collection_id,
+            #'collection_id': self.collection_id,
             'preparation_type': self.preparation_type,
             'preparation_date': self.preparation_date,
             'measurement_or_facts': [x.to_dict() for x in self.measurement_or_facts],
@@ -607,7 +615,7 @@ class Unit(Base):
             'transactions': [x.to_dict() for x in self.transactions],
             #'dataset': self.dataset.to_dict(), # too many
         }
-        if has_collection != '':
+        if mode == 'with-collection':
             data['collection'] = self.collection.to_dict(include_units=False)
 
         return data

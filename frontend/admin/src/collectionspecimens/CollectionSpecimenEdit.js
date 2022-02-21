@@ -31,7 +31,7 @@ import {
   /*SingleFieldList,*/
   //useRecordContext,
   /*ReferenceArrayField*/
-  useRecordContext,
+  /*useRecordContext,*/
   useInput,
 } from 'react-admin';
 import {
@@ -55,10 +55,9 @@ import {
  * import { Button } from "react-admin";
  * import { Link } from 'react-router-dom'; */
 
-
 //import PersonCreate from '../people';
 //import UnitQuickCreateButton from './UnitQuickCreateButton';
-import IdentificationQuickCreateButton from './IdentificationQuickCreateButton';
+import IdentificationQuickDialog from './IdentificationQuickDialog';
 
 const UnitPreparationTypeChoices = [
   {id: 'S', name: 'specimen'},
@@ -73,16 +72,19 @@ const PageActions = ({ basePath, data }) => (
 );
 
 const PageTitle = ({ record }) => {
-  console.log(record);
+  //console.log(record);
     return <span>編輯 {record ? `#${record.id} :: ${record.key}` : ''}</span>;
 };
 
 const UnitEditButton = ({ record }) => (
     <EditButton basePath="/units" label="Edit Unit" record={record} />
 );
-const IdentificationEditButton = ({ record }) => (
-    <EditButton basePath="/identifications" label="Edit" record={record} />
-);
+//
+//const IdentificationEditButton = ({ record }) => (
+//    <EditButton basePath="/identifications" label="Edit" record={record} />
+//);
+//<IdentificationEditButton />
+
 //const MeasurementOrFactEditButton = ({ record }) => (
 //    <EditButton basePath="/measurement_or_facts" label="Edit me" record={record} />
 //);
@@ -91,22 +93,22 @@ const NAMED_AREA_HIERARCHY = ['country', 'stateProvince', 'municipality', 'count
 const NamedAreaInput = props => {
   const {
     input,
-    meta: { touched, error }
+    //meta: { touched, error }
   } = useInput(props);
   //const record = useRecordContext(props);
-  console.log(input.value);
+  //console.log(input.value);
   const source = `named_area__${props.areaClass}_id`;
-  const data = input.value.named_area_map[props.areaClass];
+  const namedArea = input.value.collection.named_area_map[props.areaClass];
   //console.log(data, 'foo', input.value[source], );
   const naIdx = NAMED_AREA_HIERARCHY.indexOf(props.areaClass);
   const parent = naIdx > 0 ? NAMED_AREA_HIERARCHY[naIdx-1] : '';
 
-  const pid = (parent !== '') ? input.value[`named_area__${parent}_id`] : null;
-  const fq = (data) ? {parent_id: pid, area_class_id: data.field.id} : null;
-  console.log(props, data, parent, fq, parent);
+  const pid = (parent !== '') ? input.value.collection[`named_area__${parent}_id`] : null;
+  const fq = (namedArea) ? {parent_id: pid, area_class_id: namedArea.field.id} : null;
+  //console.log(props, namedArea, parent, fq, parent, source);
 
   return (
-    <ReferenceInput source={source} reference="named_areas" allowEmpty label={"foo"+data.field.label} filter={fq} fullWidth>
+    <ReferenceInput source={'collection.'+source} reference="named_areas" allowEmpty label={namedArea.field.label} filter={fq} fullWidth>
     <AutocompleteInput optionText="name_mix" />
   </ReferenceInput>
   );
@@ -135,15 +137,15 @@ const SpecimenForm = props => {
                 <Typography variant="h6" gutterBottom>採集事件</Typography>
                 <Box display="flex">
                   <Box flex={2} mr="0.5em">
-                    <ReferenceInput source="collector_id" reference="people" label="採集者" allowEmpty fullWidth>
+                    <ReferenceInput source="collection.collector_id" reference="people" label="採集者" allowEmpty fullWidth>
                       <AutocompleteInput optionText="display_name" />
                     </ReferenceInput>
                   </Box>
                   <Box flex={1} mr="0.5em" ml="0.5em">
-                    <TextInput source="field_number" label="採集號" fullWidth/>
+                    <TextInput source="collection.field_number" label="採集號" fullWidth/>
                   </Box>
                   <Box flex={1} ml="0.5em">
-                    <DateInput source="collect_date" label="採集日期" fullWidth/>
+                    <DateInput source="collection.collect_date" label="採集日期" fullWidth/>
                   </Box>
                 </Box>
                 <Box mt="1em" />
@@ -173,40 +175,43 @@ const SpecimenForm = props => {
                 <TextInput source="locality_text" label="詳細地點" multiline fullWidth/>
                 <Box display="flex">
                   <Box flex={1} mr="0.5em">
-                    <TextInput source="longitude_decimal" fullWidth />
+                    <TextInput source="collection.longitude_decimal" label="經度(十進位)" fullWidth />
                   </Box>
                   <Box flex={1} mr="0.5em" ml="0.5em">
-                    <TextInput source="latitude_decimal" fullWidth />
+                    <TextInput source="collection.latitude_decimal" label="緯度(十進位)" fullWidth />
                   </Box>
                   <Box flex={1} mr="0.5em" ml="0.5em">
-                    <TextInput source="altitude" label="海拔(m)" fullWidth/>
+                    <TextInput source="collection.altitude" label="海拔(m)" fullWidth/>
                   </Box>
                   <Box flex={1} ml="0.5em">
-                    <TextInput source="altitude2" label="海拔2 (m)" fullWidth />
+                    <TextInput source="collection.altitude2" label="海拔2 (m)" fullWidth />
                   </Box>
                 </Box>
                 <Box mt="1em" />
                 <Typography variant="h6" gutterBottom>鑑定</Typography>
                 <Box display="flex">
-                  <ArrayField source="identifications">
+                  <ArrayField source="collection.identifications">
                     <Datagrid>
-                      <TextField source="id" />
-                      <TextField source="taxon.full_scientific_name" fullWidth />
-                      <TextField source="identifier.full_name" />
-                      <DateField source="date" />
-                      <TextField source="date_text" />
-                      <TextField source="verification_level" />
-                      <IdentificationEditButton />
+                      <TextField source="taxon.full_scientific_name" label="學名" fullWidth />
+                      <TextField source="identifier.full_name" label="鑑定者" />
+                      <DateField source="date" label="鑑定日期" />
+                      <TextField source="date_text" label="鑑定日期(文字格式)"/>
+                      <TextField source="sequence" label="鑑定次數" />
+                      <FunctionField render={record => {
+                        return (
+                          <IdentificationQuickDialog onChange={handleIdentificationChange} collectionId={props.collection_id} record={record}/>
+                        );
+                      }} />
                     </Datagrid>
                   </ArrayField>
-                  <IdentificationQuickCreateButton onChange={handleIdentificationChange} collectionId={props.id}/>
+                  <IdentificationQuickDialog onChange={handleIdentificationChange} />
                 </Box>
                 <Box mt="1em" />
-                <Typography variant="h6" gutterBottom>物候</Typography>
-                <ArrayField source="biotope_measurement_or_facts">
+                <Typography variant="h6" gutterBottom>植群/環境</Typography>
+                <ArrayField source="collection.biotope_measurement_or_facts">
                   <Datagrid>
-                    <TextField source="parameter.label" />
-                    <TextField source="value" />
+                    <TextField source="parameter.label" label="項目"/>
+                    <TextField source="value_en" label="value"/>
                   </Datagrid>
                 </ArrayField>
               </Box>
@@ -214,28 +219,21 @@ const SpecimenForm = props => {
                 <Typography variant="h6" gutterBottom>標本</Typography>
                 <FunctionField render={record => {
                   return (
-                    <>
-                      {(record.units) ?
-                       record.units.map((unit)=>{
-                         return (
-                           <Box mt="0.5em" key={unit.id}>
-                            <Chip label={unit.accession_number} />
-                            <Box><img src={unit.image_url} alt=""/></Box>
-                            {unit.transactions.map((v,i) => (
-                              <Box key={i}>
-                                <Typography variant="subtitle1" >[交換] dept: {v.organization_text}, type: {v.display_transaction_type}</Typography>
-                              </Box>))
-                            }
-                            <Typography variant="subtitle1" >測量</Typography>
-                            {unit.measurement_or_facts.map((v,i) => (
-                              <Box key={i}>
-                                <Typography variant="subtitle2" >{`${v.parameter.label}: ${v.value}`}</Typography>
-                              </Box>))
-                            }
-                          </Box>)
-                       })
-                    : null}
-                    </>);
+                    <Box mt="0.5em" key={record.id}>
+                      <TextInput source="accession_number" label="館號" />
+                      <Box><img src={record.image_url} alt=""/></Box>
+                      {record.transactions.map((v,i) => (
+                        <Box key={i}>
+                          <Typography variant="subtitle1" >[交換] dept: {v.organization_text}, type: {v.display_transaction_type}</Typography>
+                        </Box>))
+                      }
+                      <Typography variant="subtitle1" >物候</Typography>
+                      {record.measurement_or_facts.map((v,i) => (
+                        <Box key={i}>
+                          <Typography variant="subtitle2" >{`${v.parameter.label}: ${v.value_en}`}</Typography>
+                        </Box>))
+                      }
+                    </Box>);
                 }} label="unit"/>
                 {/*
                 <ArrayField source="units">
@@ -272,7 +270,33 @@ const SpecimenForm = props => {
   );
 }
 
-
+/* for multi unit
+                <FunctionField render={record => {
+                  return (
+                    <>
+                      {(record.units) ?
+                       record.units.map((unit)=>{
+                         return (
+                           <Box mt="0.5em" key={unit.id}>
+                            <Chip label={unit.accession_number} />
+                            <Box><img src={unit.image_url} alt=""/></Box>
+                            {unit.transactions.map((v,i) => (
+                              <Box key={i}>
+                                <Typography variant="subtitle1" >[交換] dept: {v.organization_text}, type: {v.display_transaction_type}</Typography>
+                              </Box>))
+                            }
+                            <Typography variant="subtitle1" >測量</Typography>
+                            {unit.measurement_or_facts.map((v,i) => (
+                              <Box key={i}>
+                                <Typography variant="subtitle2" >{`${v.parameter.label}: ${v.value}`}</Typography>
+                              </Box>))
+                            }
+                          </Box>)
+                       })
+                    : null}
+                    </>);
+                }} label="unit"/>
+*/
 const SpecimenEdit = props => {
   return (
     <Edit title={<PageTitle />} actions={<PageActions />} {...props}>
