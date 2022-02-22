@@ -702,8 +702,31 @@ class IdentificationMethodView(MethodView):
 
     def post(self, item_id):
         # create
-        obj = self.model()
-        obj = self._modify(obj, request.json)
+
+        data = request.json
+        print('post', data, flush=True)
+        # quick dialog use post for both edit & new
+        if not item_id:
+            if 'taxon_id__new' in data.keys():
+                obj = Identification()
+                obj.collection_id = data['collection']['id']
+                obj.taxon_id = data.get('taxon_id__new')
+                obj.identifier_id = data.get('identifier_id__new')
+                obj.date = data.get('date__new')
+                obj.date_text = data.get('date_text__new')
+                obj.sequence = data.get('sequence__new')
+                session.add(obj)
+                session.commit()
+            elif iden_id := data.get('id'):
+                if obj := Identification.query.filter(Identification.id==iden_id).first():
+                    obj.taxon_id = data.get('taxon_id')
+                    obj.identifier_id = data.get('identifier_id')
+                    obj.date = data.get('date')
+                    obj.date_text = data.get('date_text')
+                    obj.sequence = data.get('sequence')
+
+                    session.commit()
+
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
@@ -723,25 +746,9 @@ class IdentificationMethodView(MethodView):
         return make_cors_preflight_response()
 
     def _modify(self, obj, data):
-        if 'scientific_name_id__quick' in data.keys():
-            # post from collection ouick button
-            print (data, flush=True)
-            obj.collection_id = data.get('id')
-            obj.taxon_id = data.get('taxon_id__quick')
-            obj.identifier_id = data.get('identifier_id__quick')
-            obj.date = data.get('date__quick')
-            obj.date_text = data.get('date_text__quick')
-            obj.verification_level = data.get('verification_level__quick')
-        else:
-            for i, v in data.items():
-                # available types: str, int, NoneType
-                if i != 'id' and isinstance(v, str | int | None) and hasattr(obj, i):
-                    setattr(obj, i, v)
-
-        if not obj.id:
-            session.add(obj)
-
-        session.commit()
+        #print ('!!', data, obj.id, flush=True)
+        # TODO
+        pass
         return obj
 
 

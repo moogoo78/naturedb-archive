@@ -26,7 +26,6 @@ import {
   TextInput,
   DateInput,
   AutocompleteInput,
-  /*FormWithRedirect,*/
   /*ReferenceManyField,*/
   /*SingleFieldList,*/
   //useRecordContext,
@@ -199,7 +198,7 @@ const SpecimenForm = props => {
                       <TextField source="sequence" label="鑑定次數" />
                       <FunctionField render={record => {
                         return (
-                          <IdentificationQuickDialog onChange={handleIdentificationChange} collectionId={props.collection_id} record={record}/>
+                          <IdentificationQuickDialog onChange={handleIdentificationChange} record={record}/>
                         );
                       }} />
                     </Datagrid>
