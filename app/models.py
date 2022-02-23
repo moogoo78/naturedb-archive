@@ -607,6 +607,7 @@ class Unit(Base):
             'id': self.id,
             'key': self.key,
             'accession_number': self.accession_number,
+            'duplication_number': self.duplication_number,
             #'collection_id': self.collection_id,
             'preparation_type': self.preparation_type,
             'preparation_date': self.preparation_date,

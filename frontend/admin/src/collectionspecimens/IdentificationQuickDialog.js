@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-final-form';
+//import { useForm } from 'react-final-form';
 import {
 //  required,
   Button,
@@ -13,7 +13,7 @@ import {
   useNotify,
   FormWithRedirect,
   useRefresh,
-  useRedirect,
+  //useRedirect,
 } from 'react-admin';
 
 import IconContentAdd from '@material-ui/icons/Add';
@@ -30,8 +30,8 @@ function IdentificationQuickDialog({onChange, record}) {
   const [create, { loading }] = useCreate('identifications');
   const notify = useNotify();
   const refresh = useRefresh();
-  const redirect = useRedirect();
-  const form = useForm();
+  //const redirect = useRedirect();
+  //const form = useForm();
 
   const handleClick = () => {
     setShowDialog(true);

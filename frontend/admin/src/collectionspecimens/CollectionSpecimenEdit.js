@@ -2,7 +2,7 @@ import * as React from "react";
 
 import {
   Edit,
-  EditButton,
+  //EditButton,
   SaveButton,
   DeleteButton,
   //Button,
@@ -25,6 +25,7 @@ import {
   ReferenceInput,
   TextInput,
   DateInput,
+  SelectInput,
   AutocompleteInput,
   /*ReferenceManyField,*/
   /*SingleFieldList,*/
@@ -40,7 +41,7 @@ import {
   Typography,
   Box,
   Toolbar,
-  Chip,
+  //Chip,
   //MenuItem,
   //Select,
 } from '@material-ui/core';
@@ -55,7 +56,7 @@ import {
  * import { Link } from 'react-router-dom'; */
 
 //import PersonCreate from '../people';
-//import UnitQuickCreateButton from './UnitQuickCreateButton';
+import UnitQuickDialog from './UnitQuickDialog';
 import IdentificationQuickDialog from './IdentificationQuickDialog';
 
 const UnitPreparationTypeChoices = [
@@ -75,9 +76,9 @@ const PageTitle = ({ record }) => {
     return <span>編輯 {record ? `#${record.id} :: ${record.key}` : ''}</span>;
 };
 
-const UnitEditButton = ({ record }) => (
-    <EditButton basePath="/units" label="Edit Unit" record={record} />
-);
+//const UnitEditButton = ({ record }) => (
+//    <EditButton basePath="/units" label="Edit Unit" record={record} />
+//);
 //
 //const IdentificationEditButton = ({ record }) => (
 //    <EditButton basePath="/identifications" label="Edit" record={record} />
@@ -119,9 +120,9 @@ const NamedAreaInput = props => {
                     </ReferenceInput>
 */
 const SpecimenForm = props => {
-  const [version, setVersion] = React.useState(0);
+  //const [version, setVersion] = React.useState(0);
   const [version2, setVersion2] = React.useState(0);
-  const handleUnitChange = React.useCallback(() => setVersion(version + 1), [version]);
+//  const handleUnitChange = React.useCallback(() => setVersion(version + 1), [version]);
   const handleIdentificationChange = React.useCallback(() => setVersion2(version2 + 1), [version2]);
 
   return (
@@ -171,7 +172,7 @@ const SpecimenForm = props => {
                     <NamedAreaInput areaClass="locality" />
                   </Box>
                 </Box>
-                <TextInput source="locality_text" label="詳細地點" multiline fullWidth/>
+                <TextInput source="collection.locality_text" label="詳細地點" multiline fullWidth/>
                 <Box display="flex">
                   <Box flex={1} mr="0.5em">
                     <TextInput source="collection.longitude_decimal" label="經度(十進位)" fullWidth />
@@ -217,9 +218,14 @@ const SpecimenForm = props => {
               <Box flex={1} ml="1em">
                 <Typography variant="h6" gutterBottom>標本</Typography>
                 <FunctionField render={record => {
+                  console.log('!!!', record);
+                  if (record) {
                   return (
                     <Box mt="0.5em" key={record.id}>
                       <TextInput source="accession_number" label="館號" />
+                      <TextInput source="duplication_number" label="複份號"/>
+                      <SelectInput source="preparation_type" choices={UnitPreparationTypeChoices} />
+                      <DateInput source="preparation_date" label="壓製日期" />
                       <Box><img src={record.image_url} alt=""/></Box>
                       {record.transactions.map((v,i) => (
                         <Box key={i}>
@@ -233,7 +239,13 @@ const SpecimenForm = props => {
                         </Box>))
                       }
                     </Box>);
+                  }
                 }} label="unit"/>
+                <FunctionField render={record => {
+                  return (
+                    <UnitQuickDialog record={record} />
+                  );
+                }} />
                 {/*
                 <ArrayField source="units">
                   <Datagrid>

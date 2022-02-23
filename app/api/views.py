@@ -189,7 +189,8 @@ def make_specimen_list_response(req):
 
 class CollectionSpecimenMethodView(MethodView):
     RESOURCE_NAME = 'specimens'
-    model = Collection
+    #Collections
+    model = Unit
 
     def get(self, item_id):
         if item_id is None:
@@ -247,10 +248,33 @@ class CollectionSpecimenMethodView(MethodView):
     def _modify(self, obj, data):
         print(data, flush=True)
 
-        for x in ['collect_date', 'altitude', 'altitude2', 'collector_id', 'field_number', 'longitude_decimal', 'latitude_decimal', 'locality_text']:
-            setattr(obj, x, data.get(x))
+        if x:= data.get('accession_number'):
+            obj.accession_number = x
+        if x:= data.get('duplication_number'):
+            obj.duplication_number = x
 
-        na_list = obj.get_named_area_list()
+        c = data['collection']
+        # gathering
+        if x:= c.get('collector_id'):
+            obj.collection.collector_id = x
+        if x:= c.get('collect_date'):
+            obj.collection.collect_date = x
+        if x:= c.get('field_number'):
+            obj.collection.field_number = x
+        # locality
+        if x:= c.get('locality_text'):
+            obj.collection.locality_text = x
+        if x:= c.get('longitude_decimal'):
+            obj.collection.longitude_decimal = x
+        if x:= c.get('latitude_decimal'):
+            obj.collection.latitude_decimal = x
+        if x:= c.get('altitude'):
+            obj.collection.altitude = x
+        if x:= c.get('altitude2'):
+            obj.collection.altitude2 = x
+
+
+        '''na_list = obj.get_named_area_list()
         print(na_list, flush=True)
         # locality
         for idx, x in enumerate(['country', 'province', 'hsien', 'town', 'park', 'locality']):
@@ -264,6 +288,7 @@ class CollectionSpecimenMethodView(MethodView):
                 else:
                     cna = CollectionNamedArea(collection_id=obj.id, named_area_id=v)
                     session.add(cna)
+        '''
         if not obj.id:
             session.add(obj)
 
