@@ -122,8 +122,8 @@ MOF_PARAM_LIST2 = [
 PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity': '4', 'naturalness': '5', 'topography': '6', 'veget': '7', 'plant-h': '8', 'sex-char': '9', 'life-form': '10', 'flower': '11', 'fruit': '12', 'flower-color': '13', 'fruit-color': '14'}
 
 def make_collection(con):
-    LIMIT = ' LIMIT 500'
-    #LIMIT = ''
+    #LIMIT = ' LIMIT 500'
+    LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
         #print(r)

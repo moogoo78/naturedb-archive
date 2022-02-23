@@ -1,0 +1,9 @@
+# Flask
+Flask
+
+# database
+SQLAlchemy
+psycopg2-binary
+alembic
+# environments
+environs

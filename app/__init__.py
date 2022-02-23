@@ -206,7 +206,7 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
     register_blueprint_api(app)
-
+    #print(app.config, flush=True)
     #@app.route('/')
     #def index():
     #return 'hello'

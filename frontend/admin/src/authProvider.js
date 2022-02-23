@@ -1,4 +1,5 @@
-const apiUrl = 'http://127.0.0.1:5000/api/v1/auth';
+
+const apiUrl = `{process.env.REACT_APP_API_URL}/auth1`;
 
 const authProvider = {
   login: ({ username, password }) =>  {

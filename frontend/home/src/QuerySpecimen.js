@@ -3,9 +3,12 @@ import './musubii.min.css';
 import Autocomplete from './Autocomplete';
 
 const apiUrlPrefix = 'http://127.0.0.1:5000/api/v1';
-const apiUrl = `${apiUrlPrefix}/specimens`;
-
+//const apiUrlPrefix = 'http://hast-test.sh21.ml/api/v1';
+const apiUrl = `${apiUrlPrefix}/collection-specimens`;
+console.log(process.env);
 export function QuerySpecimen() {
+  console.log('---u', process.env);
+
   const [data, setData] = useState({
     isLoading: false,
     result: null,

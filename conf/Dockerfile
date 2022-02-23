@@ -17,16 +17,16 @@ WORKDIR /code
 #COPY --from=node
 #flask static
 COPY requirements requirements
-RUN pip install --no-cache --user -r requirements/prod.txt
+RUN pip install --no-cache --user -r requirements/base.txt
 
 #ENTRYPOINT ["python"]
 #CMD ["app.py"]
 
-COPY ./scripts/entrypoint /srv/entrypoint
+COPY ./conf/entrypoint /srv/entrypoint
 RUN sed -i 's/\r$//g' /srv/entrypoint
 RUN chmod +x /srv/entrypoint
 
-COPY ./scripts/start /srv/start
+COPY ./conf/start /srv/start
 RUN sed -i 's/\r$//g' /srv/start
 RUN chmod +x /srv/start
 

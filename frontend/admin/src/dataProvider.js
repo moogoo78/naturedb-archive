@@ -1,8 +1,9 @@
 import { fetchUtils } from 'react-admin';
 import { stringify } from 'query-string';
 
-const apiUrl = 'http://127.0.0.1:5000/api/v1'; //'https://my.api.com/';
+
 const httpClient = fetchUtils.fetchJson;
+const apiUrl = process.env.REACT_APP_API_URL;
 
 export default {
     getList: (resource, params) => {
