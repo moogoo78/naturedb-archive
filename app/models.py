@@ -229,6 +229,14 @@ class NamedArea(Base):
             f' ({self.name})' if self.name else ''
         )
 
+    @property
+    def name_best(self):
+        if name := self.name:
+            return name
+        elif name := self.name_en:
+            return name
+        return ''
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -239,6 +247,7 @@ class NamedArea(Base):
             #'area_class': self.area_class.to_dict(),
             'name_mix': '/'.join([self.name, self.name_en]),
             'display_name': self.display_name(),
+            'name_best': self.name_best,
         }
 
 class CollectionNamedArea(Base):
@@ -420,11 +429,12 @@ class Collection(Base):
     # collection.to_dict
     def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
+        taxon = Taxon.query.filter(Taxon.id==self.last_taxon_id).first()
         named_area_map = self.get_named_area_map()
         data = {
             'id': self.id,
             'key': self.key,
-            'collect_date': self.collect_date,
+            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
@@ -441,9 +451,10 @@ class Collection(Base):
             #'field_number_list': [x.todict() for x in self.field_numbers],
             'field_number': self.field_number,
             'identifications': ids,
-            'identification_last': ids[-1] if len(ids) else None, # React-Admin cannot read identifications[-1]
+            #'identification_last': ids[-1] if len(ids) else None, # React-Admin cannot read identifications[-1]
             'last_taxon_text': self.last_taxon_text,
             'last_taxon_id': self.last_taxon_id,
+            'last_taxon': taxon.to_dict() if taxon else None,
         }
         for i,v in named_area_map.items():
             data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None

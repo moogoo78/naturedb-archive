@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import './musubii.min.css';
 import Autocomplete from './Autocomplete';
 
-const apiUrlPrefix = 'http://127.0.0.1:5000/api/v1';
-//const apiUrlPrefix = 'http://hast-test.sh21.ml/api/v1';
-const apiUrl = `${apiUrlPrefix}/collection-specimens`;
+//const HOST_URL = 'http://localhost:5000';
+const HOST_URL = 'http://hast-test.sh21.ml';
+
+const apiUrlPrefix = `${HOST_URL}/api/v1`;
+const apiUrl = `${HOST_URL}/api/v1/collection-specimens`;
+
 console.log(process.env);
+
+
 export function QuerySpecimen() {
   console.log('---u', process.env);
 
@@ -82,6 +87,18 @@ export function QuerySpecimen() {
     return fetchServer(url, p)
   }
 
+  const getSimpleLocality = (namedAreaMap) => {
+    const LocalityHierarchy = ['country', 'stateProvince', 'municipality', 'county'];
+    const namedAreaList = [];
+    for (let i=0; i<LocalityHierarchy.length;i++) {
+      const value = namedAreaMap[LocalityHierarchy[i]].value;
+      if (namedAreaList.length < 4 && value !== '') {
+        namedAreaList.push(value.name_best);
+      }
+    }
+    return namedAreaList.join(' ');
+  }
+
   const RenderTable = ({result, currentPage}) => {
     //console.log(result);
       return (
@@ -89,11 +106,11 @@ export function QuerySpecimen() {
           <div>found: {result.total.toLocaleString()} in {result.elapsed.toFixed(2)} seconds</div>
           <table className="table is-border is-stripe">
             <thead>
-              <tr><th></th><th>館號</th><th>物種</th><th>採集者/號</th><th></th><th></th></tr>
+              <tr><th></th><th>館號</th><th>物種</th><th>採集者/號/日期</th><th>採集地點</th><th>標本照</th></tr>
             </thead>
             <tbody>
               {result.data.map((v, i)=>
-                (<tr key={i}><td><a href={`http://localhost:5000/specimens/hast:${v.accession_number}`} className="text is-link">view</a></td><td>{ v.accession_number }</td><td>{(v.identification_last)? v.identification_last.taxon.full_scientific_name:''}</td><td><div>{ v.collection.collector.display_name } {v.collection.field_number}</div><span className="text is-dark9 font-size-xs">{v.collection.collect_date}</span></td><td></td><td></td></tr>)
+                (<tr key={i}><td><a href={`${HOST_URL}/specimens/hast:${v.accession_number}`} className="text is-link">view</a></td><td>{ v.accession_number }</td><td>{(v.collection.last_taxon) ? v.collection.last_taxon.full_scientific_name : ''}<br/>{(v.collection.last_taxon) ? v.collection.last_taxon.common_name : ''}</td><td><div>{ v.collection.collector.display_name } {v.collection.field_number}</div><span className="text is-dark9 font-size-xs">{v.collection.collect_date}</span></td><td>{getSimpleLocality(v.collection.named_area_map)}</td><td><img src={v.image_url} width="75"/></td></tr>)
               )}
             </tbody>
           </table>
@@ -109,16 +126,18 @@ export function QuerySpecimen() {
   return (
     <>
       <div className="card is-padding-lg is-outline">
+        {/*
         <div className="grid is-gap-horizontal-md is-padding-xs">
           <div className="column is-2 is-lg">關鍵字</div>
           <div className="column is-10">
             <input className="input" type="text" name="q" onChange={handleInput} disabled />
           </div>
         </div>
+         */}
         <div className="grid is-gap-horizontal-md is-padding-xs">
           <div className="column is-2 is-lg">學名</div>
           <div className="column is-10">
-            <input className="input" type="text" name="text" placeholder="Text" />
+            <input className="input" type="text" name="scientific_name" onChange={handleInput} value={formData.scientific_name} />
           </div>
         </div>
         <div className="grid is-gap-horizontal-md is-padding-xs">
@@ -142,12 +161,14 @@ export function QuerySpecimen() {
             <input className="input" type="text" name="collect_date" onChange={handleInput} />
           </div>
         </div>
+        {/*
         <div className="grid is-gap-horizontal-md is-padding-xs">
           <div className="column is-2 is-lg">採集地點</div>
           <div className="column is-10">
-            <input className="input" type="text" name="locality_text" onChange={handleInput} />
+            <input className="input" type="text" name="locality" onChange={handleInput} />
           </div>
         </div>
+        */}
         <div className="grid is-gap-horizontal-md is-padding-xs">
           <div className="column is-2 is-lg">館號</div>
           <div className="column is-10">
@@ -163,7 +184,7 @@ export function QuerySpecimen() {
           : ''
         }
         <div className="box is-padding-vertical-md is-margin-top-md">
-          {(data.isLoading) ? <h1>loading...</h1> :
+          {(data.isLoading) ? <h1 style={{ width: '150px', margin: 'auto', fontSize:'22px'}}>loading...</h1> :
            (data.result) ? <RenderTable result={data.result} currentPage={data.currentPage}/> : null
           }
         </div>

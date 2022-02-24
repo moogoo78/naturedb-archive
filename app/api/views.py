@@ -81,13 +81,16 @@ def make_specimen_list_response(req):
             })
 
     begin_time = time.time()
-    query = Unit.query.join(Unit.collection).join(Collection.collector).join(Collection.identifications)
+    query = Unit.query.join(Unit.collection).join(Collection.collector) #.join(Collection.identifications)
 
     print('payload', payload, flush=True)
 
     # filter
     if x:= payload['filter'].get('accession_number'):
         query = query.filter(Unit.accession_number.ilike(f'%{x}%'))
+
+    if x:= payload['filter'].get('scientific_name'):
+        query = query.filter(Collection.last_taxon_text.ilike(f'%{x}%'))
 
     has_query_field_number = False
     if collector_id := payload['filter'].get('collector_id'):
@@ -104,6 +107,7 @@ def make_specimen_list_response(req):
     elif x:= payload['filter'].get('field_number'):
         has_query_field_number = True
         query = query.filter(Collection.field_number.ilike(f'%{x}%'))
+
     if has_query_field_number:
         query = query.order_by(Collection.field_number)
 
@@ -120,8 +124,10 @@ def make_specimen_list_response(req):
         query = query.filter(extract('month', Collection.collect_date) == x)
     if has_query_collect_date:
         query = query.order_by(desc(Collection.collect_date))
-    #if x:= payload['filter'].get('field_number'):
-    #    query = query.filter(Collection.field_number.ilike(f'%{x}%'))
+
+    #TODO
+    #if x:= payload['filter'].get('locality'):
+    #    query = query.filter(Collection.namedAreas.ilike(f'%{x}%'))
 
     total = query.count()
 

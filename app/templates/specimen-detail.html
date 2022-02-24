@@ -79,14 +79,14 @@
         </div>
       </div>
     </div>
-    <h3 class="data-heading">Measurement Of Facts</h3>
+    <h3 class="data-heading">描述</h3>
     <div class="card is-bg-light is-outline">
       <div class="box is-padding-md">
-        <h4>採集地</h4>
+        <h4>植群/環境</h4>
         {% for i in item.collection.biotope_measurement_or_facts %}
         {{ display_data(i.parameter.name, i.value )}}
         {% endfor %}
-        <h4>標本</h4>
+        <h4>物候</h4>
         {% for i in item.measurement_or_facts %}
         {{ display_data(i.parameter.name, i.value )}}
         {% endfor %}
