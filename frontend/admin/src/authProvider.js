@@ -1,5 +1,5 @@
 
-const apiUrl = `{process.env.REACT_APP_API_URL}/auth1`;
+const apiUrl = `${process.env.REACT_APP_API_URL}/auth`;
 
 const authProvider = {
   login: ({ username, password }) =>  {

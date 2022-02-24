@@ -47,7 +47,7 @@ services:
       - ./conf/naturedb.conf:/etc/nginx/conf.d/naturedb.conf
       - ../naturedb-volumes/static:/naturedb-volumes/static
       - ../naturedb-volumes/admin:/naturedb-volumes/admin
-      - ../naturedb-volumes/home:/naturedb-volumes/home
+      #s- ../naturedb-volumes/home:/naturedb-volumes/home
       #- ../ct22-volumes/certbot/conf:/etc/letsencrypt
       #- ../naturedb-volumes/certbot/www:/var/www/certbot
       #- ../basdb-volumes/media:/basdb-volumes/media

@@ -467,9 +467,9 @@ class Collection(Base):
     def display_altitude(self):
         alt = []
         if x := self.altitude:
-            alt.append(x)
+            alt.append(str(x))
         if x := self.altitude2:
-            alt.append(x)
+            alt.append(str(x))
 
         if len(alt) == 1:
             return alt[0]
