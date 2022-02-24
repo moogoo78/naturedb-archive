@@ -119,9 +119,12 @@ def make_specimen_list_response(req):
     elif x:= payload['filter'].get('collect_date'):
         has_query_collect_date =True
         query = query.filter(Collection.collect_date==x)
-    if x:= payload['filter'].get('collect_date_month'):
+    if x:= payload['filter'].get('collect_date__month'):
         has_query_collect_date =True
         query = query.filter(extract('month', Collection.collect_date) == x)
+    if x:= payload['filter'].get('collect_date__year'):
+        has_query_collect_date =True
+        query = query.filter(extract('year', Collection.collect_date) == x)
     if has_query_collect_date:
         query = query.order_by(desc(Collection.collect_date))
 

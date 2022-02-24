@@ -18,13 +18,24 @@ import {
   AutocompleteInput,
   CheckboxGroupInput,
   EditButton,
+  ExportButton,
+  TopToolbar,
   //BulkDeleteButton,
 } from 'react-admin';
-import Button from '@material-ui/core/Button';
+import {
+  Button,
+  Box,
+  Typography,
+  Link as MuiLink,
+  InputAdornment,
+  
+} from '@material-ui/core';
+
 //import { Link } from 'react-router-dom';
-import { Link as MuiLink } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
+import { Form } from 'react-final-form';
+import SearchIcon from '@material-ui/icons/Search';
+import ContentFilter from "@material-ui/icons/FilterList";
 
 const useStyles = makeStyles({
   imgContainer: {
@@ -36,9 +47,126 @@ const useStyles = makeStyles({
   },
   typoGap: {
     margin: '0 2px'
+  },
+  longerTextInput: {
+    width: '400px'
   }
 });
 
+
+//------------
+const PostFilterButton = () => {
+    const { showFilter } = useListContext();
+    return (
+        <Button
+            size="small"
+            color="primary"
+            onClick={() => showFilter("main")}
+            startIcon={<ContentFilter />}
+        >
+            Filter
+        </Button>
+    );
+};
+const PostFilterForm = () => {
+  const {
+    displayedFilters,
+    filterValues,
+    setFilters,
+    hideFilter
+  } = useListContext();
+  const classes = useStyles();
+
+  if (!displayedFilters.main) return null;
+
+  const onSubmit = (values) => {
+    if (Object.keys(values).length > 0) {
+      setFilters(values);
+    } else {
+      hideFilter("main");
+    }
+  };
+
+  const resetFilter = () => {
+    setFilters({}, []);
+  };
+
+  return (
+    <div>
+      <Form onSubmit={onSubmit} initialValues={filterValues}>
+        {({ handleSubmit }) => (
+          <form onSubmit={handleSubmit}>
+            <Box display="flex" alignItems="flex-end" mb={1}>
+              <Box component="span" mr={2}>
+                {/* Full-text search filter. We don't use <SearchFilter> to force a large form input */}
+                <TextInput
+                  resettable
+                  helperText={false}
+                  source="q"
+                  label="Search"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment>
+                        <SearchIcon color="disabled" />
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Box>
+              <Box component="span" mr={2}>
+                <TextInput source="accession_number" label="館號" helperText={false} />
+              </Box>
+              <Box component="span" mr={2} width="500">
+                <ReferenceInput source="taxon_id" label="學名" reference="taxa" helperText={false} fullWidth  className={classes.longerTextInput} >
+                  <AutocompleteInput optionText="display_name" />
+                </ReferenceInput>
+              </Box>
+            </Box>
+            <Box display="flex" alignItems="flex-end" mb={1}>
+              <Box component="span" mr={2}>
+                <ReferenceInput source="collector_id" label="採集者" reference="people" helperText={false}>
+                  <AutocompleteInput optionText="display_name" />
+                </ReferenceInput>
+              </Box>
+              <Box component="span" mr={2}>
+                <TextInput source="field_number" label="採集號" helperText={false} />
+              </Box>
+              <Box component="span" mr={2}>
+                <TextInput source="field_number2" label="採集號(連續)" helperText={false} />
+              </Box>
+            </Box>
+            <Box display="flex" alignItems="flex-end" mb={1}>
+              <Box component="span" mr={2}>
+                <DateInput source="collect_date" label="採集日期" helperText={false} />
+              </Box>
+              <Box component="span" mr={2}>
+                <DateInput source="collect_date2" label="採集日期2" helperText={false} />
+              </Box>
+              <Box component="span" mr={2}>
+                <NumberInput source="collect_date__year" label="採集日期 (年)" helperText={false} />
+              </Box>
+              <Box component="span" mr={2}>
+                <NumberInput source="collect_date__month" label="採集日期 (月)" min="1" max="12" helperText={false} />
+              </Box>
+              <Box component="span" mr={2} mb={1.5}>
+                <Button variant="outlined" color="primary" type="submit">
+                  Filter
+                </Button>
+              </Box>
+              <Box component="span" mb={1.5}>
+                <Button variant="outlined" onClick={resetFilter}>
+                  Close
+                </Button>
+              </Box>
+            </Box>
+          </form>
+        )}
+      </Form>
+    </div>
+  );
+};
+
+//------------
 const BulkActionButtons = props => {
   const HOST = 'http://127.0.0.1:5000';
   const printUrl = `${HOST}/print-label?ids=${props.selectedIds.join(",")}`;
@@ -60,6 +188,17 @@ const ListTitle = () => {
 //    <EditButton basePath={`/collection-specimens/${record.id}`} label="Edit me" record={record} />
 //);
 
+const ListActions = () => (
+  <Box width="100%">
+    <TopToolbar>
+      <PostFilterButton />
+      <ExportButton />
+    </TopToolbar>
+    <PostFilterForm />
+  </Box>
+);
+
+/* use custom form */
 const ListFilters = [
   <TextInput source="q" label="全文搜尋" alwaysOn />,
   <TextInput source="accession_number" label="館號" />,
@@ -70,7 +209,8 @@ const ListFilters = [
   <TextInput source="field_number2" label="採集號2" />,
   <DateInput source="collect_date" label="採集日期" />,
   <DateInput source="collect_date2" label="採集日期2" />,
-  <NumberInput source="collect_date_month" label="採集日期 (月份)" min="1" max="12" />,
+  <NumberInput source="collect_date__year" label="採集日期 (年)" />,
+  <NumberInput source="collect_date__month" label="採集日期 (月)" min="1" max="12" />,
   <ReferenceInput source="taxon_id" label="學名" reference="taxa">
     <AutocompleteInput optionText="display_name" />
   </ReferenceInput>,
@@ -102,10 +242,11 @@ const concatLocality = (data, typoGap) => {
   return null;
 }
 
+// filters=ListFilters
 const SpecimenList = props => {
   const classes = useStyles();
   return (
-  <List title={<ListTitle/>} filters={ListFilters} {...props} sort={{field: 'unit.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
+    <List title={<ListTitle/>} filters={null} actions={<ListActions/>} sort={{field: 'unit.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />} {...props}>
     <Datagrid>
       <TextField source="id" style={{color:'#9f9f9f'}}/>
       {/*<TextField source="key" />*/}
