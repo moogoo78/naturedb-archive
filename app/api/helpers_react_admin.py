@@ -10,19 +10,20 @@ from sqlalchemy import (
     desc,
     text,
     func,
+    between,
+    extract,
 )
 from sqlalchemy.orm import lazyload
 
 from app.database import session
 
-from app.models import Unit
+from app.models import Unit, Person, Collection
 
 class ReactAdminProvider(object):
 
     payload = None
     query = None
     base_query = None
-    stmt = None
     limit = 20
     offset = 0
     MAX_QUERY_RANGE = 1000
@@ -35,6 +36,45 @@ class ReactAdminProvider(object):
         }
 
         # append payload to query
+        pf = payload['filter']
+        if q:= pf.get('q'):
+            stmt = stmt.where(
+                Unit.accession_number.ilike(f'%{q}%') |
+                Collection.last_taxon_text.ilike(f'%{q}%') |
+                Collection.field_number.ilike(f'%{q}%')
+            )
+        if x:= pf.get('accession_number'):
+            stmt = stmt.where(Unit.accession_number.ilike(f'%{x}%'))
+        if taxon_id := pf.get('taxon_id'):
+            stmt = stmt.where(Collection.last_taxon_id==taxon_id)
+        if collector_id := pf.get('collector_id'):
+            stmt = stmt.where(Collection.collector_id==collector_id)
+        if fn2:= pf.get('field_number2'):
+            if fn1 := pf.get('field_number'):
+                fn1_int = int(fn1)
+                fn2_int = int(fn2)
+                if fn2_int - fn1_int > 0:
+                    num_list = list(map(str, list(range(fn1_int, fn2_int+1))))
+                    stmt = stmt.where(Collection.field_number.in_(num_list))
+        elif fn := pf.get('field_number'):
+            stmt = stmt.where(Collection.field_number.ilike(f'%{fn}%'))
+
+        has_query_collect_date = False
+        if cd2 := pf.get('collect_date2'):
+            if cd1 := pf.get('collect_date'):
+                has_query_collect_date =True
+                stmt = stmt.where(between(Collection.collect_date, cd1, cd2))
+        elif x:= pf.get('collect_date'):
+            has_query_collect_date =True
+            stmt = stmt.where(Collection.collect_date==x)
+        if x:= pf.get('collect_date__month'):
+            has_query_collect_date =True
+            stmt = stmt.where(extract('month', Collection.collect_date) == x)
+        if x:= pf.get('collect_date__year'):
+            has_query_collect_date =True
+            stmt = stmt.where(extract('year', Collection.collect_date) == x)
+        #if has_query_collect_date:
+        #    query = query.order_by(desc(Collection.collect_date))
         '''
         if 'sort' in payload and len(payload['sort']):
             sort_by = payload['sort'][0]

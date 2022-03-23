@@ -547,7 +547,7 @@ def collection_mapping(row):
     return {
         'id': c.id,
         'collector_id': c.collector_id,
-        'collector': c.collector.to_dict(),
+        'collector': c.collector.to_dict() if c.collector else None,
         'field_number': c.field_number,
         'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
         'last_taxon_text': c.last_taxon_text,
@@ -568,8 +568,9 @@ class CollectionMethodView(MethodView):
             # item_list
             stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
             ra_provider = ReactAdminProvider(request, stmt)
+
             # count total
-            subq = stmt.subquery()
+            subq = ra_provider.base_query.subquery()
             new_stmt = select(func.count()).select_from(subq)
             total = session.execute(new_stmt).scalar()
             return ra_provider.get_result(collection_mapping, total)

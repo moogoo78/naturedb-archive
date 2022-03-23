@@ -23,6 +23,7 @@ import {
   CheckboxGroupInput,
   EditButton,
   ExportButton,
+  FilterButton,
   TopToolbar,
   //BulkDeleteButton,
 } from 'react-admin';
@@ -67,7 +68,7 @@ const PostFilterButton = () => {
             onClick={() => showFilter("main")}
             startIcon={<ContentFilter />}
         >
-            Filter
+          開啟篩選
         </Button>
     );
 };
@@ -94,14 +95,8 @@ const PostFilterForm = () => {
     setFilters({}, []);
   };
 
-  return (
-    <div>
-      <Form onSubmit={onSubmit} initialValues={filterValues}>
-        {({ handleSubmit }) => (
-          <form onSubmit={handleSubmit}>
-            <Box display="flex" alignItems="flex-end" mb={1}>
+  /*
               <Box component="span" mr={2}>
-                {/* Full-text search filter. We don't use <SearchFilter> to force a large form input */}
                 <TextInput
                   resettable
                   helperText={false}
@@ -116,6 +111,13 @@ const PostFilterForm = () => {
                   }}
                 />
               </Box>
+*/
+  return (
+    <div>
+      <Form onSubmit={onSubmit} initialValues={filterValues}>
+        {({ handleSubmit }) => (
+          <form onSubmit={handleSubmit}>
+            <Box display="flex" alignItems="flex-end" mb={1}>
               <Box component="span" mr={2}>
                 <TextInput source="accession_number" label="館號" helperText={false} />
               </Box>
@@ -140,10 +142,10 @@ const PostFilterForm = () => {
             </Box>
             <Box display="flex" alignItems="flex-end" mb={1}>
               <Box component="span" mr={2}>
-                <DateInput source="collect_date" label="採集日期" helperText={false} />
+                <DateInput source="collect_date" label="採集日期-起" helperText={false} />
               </Box>
               <Box component="span" mr={2}>
-                <DateInput source="collect_date2" label="採集日期2" helperText={false} />
+                <DateInput source="collect_date2" label="採集日期-訖" helperText={false} />
               </Box>
               <Box component="span" mr={2}>
                 <NumberInput source="collect_date__year" label="採集日期 (年)" helperText={false} />
@@ -153,12 +155,12 @@ const PostFilterForm = () => {
               </Box>
               <Box component="span" mr={2} mb={1.5}>
                 <Button variant="outlined" color="primary" type="submit">
-                  Filter
+                  篩選
                 </Button>
               </Box>
               <Box component="span" mb={1.5}>
                 <Button variant="outlined" onClick={resetFilter}>
-                  Close
+                  收回
                 </Button>
               </Box>
             </Box>
@@ -196,7 +198,7 @@ const ListPagination = props => <Pagination rowsPerPageOptions={[10, 20, 50, 100
 const ListActions = () => (
   <Box width="100%">
     <TopToolbar>
-      <PostFilterButton />
+      <FilterButton />
       <ExportButton />
     </TopToolbar>
     <PostFilterForm />
@@ -207,6 +209,9 @@ const ListActions = () => (
 const ListFilters = [
   <TextInput source="q" label="全文搜尋" alwaysOn />,
   <TextInput source="accession_number" label="館號" />,
+  <ReferenceInput source="taxon_id" label="學名" reference="taxa">
+    <AutocompleteInput optionText="display_name" />
+  </ReferenceInput>,
   <ReferenceInput source="collector_id" label="採集者" reference="people" >
     <AutocompleteInput optionText="display_name" />
   </ReferenceInput>,
@@ -216,9 +221,6 @@ const ListFilters = [
   <DateInput source="collect_date2" label="採集日期2" />,
   <NumberInput source="collect_date__year" label="採集日期 (年)" />,
   <NumberInput source="collect_date__month" label="採集日期 (月)" min="1" max="12" />,
-  <ReferenceInput source="taxon_id" label="學名" reference="taxa">
-    <AutocompleteInput optionText="display_name" />
-  </ReferenceInput>,
   <CheckboxGroupInput source="dataset_id" choices={[
     { id: '1', name: 'HAST' },
     { id: '2', name: '紅藻' },
@@ -302,63 +304,4 @@ export default CollectionList;
       <TextField source="collection.collector.display_name" sortBy="person.full_name" label="採集者"/>
       <TextField source="collection.field_number" label="採集號"/>
       <DateField source="collection.collect_date" locales="zh-TW" label="採集日期" />
-*/
-
-
-/*
-import * as React from "react";
-
-import {
-  List,
-  Datagrid,
-  TextField,
-  DateField,
-  ArrayField,
-  //ChipField,
-  FunctionField,
-  SingleFieldList,
-  TextInput,
-  ReferenceInput,
-  AutocompleteInput,
-  EditButton,
-  BulkDeleteButton,
-} from 'react-admin';
-import Button from '@material-ui/core/Button';
-import { Link } from 'react-router-dom';
-import { Link as MuiLink } from '@material-ui/core';
-const BulkActionButtons = props => {
-  const HOST = 'http://127.0.0.1:5000';
-  const printUrl = `${HOST}/print-label?ids=${props.selectedIds.join(",")}`;
-  return (
-  <>
-    <MuiLink href={printUrl}><Button>列印標籤</Button></MuiLink>
-  </>)
-}
-
-const ListFilters = [
-  <TextInput source="q" label="Search" alwaysOn />,
-  <ReferenceInput source="collector_id" label="Collector" reference="people">
-    <AutocompleteInput optionText="full_name" />
-  </ReferenceInput>,
-];
-
-const CollectionList = props => (
-  <List filters={ListFilters} {...props} sort={{field: 'collection.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />}>
-    <Datagrid>
-      <TextField source="id" style={{color:'#9f9f9f'}}/>
-      <ArrayField source="units" label="館號">
-        <SingleFieldList>
-          <TextField source="accession_number" />
-        </SingleFieldList>
-      </ArrayField>
-      <TextField source="collector.display_name" sortBy="person.full_name" label="採集者"/>
-      <TextField source="field_number" label="採集號"/>
-      <FunctionField label="Name" render={record => `${record.identification_last.taxon.full_scientific_name} / ${record.identification_last.taxon.common_name}`} label="物種"/>  
-      <DateField source="collect_date" locales="zh-TW" label="採集日期" />
-      <EditButton />
-    </Datagrid>
-  </List>
-);
-
-export default CollectionList;
 */
