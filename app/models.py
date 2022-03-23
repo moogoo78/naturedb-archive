@@ -426,6 +426,21 @@ class Collection(Base):
             return taxon.full_scientific_name
         return ''
 
+    def to_dict2(self):
+
+        data = {
+            'id': self.id,
+            'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
+            'collector_id': self.collector_id,
+            'collector': self.collector.to_dict() if self.collector else '',
+            'field_number': self.field_number,
+            'last_taxon_text': self.last_taxon_text,
+            'last_taxon_id': self.last_taxon_id,
+            #'named_area_map': self.get_named_area_map(),
+        }
+        data['units'] = [x.to_dict() for x in self.units]
+        return data
+
     # collection.to_dict
     def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
@@ -437,7 +452,7 @@ class Collection(Base):
             'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'collector_id': self.collector_id,
-            'collector': self.collector.to_dict() if self.collector else '',
+            #'collector': self.collector.to_dict() if self.collector else '',
             #'named_area_list': na_list,
             'named_area_map': named_area_map,
             'altitude': self.altitude,

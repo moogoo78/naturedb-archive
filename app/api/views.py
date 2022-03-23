@@ -38,13 +38,16 @@ from app.taxon.models import (
     Taxon,
 )
 from app.api import api
-from .helpers import (
+from .helpers_react_admin import (
     ra_get_list_response,
     ra_item_response,
     make_cors_preflight_response,
     make_react_admin_response,
     ra_get_specimen_list_response,
+    get_list_payload,
+    ReactAdminProvider,
 )
+
 
 
 @api.route('/auth', methods=['POST', 'OPTIONS'])
@@ -82,9 +85,18 @@ def make_specimen_list_response(req):
 
     begin_time = time.time()
     query = Unit.query.join(Unit.collection).join(Collection.collector) #.join(Collection.identifications)
+    #stmt = select(Collection.id,Collection.collect_date, Collection.field_number, Unit.id, Person.full_name, Person.id, NamedArea.id).select_from(Person).select_from(NamedArea).join(Collection).join(Unit).limit(80)
+    #query = None
+    #result = session.execute(stmt)
+    #print(stmt, flush=True)
+    #for i in result:
+    #    print(i, flush=True)
+
+    query = Collection.query.join(Unit.collection).join(Collection.collector)
+
 
     print('payload', payload, flush=True)
-
+    '''
     # filter
     if x:= payload['filter'].get('accession_number'):
         query = query.filter(Unit.accession_number.ilike(f'%{x}%'))
@@ -131,15 +143,18 @@ def make_specimen_list_response(req):
     #TODO
     #if x:= payload['filter'].get('locality'):
     #    query = query.filter(Collection.namedAreas.ilike(f'%{x}%'))
-
+    '''
     total = query.count()
+    rows = []
 
     if 'sort' in payload and len(payload['sort']):
         sort_by = payload['sort'][0]
-        if sort_by == 'accession_number':
-            sort_by = cast(func.nullif(Unit.accession_number, ''), Integer)
-        elif sort_by == 'unit.id':
-            sort_by = text('unit.id')
+        #if sort_by == 'accession_number':
+        #    sort_by = cast(func.nullif(Unit.accession_number, ''), Integer)
+        #elif sort_by == 'unit.id':
+        #    sort_by = text('unit.id')
+        if sort_by == 'collectionKey':
+            sort_by = text('person.full_name, collection.field_number')
         if payload['sort'][1] == 'ASC':
             query = query.order_by(sort_by)
         elif payload['sort'][1] == 'DESC':
@@ -148,40 +163,32 @@ def make_specimen_list_response(req):
     if 'range' in payload and payload['range'] != '':
         try:
             start = int(payload['range'][0])
-            end = int(payload['range'][1])
+            end = int(payload['range'][1])+1
         except:
             start = 0
-            end = 10
+            end = 20
 
-        limit = min(((end-start)+1), 1000)
-        query = query.limit(limit).offset(start)
+        limit = min((end-start), 1000)
+        #print(start, end, limit, flush=True)
+
+        if start > 0:
+            query = query.limit(limit).offset(start)
+        else:
+            query = query.limit(limit)
 
     rows = []
-    for u in query.all():
+    for collection in query.all():
         #stmt = select(func.max(Identification.verification_level)).join(Taxon).where(u.collection.id==Identif
-        ids = u.collection.identifications.order_by(Identification.verification_level).all()
-        last_id = None
-        if len(ids) > 0:
-            last_id = ids[-1]
+
+        #ids = u.collection.identifications.order_by(Identification.verification_level).all()
+        #last_id = None
+        #if len(ids) > 0:
+        #    last_id = ids[-1]
+
         #'identification_last': None,#u.collection.rder_by(Identification.verification_level).all()[0].to_dict0() if u.collection.identifications else None, TODO JOIN
-        '''
-        item = {
-            'id': u.id,
-            'accession_number': u.accession_number,
-            'image_url': u.get_image(),
-            'collection': {
-                #'identification_last': last_id.to_dict(),
-                'last_taxon_id': u.collection.last_taxon_id,
-                'last_taxon_text': u.collection.last_taxon_text,
-                'field_number': u.collection.field_number,
-                'collector': u.collection.collector.to_dict(),
-                'collect_date': u.collection.collect_date.strftime('%Y-%m-%d') if u.collection.collect_date else '',
-                #'named_area_map': u.collection.get_named_area_map() #TODO
-                'named_area_list': u.collection.get_named_area_list()
-            },
-        }
-        '''
-        rows.append(u.to_dict())
+        #print(len(rows), collection.id )
+        rows.append(collection.to_dict2())
+        #print(collection.to_dict2())
 
     end_time = time.time()
     elapsed = end_time - begin_time
@@ -376,6 +383,15 @@ class UnitMethodView(MethodView):
         if item_id is None:
             # item_list
             query = self.model.query
+            if filter_str := request.args.get('filter', ''):
+                filter_dict = json.loads(filter_str)
+                if unit_ids := filter_dict.get('id'):
+                    id_list = []
+                    for x in unit_ids:
+                        id_list += x
+                    print(id_list)
+                    query = query.filter(Unit.id.in_(id_list))
+                    print(unit_ids, flush=True)
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
             # single item
@@ -518,6 +534,30 @@ class NamedAreaMethodView(MethodView):
     def options(self, item_id):
         return make_cors_preflight_response()
 
+def collection_mapping(row):
+    #print(row, flush=True)
+    units = []
+    for k, v in enumerate(row[1]):
+        unit = {'id': v}
+        if x:= row[2][k]:
+            unit['accession_number'] = x
+        units.append(unit)
+
+    c = row[0]
+    return {
+        'id': c.id,
+        'collector_id': c.collector_id,
+        'collector': c.collector.to_dict(),
+        'field_number': c.field_number,
+        'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
+        'last_taxon_text': c.last_taxon_text,
+        'last_taxon_id': c.last_taxon_id,
+        'units': units
+    }
+
+def count_total(stmt):
+    count_query = stmt.with_only_columns([func.count()]).order_by(None)
+    return session.execute(count_query).scalar()
 
 class CollectionMethodView(MethodView):
     RESOURCE_NAME = 'collections'
@@ -526,16 +566,14 @@ class CollectionMethodView(MethodView):
     def get(self, item_id):
         if item_id is None:
             # item_list
-            #query = Collection.query.join(Person).join(Identification).join(ScientificName)
-            #query = Collection.query.join(Person)
-            query = Collection.query
-            if filter_str := request.args.get('filter', ''):
-                filter_dict = json.loads(filter_str)
-                if keyword := filter_dict.get('q', ''):
-                    query = query.join(Collection.collector).join(Collection.identifications).join(Identification.taxon).filter(Person.full_name.ilike(f'%{keyword}%') | Collection.field_number.ilike(f'%{keyword}%') | Taxon.full_scientific_name.ilike(f'%{keyword}%') | Unit.accession_number.ilike(f'%{keyword}%'))
-                if collector_id := filter_dict.get('collector_id'):
-                    query = query.filter(Person.id==collector_id)
-            return ra_get_list_response('collections', request, query)
+            stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
+            ra_provider = ReactAdminProvider(request, stmt)
+            # count total
+            subq = stmt.subquery()
+            new_stmt = select(func.count()).select_from(subq)
+            total = session.execute(new_stmt).scalar()
+            return ra_provider.get_result(collection_mapping, total)
+
         else:
             # single item
             obj = session.get(self.model, item_id)

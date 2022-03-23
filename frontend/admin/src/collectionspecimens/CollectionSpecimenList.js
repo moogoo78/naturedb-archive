@@ -3,6 +3,7 @@ import * as React from "react";
 import {
   useListContext,
   List,
+  Pagination,
   Datagrid,
   TextField,
   //DateField,
@@ -10,6 +11,7 @@ import {
   ImageField,
   //ChipField,
   FunctionField,
+  ReferenceField,
   //SingleFieldList,
   TextInput,
   NumberInput,
@@ -28,7 +30,6 @@ import {
   Typography,
   Link as MuiLink,
   InputAdornment,
-  
 } from '@material-ui/core';
 
 //import { Link } from 'react-router-dom';
@@ -117,7 +118,7 @@ const PostFilterForm = () => {
                 <TextInput source="accession_number" label="館號" helperText={false} />
               </Box>
               <Box component="span" mr={2} width="500">
-                <ReferenceInput source="taxon_id" label="學名" reference="taxa" helperText={false} fullWidth  className={classes.longerTextInput} >
+                <ReferenceInput source="taxon_id" label="學名" reference="taxa" helperText={false} fullWidth className={classes.longerTextInput} >
                   <AutocompleteInput optionText="display_name" />
                 </ReferenceInput>
               </Box>
@@ -188,6 +189,8 @@ const ListTitle = () => {
 //    <EditButton basePath={`/collection-specimens/${record.id}`} label="Edit me" record={record} />
 //);
 
+const ListPagination = props => <Pagination rowsPerPageOptions={[10, 20, 50, 100]} {...props} />;
+
 const ListActions = () => (
   <Box width="100%">
     <TopToolbar>
@@ -246,33 +249,43 @@ const concatLocality = (data, typoGap) => {
 const SpecimenList = props => {
   const classes = useStyles();
   return (
-    <List title={<ListTitle/>} filters={null} actions={<ListActions/>} sort={{field: 'unit.id', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />} {...props}>
+    <List title={<ListTitle/>} filters={ListFilters} actions={<ListActions/>} sort={{field: 'collectionKey', order: 'DESC'}} bulkActionButtons={<BulkActionButtons />} pagination={<ListPagination />}  {...props}>
     <Datagrid>
       <TextField source="id" style={{color:'#9f9f9f'}}/>
       {/*<TextField source="key" />*/}
-      <TextField source="accession_number" label="館號" />
+      {/*<TextField source="accession_number" label="館號" />*/}
+      <ReferenceField source="unit_ids" reference="units" label="館號" link={false}>
+         <TextField source="accession_number" />
+      </ReferenceField>
       <FunctionField render={record => (
-        (record && record.collection) ?
           <>
-            <Typography variant="body2">{record.collection.last_taxon_text}</Typography>
+            <Typography variant="body2">{record.last_taxon_text}</Typography>
             <Typography variant="body2">common_name</Typography>
-          </> : null
+          </>
       )}
        label="學名/中文名" />
       <FunctionField render={record => {
-        if (record && record.collection) {
-          const collector = (record.collection.collector) ? record.collection.collector.display_name : '';
-          const collectionKey = `${collector} ${record.collection.field_number}`;
+        if (record.collector) {
+          const collector = (record.collector) ? record.collector.display_name : '';
+          const collectionKey = `${collector} ${record.field_number}`;
           return (
-            <>
-              <Typography variant="body2">{collectionKey}</Typography>
-              <Typography variant="body2">{record.collection.collect_date}</Typography>
-            </>)
+            <Typography variant="body2">{collectionKey}</Typography>
+          )
         }
         return null;
-      }} label="採集者/號/日期" />
-      <FunctionField render={record => ((record && record.collection) ? concatLocality(record.collection.named_area_map, classes.typoGap) : null)} label="地點" />
-      <ImageField source="image_url" title="照片" className={classes.imgContainer} sortable={false}/>
+      }} label="採集者/號" />
+      <FunctionField render={record => {
+        if (record.collect_date) {
+          return (
+              <Typography variant="body2">{record.collect_date}</Typography>
+          )
+        }
+        return null;
+      }} label="採集日期" />
+      <FunctionField render={record => concatLocality(record.named_area_map, classes.typoGap)} label="地點" />
+      <ReferenceField source="unit_ids" reference="units" label="照片" link={false}>
+        <ImageField source="image_url" title="照片" className={classes.imgContainer} sortable={false}/>
+      </ReferenceField>
       <EditButton />
     </Datagrid>
         </List>

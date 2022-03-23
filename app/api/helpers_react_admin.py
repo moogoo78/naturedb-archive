@@ -9,9 +9,117 @@ from sqlalchemy import (
     select,
     desc,
     text,
+    func,
 )
+from sqlalchemy.orm import lazyload
 
 from app.database import session
+
+from app.models import Unit
+
+class ReactAdminProvider(object):
+
+    payload = None
+    query = None
+    base_query = None
+    stmt = None
+    limit = 20
+    offset = 0
+    MAX_QUERY_RANGE = 1000
+
+    def __init__(self, req, stmt):
+        payload = {
+            'filter': json.loads(req.args.get('filter')) if req.args.get('filter') else {},
+            'sort': json.loads(req.args.get('sort')) if req.args.get('sort') else {},
+            'range': json.loads(req.args.get('range')) if req.args.get('range') else [0, 10],
+        }
+
+        # append payload to query
+        '''
+        if 'sort' in payload and len(payload['sort']):
+            sort_by = payload['sort'][0]
+            #if sort_by == 'accession_number':
+            #    sort_by = cast(func.nullif(Unit.accession_number, ''), Integer)
+            #elif sort_by == 'unit.id':
+            #    sort_by = text('unit.id')
+            if sort_by == 'collectionKey':
+                #sort_by = text('person.full_name, collection.field_number')
+                pass
+            if payload['sort'][1] == 'ASC':
+                query = query.order_by(sort_by)
+            elif payload['sort'][1] == 'DESC':
+                query = query.order_by(desc(sort_by))
+        '''
+        if 'range' in payload and payload['range'] != '':
+            try:
+                start = int(payload['range'][0])
+                end = int(payload['range'][1])
+            except:
+                pass
+
+            self.limit = min((end-start)+1, self.MAX_QUERY_RANGE)
+            self.offset = start
+
+        self.payload = payload
+        #self.query = query
+        self.base_query = stmt
+
+    def get_result(self, mapping_func=None, count_total=None):
+        total = 0
+        if count_total:
+            total = count_total
+
+        if self.offset > 0:
+            #self.query = self.query.limit(self.limit).offset(self.start)
+            self.query = self.base_query.limit(self.limit).offset(self.offset)
+        else:
+            #self.query = self.query.limit(self.limit)
+            self.query = self.base_query.limit(self.limit)
+
+        rows = []
+        begin_time = time.time()
+        print(self.query, self.offset, self.limit, flush=True)
+        result = session.execute(self.query)
+        for r in result.all():
+            if mapping_func:
+                rows.append(mapping_func(r))
+
+        end_time = time.time()
+
+        elapsed = end_time - begin_time
+        if len(rows) > 0:
+            rows[0]['query_elapsed'] = elapsed
+
+        result = {
+            'data': rows,
+            'total': total,
+            'query': str(self.query),
+            'elapsed': elapsed,
+            'payload': self.payload,
+        }
+        self.result = result
+
+        return self.add_cors_header(result, self.payload['range'])
+
+    def add_cors_header(self, result, ra_range):
+        resp = jsonify(result)
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+
+        if ra_range:
+            resp.headers.add('Access-Control-Expose-Headers', 'Content-Range')
+            resp.headers.add('Content-Range', 'items {}-{}/{}'.format(ra_range[0], ra_range[1], result['total']))
+
+        return resp
+
+def get_list_payload(req):
+    payload = {
+        'filter': json.loads(req.args.get('filter')) if req.args.get('filter') else {},
+        'sort': json.loads(req.args.get('sort')) if req.args.get('sort') else {},
+        'range': json.loads(req.args.get('range')) if req.args.get('range') else [0, 10],
+    }
+    return payload
+
 
 def make_cors_preflight_response():
     response = make_response()
