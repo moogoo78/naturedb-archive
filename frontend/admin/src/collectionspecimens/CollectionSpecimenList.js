@@ -255,7 +255,7 @@ const SpecimenList = props => {
       {/*<TextField source="key" />*/}
       {/*<TextField source="accession_number" label="館號" />*/}
       <ReferenceField source="unit_ids" reference="units" label="館號" link={false}>
-         <TextField source="accession_number" />
+         <TextField source="accession_number" /> 
       </ReferenceField>
       <FunctionField render={record => (
           <>

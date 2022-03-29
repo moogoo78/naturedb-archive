@@ -118,7 +118,7 @@ class ReactAdminProvider(object):
 
         rows = []
         begin_time = time.time()
-        print(self.query, self.offset, self.limit, flush=True)
+        #print(self.query, self.offset, self.limit, flush=True)
         result = session.execute(self.query)
         for r in result.all():
             if mapping_func:

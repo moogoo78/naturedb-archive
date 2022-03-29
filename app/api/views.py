@@ -32,7 +32,8 @@ from app.models import (
     Organization,
     Identification,
     MeasurementOrFact,
-    CollectionNamedArea,
+    collection_named_area,
+    #CollectionNamedArea,
 )
 from app.taxon.models import (
     Taxon,
@@ -541,23 +542,27 @@ def collection_mapping(row):
         unit = {'id': v}
         if x:= row[2][k]:
             unit['accession_number'] = x
+            accession_number_int = int(x)
+            instance_id = f'{accession_number_int:06}'
+            first_3 = instance_id[0:3]
+            image_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+            unit['image_url'] = image_url
         units.append(unit)
 
     c = row[0]
+    #print (row, flush=True)
+    #na_list = [x.name for x in c.named_areas]
     return {
         'id': c.id,
         'collector_id': c.collector_id,
-        'collector': c.collector.to_dict() if c.collector else None,
+        #'collector': c.collector.to_dict() if c.collector else None,
+        'collector': c.collector_id,
         'field_number': c.field_number,
         'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
         'last_taxon_text': c.last_taxon_text,
         'last_taxon_id': c.last_taxon_id,
         'units': units
     }
-
-def count_total(stmt):
-    count_query = stmt.with_only_columns([func.count()]).order_by(None)
-    return session.execute(count_query).scalar()
 
 class CollectionMethodView(MethodView):
     RESOURCE_NAME = 'collections'
@@ -566,9 +571,10 @@ class CollectionMethodView(MethodView):
     def get(self, item_id):
         if item_id is None:
             # item_list
+            #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number), func.array_agg(NamedArea.name)).select_from(Unit).join(Collection).join(collection_named_area).join(NamedArea).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
             stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
             ra_provider = ReactAdminProvider(request, stmt)
-
+            print(stmt, flush=True)
             # count total
             subq = ra_provider.base_query.subquery()
             new_stmt = select(func.count()).select_from(subq)
@@ -645,11 +651,11 @@ class PersonMethodView(MethodView):
                 if x := filter_dict.get('collector_id', ''):
                     collector_id = x
                 if x := filter_dict.get('id', ''):
-                    collector_id = x
-                if collector_id:
-                    if isinstance(collector_id, list):
-                        collector_id = x[0]
-                    query = query.filter(Person.id==collector_id)
+                    query = query.filter(Person.id.in_(x))
+                #if collector_id:
+                #    if isinstance(collector_id, list):
+                #        collector_id = x[0]
+                #query = query.filter(Person.id==collector_id)
 
             return ra_get_list_response('people', request, query)
         else:

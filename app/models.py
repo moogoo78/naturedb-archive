@@ -9,6 +9,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     desc,
+    Table,
 )
 from sqlalchemy.orm import (
     relationship,
@@ -188,8 +189,8 @@ class AreaClass(Base):
     DEFAULT_OPTIONS = [
         {'id': 1, 'name': 'country', 'label': '國家'},
         {'id': 2, 'name': 'stateProvince', 'label': '省/州'},
-        {'id': 3, 'name': 'municipality', 'label': '縣/市'},
-        {'id': 4, 'name': 'county', 'label': '鄉/鎮'},
+        {'id': 4, 'name': 'county', 'label': '縣/市'},
+        {'id': 3, 'name': 'municipality', 'label': '鄉/鎮'},
         {'id': 5, 'name': 'national_park', 'label': '國家公園'},
         {'id': 6, 'name': 'locality', 'label': '地名'},
     ]
@@ -250,6 +251,14 @@ class NamedArea(Base):
             'name_best': self.name_best,
         }
 
+collection_named_area = Table(
+    'collection_named_area',
+    Base.metadata,
+    Column('collection_id', ForeignKey('collection.id'), primary_key=True),
+    Column('named_area_id', ForeignKey('named_area.id'), primary_key=True)
+)
+
+'''
 class CollectionNamedArea(Base):
     __tablename__ = 'collection_named_area'
 
@@ -264,6 +273,7 @@ class CollectionNamedArea(Base):
             'id': self.id,
             'named_area': self.named_area.to_dict(),
         }
+'''
 
 class Identification(Base):
 
@@ -378,7 +388,8 @@ class Collection(Base):
     locality_text_en = Column(String(1000))
 
     #country
-    named_area_relations = relationship('CollectionNamedArea')
+    #named_area_relations = relationship('CollectionNamedArea')
+    named_areas = relationship('NamedArea', secondary=collection_named_area, backref='collections')
 
     altitude = Column(Integer)
     altitude2 = Column(Integer)
@@ -470,12 +481,10 @@ class Collection(Base):
             'last_taxon_text': self.last_taxon_text,
             'last_taxon_id': self.last_taxon_id,
             'last_taxon': taxon.to_dict() if taxon else None,
+            'units': [x.to_dict() for x in self.units],
         }
         for i,v in named_area_map.items():
             data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None
-
-        if include_units == True:
-            data['units'] = [x.to_dict() for x in self.units]
 
         return data
 
@@ -514,7 +523,8 @@ class Collection(Base):
             return None
 
     def get_named_area_map(self):
-        named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
+        #named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
+        named_area_map = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
         return get_structed_map(AreaClass.DEFAULT_OPTIONS, named_area_map)
 
     # DEPRICATED
@@ -642,8 +652,8 @@ class Unit(Base):
             'transactions': [x.to_dict() for x in self.transactions],
             #'dataset': self.dataset.to_dict(), # too many
         }
-        if mode == 'with-collection':
-            data['collection'] = self.collection.to_dict(include_units=False)
+        #if mode == 'with-collection':
+        #    data['collection'] = self.collection.to_dict(include_units=False)
 
         return data
 

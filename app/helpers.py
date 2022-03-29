@@ -4,7 +4,7 @@ from sqlalchemy import (
     func,
 )
 
-from app.models import Unit, Collection, Person, FieldNumber, CollectionNamedArea, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction
+from app.models import Unit, Collection, Person, FieldNumber, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction
 from app.taxon.models import Taxon, TaxonTree, TaxonRelation
 from app.database import session
 
@@ -162,6 +162,7 @@ def make_collection(con):
         #session.add(fn)
 
         # NamedArea
+        '''TODO
         na_list = [r[33], r[37], r[34], r[38], r[36], r[35]]
         for na in na_list:
             if na:
@@ -171,7 +172,7 @@ def make_collection(con):
                 )
                 session.add(col_na)
         session.commit()
-
+        '''
         # Identification
         rows2 = con.execute(f"SELECT i.*, t.full_scientific_name FROM specimen_identification AS i LEFT JOIN taxon_taxon AS t ON t.id = i.taxon_id  WHERE specimen_id ={r[0]} ORDER BY verification_level")
 

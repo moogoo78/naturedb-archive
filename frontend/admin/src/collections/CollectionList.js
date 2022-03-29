@@ -207,7 +207,7 @@ const ListActions = () => (
 
 /* use custom form */
 const ListFilters = [
-  <TextInput source="q" label="全文搜尋" alwaysOn />,
+  <TextInput source="q" label="全文搜尋" helperText="館號,採集號" alwaysOn  />,
   <TextInput source="accession_number" label="館號" />,
   <ReferenceInput source="taxon_id" label="學名" reference="taxa">
     <AutocompleteInput optionText="display_name" />
@@ -269,7 +269,12 @@ const CollectionList = props => {
             <Typography variant="body2">common_name</Typography>
           </>
       )}
-       label="學名/中文名" />
+                     label="學名/中文名" />
+      <ReferenceField source="collector_id" reference="people" label="採集者" link={false}>
+        <TextField source="display_name" />
+      </ReferenceField>
+      <TextField source="field_number" label="採集號" />
+      {/*
       <FunctionField render={record => {
         if (record.collector) {
           const collector = (record.collector) ? record.collector.display_name : '';
@@ -280,6 +285,7 @@ const CollectionList = props => {
         }
         return null;
       }} label="採集者/號" />
+       */}
       <FunctionField render={record => {
         if (record.collect_date) {
           return (
@@ -289,9 +295,11 @@ const CollectionList = props => {
         return null;
       }} label="採集日期" />
       <FunctionField render={record => concatLocality(record.named_area_map, classes.typoGap)} label="地點" />
-      <ReferenceField source="unit_ids" reference="units" label="照片" link={false}>
-        <ImageField source="image_url" title="照片" className={classes.imgContainer} sortable={false}/>
-      </ReferenceField>
+      <ArrayField source="units" label="館號">
+        <SingleFieldList>
+          <ImageField source="image_url" title="照片" className={classes.imgContainer} />
+        </SingleFieldList>
+      </ArrayField>
       <EditButton />
     </Datagrid>
         </List>
