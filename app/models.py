@@ -736,7 +736,7 @@ class Person(Base):
         if type_ == 'label':
             return name
 
-        return name
+        return name or ''
 
     def to_dict(self):
         data = {

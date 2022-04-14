@@ -1,112 +1,40 @@
-import * as React from "react";
-//import { Card, CardContent, CardHeader, Box, Typography, Paper } from '@material-ui/core';
+import *  as React from 'react';
+import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
 
-import { makeStyles } from '@material-ui/core/styles';
-import Card from '@material-ui/core/Card';
-import CardHeader from '@material-ui/core/CardHeader';
-import CardContent from '@material-ui/core/CardContent';
-import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
-
-const Dashboard = () => {
-
-  const useStyles = makeStyles((theme) => ({
-    root: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      '& > *': {
-        padding: theme.spacing(1),
-        margin: theme.spacing(1),
-        width: theme.spacing(20),
-        height: theme.spacing(6),
-      },
-    },
-    title: {
-      fontSize: 14,
-    },
-  }));
-
-  const classes = useStyles();
+export default function Dashboard() {
   return (
-  <>
-    <Card>
-      <CardHeader title="Admin Dashboard" />
-      <CardContent>
-        <Typography variant="h4" component="h3">Dataset Stats</Typography>
-        <Typography variant="subtitle1" color="textPrimary" component="h4">HAST</Typography>
-        <div className={classes.root}>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              採集號
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              標本數
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              館號
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              物種數
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-        </div>
-        <Typography variant="textPrimary" component="h4">HAST: Phodophyta</Typography>
-        <div className={classes.root}>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              採集號
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              標本數
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              館號
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-          <Paper elevation={2}>
-            <Typography className={classes.title} color="textSecondary" gutterBottom>
-              物種數
-            </Typography>
-            <Typography variant="h5" component="h2">
-              --
-            </Typography>
-          </Paper>
-        </div>
-      </CardContent>
-    </Card>
-  </>
+              <Grid container spacing={3}>
+              {/* Chart */}
+              <Grid item xs={12} md={8} lg={9}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: 240,
+                  }}
+                >
+
+                </Paper>
+              </Grid>
+              {/* Recent Deposits */}
+              <Grid item xs={12} md={4} lg={3}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: 240,
+                  }}
+                >
+                </Paper>
+              </Grid>
+              {/* Recent Orders */}
+              <Grid item xs={12}>
+                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+                </Paper>
+              </Grid>
+              </Grid>
   );
 }
-
-export default Dashboard

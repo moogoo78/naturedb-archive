@@ -72,6 +72,72 @@ def auth():
             return abort(401)
 
 
+class AdminQuery(object):
+
+    payload = None
+    base_query = None
+    query = None
+    limit = 20
+    offset = 0
+    MAX_QUERY_RANGE = 1000
+    func_mapping = None
+    total = None
+
+    def __init__(self, req, stmt, func_mapping=None, total=None):
+        payload = {
+            'filter': json.loads(req.args.get('filter')) if req.args.get('filter') else {},
+            'sort': json.loads(req.args.get('sort')) if req.args.get('sort') else {},
+            'range': json.loads(req.args.get('range')) if req.args.get('range') else [0, 20],
+        }
+        start = int(payload['range'][0])
+        end = int(payload['range'][1])
+
+        self.limit = min((end-start), self.MAX_QUERY_RANGE)
+        self.offset = start
+        self.payload = payload
+        self.base_query = stmt
+        self.query = stmt.limit(self.limit)
+        self.func_mapping = func_mapping
+        self.total = total
+
+        if start > 0:
+            self.query = self.query.offset(self.offset)
+
+    def get_result(self):
+        begin_time = time.time()
+        result = session.execute(self.query)
+        elapsed = time.time() - begin_time
+
+        # count total
+        elapsed_count = None
+        if self.total is None:
+            begin_time = time.time()
+            subq = self.base_query.subquery()
+            new_stmt = select(func.count()).select_from(subq)
+            self.total = session.execute(new_stmt).scalar()
+            elapsed_count = time.time() - begin_time
+
+        begin_time = time.time()
+        data = []
+        if func_mapping := self.func_mapping:
+            for r in result.all():
+                data.append(func_mapping(r))
+
+        resp = jsonify({
+            'data': data,
+            'total': self.total,
+            'elapsed': elapsed,
+            'elapsed_count': elapsed_count,
+            'elapsed_mapping': time.time() - begin_time,
+            'debug': {
+                'query': str(self.query),
+                'payload': self.payload,
+            }
+        })
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
+
 def make_specimen_list_response(req):
     payload = {
         'filter': {},
@@ -554,9 +620,9 @@ def collection_mapping(row):
     #na_list = [x.name for x in c.named_areas]
     return {
         'id': c.id,
-        'collector_id': c.collector_id,
-        #'collector': c.collector.to_dict() if c.collector else None,
-        'collector': c.collector_id,
+        #'collector_id': c.collector_id,
+        'collector': c.collector.to_dict() if c.collector else '',
+        'display_name': c.collector.display_name() if c.collector else '',
         'field_number': c.field_number,
         'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
         'last_taxon_text': c.last_taxon_text,
@@ -571,15 +637,19 @@ class CollectionMethodView(MethodView):
     def get(self, item_id):
         if item_id is None:
             # item_list
-            #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number), func.array_agg(NamedArea.name)).select_from(Unit).join(Collection).join(collection_named_area).join(NamedArea).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
             stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
-            ra_provider = ReactAdminProvider(request, stmt)
+            # ra_provider = ReactAdminProvider(request, stmt)
+            total = None
+            if t := request.args.get('total'):
+                total = int(t)
+            admin_query = AdminQuery(request, stmt, collection_mapping, total=total)
+            #admin_query = AdminQuery(request, stmt, lambda x: x[0].to_dict())
+
+            # filter
+
+
             print(stmt, flush=True)
-            # count total
-            subq = ra_provider.base_query.subquery()
-            new_stmt = select(func.count()).select_from(subq)
-            total = session.execute(new_stmt).scalar()
-            return ra_provider.get_result(collection_mapping, total)
+            return admin_query.get_result()
 
         else:
             # single item
