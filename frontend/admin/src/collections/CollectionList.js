@@ -3,10 +3,9 @@ import React, {useEffect, useState} from 'react';
 // list
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
-// form
+
+// for search
 import TextField from '@mui/material/TextField';
 
 import { styled } from '@mui/material/styles';
@@ -21,10 +20,9 @@ import {
 
 import {
   Link as RouterLink,
-  useParams,
 } from "react-router-dom";
 
-import { getList, getOne } from 'Utils';
+import { getOne } from 'Utils';
 
 function CustomToolbar() {
   return (
@@ -249,71 +247,4 @@ const CollectionList = () => {
   )
 }
 
-const CollectionEdit = () => {
-  let params = useParams();
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    getOne('collections', params.collectionId)
-      .then(({ json }) => {
-        console.log('getOne', json);
-        setData(json);
-      });
-    }, []);
-
-  return (
-    <>
-      {(data !== null) ?
-       <Box
-         component="form"
-         noValidate
-         autoComplete="off"
-         sx={{
-        '& .MuiTextField-root': { m: 1, width: '25ch' },
-      }}
-       >
-       <Box display="flex">
-       <Box flex={2} mr="1em">
-         <Typography variant="h5" gutterBottom>採集事件</Typography>
-         <Box display="flex">
-           <Box flex={2} mr="0.5em">
-             <TextField
-               id="collector_id"
-               variant="standard"
-               label="採集者"
-             />
-             <TextField
-               id="field_number"
-               variant="standard"
-               label="採集號"
-               value={data.field_number}
-               onChange={(e) => {setData((ps) => ({...ps, field_number: e.target.value}))}}
-             />
-             <TextField
-               id="collect_date"
-               variant="standard"
-               label="採集日期"
-               value={data.collect_date}
-               onChange={(e) => {setData((ps) => ({...ps, collect_date: e.target.value}))}}
-             />
-           </Box>
-           <Typography variant="h5" gutterBottom>採集地點</Typography>
-           <Box flex={2} mr="0.5em">
-           </Box>
-         </Box>
-       </Box>
-       </Box>
-       </Box>
-     : <Typography>Loading...</Typography> }
-    </>
-  )
-}
-
-export {CollectionList, CollectionEdit}
-
-/*
-         <Grid container>
-           <Grid item sx={}></Grid>
-           <Grid item>{data.collect_date}</Grid>
-                </Grid>
-*/
+export { CollectionList }

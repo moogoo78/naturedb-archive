@@ -75,4 +75,46 @@ const getList = (resource, params, options={}) => {
      });
 }
 
-export {getList, }
+const getOne = (resource, itemId, options={}) => {
+  //const apiUrl = process.env.REACT_APP_API_URL;
+  const apiUrl = 'http://127.0.0.1:5000/api/v1';
+  const url = `${apiUrl}/${resource}/${itemId}`;
+  const requestHeaders = createHeadersFromOptions(options);
+  console.log(url, requestHeaders);
+
+  return fetch(url, { ...options, headers: requestHeaders })
+    .then(response =>
+      response.text().then(text => ({
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        body: text,
+      }))
+    )
+    .then(({ status, statusText, headers, body }) => {
+      let json;
+      try {
+        json = JSON.parse(body);
+      } catch (e) {
+        // not json, no big deal
+      }
+      if (status < 200 || status >= 300) {
+        console.log('!!! HttpError');
+        /*
+        return Promise.reject(
+          new HttpError(
+            (json && json.message) || statusText,
+            status,
+            json
+          )
+        );*/
+      }
+      return Promise.resolve({ status, headers, body, json });
+      return json;
+    }).
+     catch((error) => {
+       console.log('getOne error', error);
+     });
+}
+
+export {getList, getOne}

@@ -33,7 +33,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import CollectionsIcon from '@mui/icons-material/Collections';
 
 import Dashboard from 'Dashboard';
-import {CollectionList, CollectionEdit} from 'Collections';
+import {CollectionList, CollectionEdit} from 'collections';
 
 function Copyright(props) {
   return (
@@ -119,9 +119,9 @@ const AdminSidebar = () => (
 const AdminMain = () => (
   <Routes>
     <Route path="/" element={<Dashboard />} />
-    <Route path="/collections" exact element={<CollectionList />} />
+    <Route path="/collections" element={<CollectionList />} />
     <Route path="/collections/:collectionId" element={<CollectionEdit />} />
-    <Route path="/collections/new" exact element={<Dashboard />} />
+    <Route path="/collections/new" element={<Dashboard />} />
   </Routes>
 );
 
