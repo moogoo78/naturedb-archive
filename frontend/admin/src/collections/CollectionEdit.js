@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 
 import TextField from '@mui/material/TextField';
 import Box from '@mui/material/Box';
@@ -10,6 +10,7 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Autocomplete from '@mui/material/Autocomplete';
+import CircularProgress from '@mui/material/CircularProgress';
 // import DatePicker from '@mui/x-date-pickers/DatePicker'; import error ?
 import { DatePicker } from '@mui/x-date-pickers';
 import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
@@ -18,7 +19,10 @@ import {
   useParams,
 } from "react-router-dom";
 
-import { getOne } from '../Utils';
+import {
+  getOne,
+  getList,
+} from '../Utils';
 
 const Paper = styled(MuiPaper)(({ theme }) => ({
   backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
@@ -31,9 +35,10 @@ const Paper = styled(MuiPaper)(({ theme }) => ({
 
 const CollectionEdit = () => {
   let params = useParams();
-  const [data, setData] = useState(null);
+  const [data, setData] = React.useState(null);
+  const [collectorOptions, setCollectorOptions] = React.useState([]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     getOne('collections', params.collectionId)
       .then(({ json }) => {
         console.log('getOne', json);
@@ -41,6 +46,17 @@ const CollectionEdit = () => {
       });
     }, []);
 
+  const handleCollectorChange = (event) => {
+    const params = {
+      filter: {
+        q: event.target.value
+      }
+    }
+    getList('people', params)
+      .then(({json}) => {
+        setCollectorOptions(json.data);
+      })
+  }
   return (
     <>
       {(data !== null) ?
@@ -53,10 +69,16 @@ const CollectionEdit = () => {
                  <Grid item xs={12}><Typography variant="h6">採集事件</Typography></Grid>
                  <Grid item xs={6}>
                    <Autocomplete
-                     disablePortal
-                     id="collection"
-                     options={[]}
-                     renderInput={(params) => <TextField {...params} label="採集者" variant="standard" />}
+                     id="collector"
+                     options={collectorOptions}
+                     isOptionEqualToValue={(option, value) => option.id === value.id}
+                     getOptionLabel={(option) => option.display_name}
+                     renderInput={(params) => (
+                       <TextField
+                         {...params}
+                         label="採集者"
+                         onChange={handleCollectorChange}
+                         variant="standard"/>)}
                    />
                  </Grid>
                  <Grid item xs={3}>
@@ -72,7 +94,7 @@ const CollectionEdit = () => {
                  <Grid item xs={3}>
                    <DatePicker
                      disableFuture
-                     label="資料啟始日期"
+                     label="採集號"
                      openTo="year"
                      clearable={true}
                      views={['year', 'month', 'day']}
@@ -108,6 +130,8 @@ const CollectionEdit = () => {
                      value={""}
                      onChange={(e) => {setData((ps) => ({...ps, country: e.target.value}))}}
                    />
+                 </Grid>
+                 <Grid item xs={12}>
                  </Grid>
                </Grid>
                <Grid item xs={12}><Typography variant="h6">other</Typography></Grid>

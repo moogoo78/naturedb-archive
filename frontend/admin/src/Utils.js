@@ -29,6 +29,9 @@ const getList = (resource, params, options={}) => {
     if (params.hasOwnProperty('total')) {
       payload['total'] = params['total'];
     }
+    if (params.hasOwnProperty('filter')) {
+      payload['filter'] = JSON.stringify(params['filter']);
+    }
   }
   //const query = {
     // sort: JSON.stringify([field, order]),
@@ -36,7 +39,8 @@ const getList = (resource, params, options={}) => {
     // filter: JSON.stringify(params.filter),
   //};
   const queryString = new URLSearchParams(payload).toString()
-  const url = `${apiUrl}/${resource}?${queryString}`;
+  const seperator = (queryString === '') ? '' : '?';
+  const url = `${apiUrl}/${resource}${seperator}${queryString}`;
   const requestHeaders = createHeadersFromOptions(options);
   console.log(url, requestHeaders);
 
