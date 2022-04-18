@@ -121,4 +121,24 @@ const getOne = (resource, itemId, options={}) => {
      });
 }
 
-export {getList, getOne}
+const convertDDToDMS = (dd) => {
+  /* arguments: decimal degree
+   */
+  const direction = (parseFloat(dd) >=0) ? 1 : -1;
+  const ddFloat = Math.abs(parseFloat(dd));
+  const degree = Math.floor(ddFloat);
+  const minuteFloat = (ddFloat- degree) * 60;
+  const minute = Math.floor(minuteFloat);
+  const secondFloat = ((minuteFloat - minute) * 60);
+  const second = parseFloat(secondFloat.toFixed(4));
+  //console.log(dd, ddFloat, degree [degree, minute, second]);
+  return [direction, degree, minute, second];
+}
+
+const convertDMSToDD = (ddms) => {
+  /* arguments: degree, minute, second
+   */
+  console.log(ddms);
+  return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
+}
+export {getList, getOne, convertDDToDMS, convertDMSToDD}

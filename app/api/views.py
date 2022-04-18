@@ -571,6 +571,7 @@ class NamedAreaMethodView(MethodView):
                     query = query.filter(NamedArea.area_class_id==area_class_id)
                 if parent_id := filter_dict.get('parent_id'):
                     query = query.filter(NamedArea.parent_id==parent_id)
+            print(query, flush=True)
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
             # single item
