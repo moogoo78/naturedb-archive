@@ -126,15 +126,16 @@ const CollectionEdit = () => {
     const value = event.target.value;
     const regex = /(longitude|latitude)_(direction|degree|minute|second)/g;
     const match = regex.exec(key);
-    console.log(key, value, '----', match, event);
+    // console.log(key, value, '----', match, event);
     if (key === 'longitude_decimal') {
       const dms_lon = convertDDToDMS(value);
+      console.log(dms_lon, 'xx')
       setData((ps) => ({
         ...ps,
         longitude_direction: dms_lon[0],
-        longitude_degree: dms_lon[1],
-        longitude_minute: dms_lon[2],
-        longitude_second: dms_lon[3],
+        longitude_degree: dms_lon[1].toString(),
+        longitude_minute: dms_lon[2].toString(),
+        longitude_second: dms_lon[3].toString(),
         longitude_decimal: value,
       }));
     } else if (key === 'latitude_decimal') {
@@ -142,9 +143,9 @@ const CollectionEdit = () => {
       setData((ps) => ({
         ...ps,
         latitude_direction: dms_lat[0],
-        latitude_degree: dms_lat[1],
-        latitude_minute: dms_lat[2],
-        latitude_second: dms_lat[3],
+        latitude_degree: dms_lat[1].toString(),
+        latitude_minute: dms_lat[2].toString(),
+        latitude_second: dms_lat[3].toString(),
         latitude_decimal: value,
       }));
     } else if (match) {
