@@ -4,7 +4,7 @@ from sqlalchemy import (
     func,
 )
 
-from app.models import Unit, Collection, Person, FieldNumber, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction
+from app.models import Unit, Collection, Person, FieldNumber, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction, MeasurementOrFactParameterOption, MeasurementOrFactParameterOptionGroup
 from app.taxon.models import Taxon, TaxonTree, TaxonRelation
 from app.database import session
 
@@ -120,6 +120,36 @@ MOF_PARAM_LIST2 = [
 ]
 
 PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity': '4', 'naturalness': '5', 'topography': '6', 'veget': '7', 'plant-h': '8', 'sex-char': '9', 'life-form': '10', 'flower': '11', 'fruit': '12', 'flower-color': '13', 'fruit-color': '14'}
+
+PARAM_OPT_GROUP_MAP = ['一般型','人工/干擾環境', '闊葉林', '針葉林/混交林', '混合型', '海岸環境', '針闊葉混合林','高山植群', '混合林']
+
+def make_mof_option(con):
+    '''
+    for i, k in enumerate(PARAM_OPT_GROUP_MAP):
+        pog = MeasurementOrFactParameterOptionGroup(name=k)
+        session.add(pog)
+    session.commit()
+
+    rows = con.execute(f"SELECT * FROM specimen_annotation")
+    for row in rows:
+        pid = PARAM_MAP[row[2]]
+        group_name = ''
+        if row[2] == 'veget':
+            group_name = row[4].get('typeC')
+        #print (pid, group_name, flush=True)
+        opt = MeasurementOrFactParameterOption(parameter_id=pid, value_en=row[1], value=row[3])
+        session.add(opt)
+        if group_name:
+            opt.group_id = PARAM_OPT_GROUP_MAP.index(group_name) + 1
+    session.commit()
+    '''
+    rows = MeasurementOrFact.query.all()
+    for i in rows:
+        # print (i, flush=True)
+        if i.option_id:
+            i.value = i.option.value
+    session.commit()
+    return {}
 
 def make_collection(con):
     #LIMIT = ' LIMIT 500'
@@ -416,3 +446,5 @@ def conv_hast21(key):
             make_taxon(con)
         elif key == 'collection':
             make_collection(con)
+        elif key == 'mof_option':
+            make_mof_option(con)

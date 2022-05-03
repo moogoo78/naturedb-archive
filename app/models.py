@@ -97,6 +97,30 @@ class MeasurementOrFactParameter(Base):
             'dataset_id': self.dataset_id,
         }
 
+class MeasurementOrFactParameterOptionGroup(Base):
+    __tablename__ = 'measurement_or_fact_parameter_option_group'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+
+
+class MeasurementOrFactParameterOption(Base):
+    __tablename__ = 'measurement_or_fact_parameter_option'
+    id = Column(Integer, primary_key=True)
+    parameter_id = Column(ForeignKey('measurement_or_fact_parameter.id', ondelete='SET NULL'))
+    group_id = Column(ForeignKey('measurement_or_fact_parameter_option_group.id', ondelete='SET NULL'), nullable=True)
+    value = Column(String(500))
+    value_en = Column(String(500))
+    parameter = relationship('MeasurementOrFactParameter')
+    group = relationship('MeasurementOrFactParameterOptionGroup')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'label': self.label if self.label else self.name,
+        }
+
+
 class MeasurementOrFact(Base):
     __tablename__ = 'measurement_or_fact'
 
@@ -120,9 +144,11 @@ class MeasurementOrFact(Base):
 
     id = Column(Integer, primary_key=True)
     collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
+    option_id = Column(ForeignKey('measurement_or_fact_parameter_option.id', ondelete='SET NULL'))
     unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
     parameter_id = Column(ForeignKey('measurement_or_fact_parameter.id', ondelete='SET NULL'))
     parameter = relationship('MeasurementOrFactParameter')
+    option = relationship('MeasurementOrFactParameterOption')
     #parameter = Column(String(500))
     #text = Column(String(500))
     value = Column(String(500))
@@ -133,6 +159,14 @@ class MeasurementOrFact(Base):
     #measured_by
     #unit_of_measurement
     #applies_to
+
+    def get_value(self):
+        return (
+            self.option.id if self.option else None,
+            self.value if self.value else '',
+            self.value_en if self.value_en else '',
+        )
+
     def to_dict(self):
         #item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
         return {
@@ -321,13 +355,13 @@ class Identification(Base):
     def to_dict(self):
         return {
             'id': self.id,
-            'identification_id': self.id,
+            #'identification_id': self.id,
             #'collection_id': self.collection_id,
             'identifier_id': self.identifier_id,
             'identifier': self.identifier.to_dict() if self.identifier else None,
             'taxon_id': self.taxon_id,
             'taxon': self.taxon.to_dict() if self.taxon else None,
-            'date': self.date,
+            'date': self.date.strftime('%Y-%m-%d') if self.date else '',
             'date_text': self.date_text,
             'verification_level': self.verification_level,
             'sequence': self.sequence,
@@ -471,7 +505,7 @@ class Collection(Base):
             'longitude_decimal': self.longitude_decimal,
             'latitude_decimal': self.latitude_decimal,
             'locality_text': self.locality_text,
-            'biotope_measurement_or_facts': [x.to_dict() for x in self.biotope_measurement_or_facts],
+            #'biotope_measurement_or_facts': {x.parameter.name: x.to_dict() for x in self.biotope_measurement_or_facts},
             #'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
             #'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
             #'field_number_list': [x.todict() for x in self.field_numbers],
@@ -485,6 +519,9 @@ class Collection(Base):
         }
         for i,v in named_area_map.items():
             data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None
+
+        for x in self.biotope_measurement_or_facts:
+            data[f'biotope__{x.parameter.name}'] = x.get_value()
 
         return data
 

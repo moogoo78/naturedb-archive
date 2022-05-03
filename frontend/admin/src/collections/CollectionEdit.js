@@ -16,6 +16,25 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
+import Stack from '@mui/material/Stack';
+import Card from '@mui/material/Card';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import Button from '@mui/material/Button';
+
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+
 // import DatePicker from '@mui/x-date-pickers/DatePicker'; import error ?
 import { DatePicker } from '@mui/x-date-pickers';
 import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
@@ -56,10 +75,13 @@ const Paper = styled(MuiPaper)(({ theme }) => ({
   color: theme.palette.text.secondary,
 }));
 
+
 const CollectionEdit = () => {
   let params = useParams();
+  const [identificationFlag, setIdentificationFlag] = React.useState(-1); // -i: close, 0, 1, 2 ... index
   const [data, setData] = React.useState(null);
   const [collectorOptions, setCollectorOptions] = React.useState([]);
+  const [biotopeOptions, setBiotopeOptions] = React.useState([]);
   const [namedAreaOptions, setNamedAreaOptions] = React.useState({
     country:[],
     stateProvince: [],
@@ -67,6 +89,7 @@ const CollectionEdit = () => {
     county: [],
     national_park: [],
     locality: [],
+    biotope: {},
   });
 
   React.useEffect(() => {
@@ -90,6 +113,12 @@ const CollectionEdit = () => {
         setNamedAreaOptions({
           country: [json.named_areas.country.value,],
         });
+      });
+
+    fetch('http://127.0.0.1:5000/admin/biotope_options')
+      .then((resp) => resp.json())
+      .then((ret)=> {
+        setBiotopeOptions(ret);
       });
     }, []);
 
@@ -129,7 +158,6 @@ const CollectionEdit = () => {
     // console.log(key, value, '----', match, event);
     if (key === 'longitude_decimal') {
       const dms_lon = convertDDToDMS(value);
-      console.log(dms_lon, 'xx')
       setData((ps) => ({
         ...ps,
         longitude_direction: dms_lon[0],
@@ -192,11 +220,80 @@ const CollectionEdit = () => {
       setData((ps) => ({...ps, [event.target.id]: event.target.value}));
     }
   }
-
+  console.log('data', data);
   return (
     <>
       {(data !== null) ?
        <>
+         <Dialog open={(identificationFlag < 0 ) ? false: true} onClose={() => setIdentificationFlag(-1)}>
+           { (identificationFlag >= 0) ?
+             <>
+               <DialogTitle>鑑定記錄 - {data.identifications[identificationFlag].sequence}</DialogTitle>
+               <DialogContent>
+                 <DialogContentText>
+                 </DialogContentText>
+                 <Grid container spacing={2}>
+                   <Grid item xs={12}>
+                     <Autocomplete
+                       id="taxon"
+                       options={[]}
+             /*isOptionEqualToValue={(option, value) => option.id === value.id}
+               getOptionLabel={(option) => option.display_name}
+               value={data.collector}*/
+                       renderInput={(params) => (
+                         <TextField
+                           {...params}
+                           label="學名"
+                           fullWidth
+                         /*onChange={ectorChange}*/
+                           variant="standard"/>)}
+                     />
+                   </Grid>
+                   <Grid item xs={12}>
+                     <Autocomplete
+                       id="identifier"
+                       options={collectorOptions}
+                       isOptionEqualToValue={(option, value) => option.id === value.id}
+                       getOptionLabel={(option) => option.display_name}
+                       value={data.identifications[identificationFlag].identifier}
+                       renderInput={(params) => (
+                         <TextField
+                           {...params}
+                           label="鑑定者"
+                         /*onChange={torChange}*/
+                           variant="standard"/>)}
+                     />
+                   </Grid>
+                   <Grid item xs={6}>
+                     <DatePicker
+                       disableFuture
+                       label="鑑定日期"
+                       openTo="year"
+                       clearable={true}
+                       views={['year', 'month', 'day']}
+                       value={data.identifications[identificationFlag].date}
+                       inputFormat="yyyy-MM-dd"
+                       mask='____-__-__'
+                       onChange={handleChange}
+                       renderInput={(params) => <TextField {...params} variant="standard" fullWidth />}
+                     />
+                   </Grid>
+                   <Grid item xs={6}>
+                     <TextField
+                       id="verbatim-identification-date"
+                       label="日期格式不完整"
+                       fullWidth
+                       variant="standard"
+                     />
+                   </Grid>
+                 </Grid>
+               </DialogContent>
+               <DialogActions>
+                 <Button onClick={() => setIdentificationFlag(-1)}>Cancel</Button>
+                 <Button >Subscribe</Button>
+               </DialogActions>
+             </> : null }
+         </Dialog>
          <Typography variant="h4">Collection</Typography>
          <Grid container spacing={2}>
            <Grid item xs={9}>
@@ -240,7 +337,7 @@ const CollectionEdit = () => {
                      mask='____-__-__'
                      onChange={handleChange}
                      renderInput={(params) => <TextField {...params} variant="standard"/>}
-          />
+                   />
                  </Grid>
                  <Grid item xs={6}>
                    <TextField
@@ -415,10 +512,6 @@ const CollectionEdit = () => {
                        id="longitude_direction"
                        value={data.longitude_direction}
                        label="東西經"
-
-
-
-                       
                        onChange={handleChange}
                      >
                        <MenuItem value={""}>--</MenuItem>
@@ -538,23 +631,92 @@ const CollectionEdit = () => {
                </Grid>
                <Grid item xs={12}><Typography variant="h6">other</Typography></Grid>
                <Grid item xs={12}>
-       <Accordion>
-           <AccordionSummary
-             expandIcon={<ExpandMoreIcon />}
-             aria-controls="panel2a-content"
-             id="panel2a-header"
-           >
-             <Typography>鑑定</Typography>
-           </AccordionSummary>
-           <AccordionDetails>
-             <Typography>
-
-             </Typography>
-           </AccordionDetails>
-       </Accordion>
-       </Grid>
-      </Paper>
-       </Grid>
+                 <Accordion defaultExpanded={true}>
+                   <AccordionSummary
+                     expandIcon={<ExpandMoreIcon />}
+                     aria-controls="panel1-content"
+                     id="panel1-header"
+                   >
+                     <Typography sx={{ width: '33%', flexShrink: 0 }}>鑑定</Typography>
+                     <Typography sx={{ color: 'text.secondary' }}></Typography>
+                   </AccordionSummary>
+                   <AccordionDetails>
+                     <TableContainer component={Paper}>
+                       <Table sx={{ minWidth: 650 }} aria-label="simple table">
+                         <TableHead>
+                           <TableRow>
+                             <TableCell>鑑定次數</TableCell>
+                             <TableCell>學名</TableCell>
+                             <TableCell>鑑訂者</TableCell>
+                             <TableCell>鑑訂日期</TableCell>
+                             <TableCell>編輯</TableCell>
+                           </TableRow>
+                         </TableHead>
+                         <TableBody>
+                           {data.identifications.map((row, index) => {
+                             return(
+                               <TableRow
+                                 key={index}
+                                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                               >
+                                 <TableCell component="th" scope="row">
+                                   {row.sequence}
+                                 </TableCell>
+                                 <TableCell align="right">{row.taxon.full_scientific_name}</TableCell>
+                                 <TableCell align="right">{(row.identifier) ? row.identifier.display_name : ''}</TableCell>
+                                 <TableCell align="right">{(row.date_text) ? row.date_text : (row.date || '')}</TableCell>
+                                 <TableCell align="right"><Button variant="outlined" onClick={() => {
+                                   setIdentificationFlag(index);
+                                 }}>編輯</Button></TableCell>
+                               </TableRow>
+                             )})}
+                         </TableBody>
+                       </Table>
+                     </TableContainer>
+                   </AccordionDetails>
+                 </Accordion>
+                 <Accordion>
+                   <AccordionSummary
+                     expandIcon={<ExpandMoreIcon />}
+                     aria-controls="panel2-content"
+                     id="panel2-header"
+                   >
+                     <Typography sx={{ width: '33%', flexShrink: 0 }}>植群/環境</Typography>
+                     <Typography sx={{ color: 'text.secondary' }}></Typography>
+                   </AccordionSummary>
+                   <AccordionDetails>
+                     <Stack spacing={1} sx={{ width: 450 }}>
+                       {biotopeOptions.map((parameter) => {
+                         const key = `biotope__${parameter.name}`;
+                         const optionValue = (data.hasOwnProperty(key)) ? data[key] : null;
+                         let value = '';
+                         let inputValue = '';
+                         let label = '';
+                         //console.log(key, optionValue);
+                         return (
+                           <Autocomplete
+                             key={key}
+                             freeSolo
+                             options={parameter.options}
+                             isOptionEqualToValue={(option, value) => {
+                               return (option.hasOwnProperty('option') ? option.option.id===value.option.id : false)
+                             }}
+                             value={optionValue}
+                             onChange={(event, newValue) => {console.log('change', newValue);}}
+                             getOptionLabel={(option) => {
+                               return `${option[2]} (${option[1]})`;
+                             }}
+                             onInputChange={(event, newValue) => {console.log('input', newValue);}}
+                             renderInput={(params) => <TextField {...params} label={parameter.label} variant="standard" fullWidth />}
+                           />
+                         )
+                       })}
+                     </Stack>
+                   </AccordionDetails>
+                 </Accordion>
+               </Grid>
+             </Paper>
+           </Grid>
            <Grid item xs={3}>
              <Paper>
                img
@@ -568,10 +730,3 @@ const CollectionEdit = () => {
 }
 
 export { CollectionEdit }
-
-/*
-         <Grid container>
-           <Grid item sx={}></Grid>
-           <Grid item>{data.collect_date}</Grid>
-                </Grid>
-*/
