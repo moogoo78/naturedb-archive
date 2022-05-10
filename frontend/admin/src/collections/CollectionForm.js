@@ -117,6 +117,17 @@ const reducer = (state, action) => {
         }
       }
     }
+  case 'SET_LIST_DATA':{
+    let tmpList = state.data[action.list];
+    tmpList[action.index][action.name] = action.value;
+    return {
+      ...state,
+      data: {
+        ...state.data,
+        [action.list]: tmpList,
+      }
+    }
+  }
   case 'SET_HELPER':
     if (action.value !== undefined) {
       return {
@@ -127,7 +138,7 @@ const reducer = (state, action) => {
         }
       }
     } else if (action.name.indexOf('identifications__') >= 0) {
-      console.log(action, '!!');
+      // console.log(action, '!!');
       let tmp = state.helpers.identifications;
       const klist = action.name.split('__');
       tmp[klist[1]][klist[2]].options = action.options;
@@ -224,6 +235,7 @@ const CollectionForm = () => {
           },
           identificationIndex: -1,
           identifications: identifications,
+          unitIndex: -1,
           /*...namedAreas,*/
         }
         dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: initialHelpers});
@@ -418,16 +430,30 @@ const CollectionForm = () => {
                    <Grid item xs={12}>
                      <Autocomplete
                        id="taxon"
-                       options={[]}
+                       options={helpers.identifications[helpers.identificationIndex].taxonSelect.options}
                        isOptionEqualToValue={(option, value) => option.id === value.id}
                        getOptionLabel={(option) => option.display_name}
                        value={data.identifications[helpers.identificationIndex].taxon}
+                       onChange={(e, v, reason) => {
+                         dispatch({type: 'SET_LIST_DATA', name: 'taxon', value: v, list:'identifications', index: helpers.identificationIndex});
+                       }}
+                       onInputChange={(e, v, reason) => {
+                         // console.log('ON INPUT', reason, v, data.collector);
+                         getList('taxa', { filter: { q: v } })
+                           .then(({json}) => {
+                             const value = data.identifications[helpers.identificationIndex].taxon;
+                             if (value && (json.data.find((x) => x.id === value.id)) === undefined) {
+                               json.data.push(value);
+                             }
+                             dispatch({type: 'SET_HELPER', name: `identifications__${helpers.identificationIndex}__taxonSelect`, options: json.data, input: v});
+                           });
+                       }}
+                       inputValue={helpers.identifications[helpers.identificationIndex].taxonSelect.input}
                        renderInput={(params) => (
                          <TextField
                            {...params}
                            label="學名"
                            fullWidth
-                           /*onChange={(e) => handleAutocompleteChange(e, 'taxon')}*/
                            variant="standard"/>)}
                      />
                    </Grid>
@@ -438,6 +464,9 @@ const CollectionForm = () => {
                        isOptionEqualToValue={(option, value) => option.id === value.id}
                        getOptionLabel={(option) => option.display_name}
                        value={data.identifications[helpers.identificationIndex].identifier}
+                       onChange={(e, v, reason) => {
+                         dispatch({type: 'SET_LIST_DATA', name: 'identifier', value: v, list:'identifications', index: helpers.identificationIndex});
+                       }}
                        onInputChange={(e, v, reason) => {
                          // console.log('ON INPUT', reason, v, data.collector);
                          getList('people', { filter: { q: v } })
@@ -446,7 +475,6 @@ const CollectionForm = () => {
                              if (value && (json.data.find((x) => x.id === value.id)) === undefined) {
                                json.data.push(value);
                              }
-                             console.log(json.data);
                              dispatch({type: 'SET_HELPER', name: `identifications__${helpers.identificationIndex}__identifierSelect`, options: json.data, input: v});
                            });
                        }}
@@ -468,7 +496,21 @@ const CollectionForm = () => {
                        value={data.identifications[helpers.identificationIndex].date}
                        inputFormat="yyyy-MM-dd"
                        mask='____-__-__'
-             /*onChange={handleChange}*/
+                       onChange={(selectDate, input)=> {
+                         if (input) {
+                           try {
+                             const _ = new Date(input).toISOString();
+                             dispatch({type: 'SET_DATA', name: 'collect_date', value: input});
+                           } catch (error) {
+                             console.error(error);
+                           }
+                          } else if (selectDate) {
+                            const y = selectDate.getFullYear();
+                            const m = String(selectDate.getMonth()+1).padStart(2, '0');
+                            const d = String(selectDate.getDate()).padStart(2, '0');
+                            dispatch({type: 'SET_LIST_DATA', name: 'date', value: `${y}-${m}-${d}`, list:'identifications', index: helpers.identificationIndex});
+                          }
+                       }}
                        renderInput={(params) => <TextField {...params} variant="standard" fullWidth />}
                      />
                    </Grid>
@@ -478,12 +520,42 @@ const CollectionForm = () => {
                        label="日期格式不完整"
                        fullWidth
                        variant="standard"
+                       value={data.units[helpers.identificationIndex].date_text}
+                       onChange={(e)=> {
+                         dispatch({type: 'SET_LIST_DATA', name: 'date_text', value: e.target.value, list:'identifications', index: helpers.identificationIndex});
+                       }}
                      />
                    </Grid>
                  </Grid>
                </DialogContent>
                <DialogActions>
                  <Button onClick={() => {dispatch({'type': 'SET_HELPER', name: 'identificationIndex', value: -1});}}>取消</Button>
+                 <Button variant="contained">送出</Button>
+               </DialogActions>
+             </Dialog> : null}
+            {(helpers.unitIndex >= 0) ?
+             <Dialog open={(helpers.unitIndex >= 0) ? true : false} onClose={() => {dispatch({'type': 'SET_HELPER', name: 'unitIndex', value: -1});}}>
+               <DialogTitle>標本記錄 - {data.units[helpers.unitIndex].accession_number}</DialogTitle>
+               <DialogContent>
+                 <DialogContentText>
+                 </DialogContentText>
+                 <Grid container spacing={2}>
+                   <Grid item xs={12}>
+                     <TextField
+                       id="unit-accession_number"
+                       label="館號"
+                       fullWidth
+                       variant="standard"
+                       value={data.units[helpers.unitIndex].accession_number}
+                       onChange={(e)=> {
+                         dispatch({type: 'SET_LIST_DATA', name: 'accession_number', value: e.target.value, list:'units', index: helpers.unitIndex});
+                       }}
+                     />
+                   </Grid>
+                 </Grid>
+               </DialogContent>
+               <DialogActions>
+                 <Button onClick={() => {dispatch({'type': 'SET_HELPER', name: 'unitIndex', value: -1});}}>取消</Button>
                  <Button variant="contained">送出</Button>
                </DialogActions>
              </Dialog> : null}
@@ -544,7 +616,7 @@ const CollectionForm = () => {
                         inputFormat="yyyy-MM-dd"
                         mask='____-__-__'
                         onChange={(selectDate, input)=> {
-                          console.log(selectDate, input, 'ee');
+                          // console.log(selectDate, input, 'ee');
                           if (input) {
                             try {
                               const _ = new Date(input).toISOString();
@@ -674,7 +746,7 @@ const CollectionForm = () => {
                                     <TableCell component="th" scope="row">
                                       {row.sequence+1}
                                     </TableCell>
-                                    <TableCell align="right">{row.taxon.full_scientific_name}</TableCell>
+                                    <TableCell align="right">{(row.taxon) ? row.taxon.full_scientific_name : ''}</TableCell>
                                     <TableCell align="right">{(row.identifier) ? row.identifier.display_name : ''}</TableCell>
                                     <TableCell align="right">{(row.date_text) ? row.date_text : (row.date || '')}</TableCell>
                                     <TableCell align="right"><Button variant="outlined" onClick={() => {
@@ -757,6 +829,7 @@ const CollectionForm = () => {
               </Grid>
               <Grid item xs={3}>
                 <Paper>
+                  <Typography variant="h5">標本</Typography>
                   {data.units.map((unit, i) => {
                     const mofList = unit.measurement_or_facts.map((x)=> x.value_en);
                     return (
@@ -780,7 +853,8 @@ const CollectionForm = () => {
                           </Typography>
                         </CardContent>
                         <CardActions>
-                          <Button size="small" variant="contained">Edit</Button>
+                      <Button size="small" variant="contained" onClick={() => {
+                        dispatch({type: 'SET_HELPER', name: 'unitIndex', value: i})}}>編輯</Button>
                         </CardActions>
                       </Card>
                     )})}
