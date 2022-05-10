@@ -571,7 +571,8 @@ class NamedAreaMethodView(MethodView):
                     query = query.filter(NamedArea.area_class_id==area_class_id)
                 if parent_id := filter_dict.get('parent_id'):
                     query = query.filter(NamedArea.parent_id==parent_id)
-            print(query, flush=True)
+                    # print(query, flush=True)
+
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
             # single item
@@ -648,14 +649,18 @@ class CollectionMethodView(MethodView):
 
             # filter
 
-
             print(stmt, flush=True)
             return admin_query.get_result()
 
         else:
             # single item
             obj = session.get(self.model, item_id)
-            return ra_item_response(self.RESOURCE_NAME, obj)
+            data = obj.to_dict()
+            # default options
+            data['form_options'] = obj.get_form_options()
+            resp = jsonify(data)
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            return resp
 
     def post(self, item_id):
         # create

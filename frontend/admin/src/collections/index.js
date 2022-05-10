@@ -1,2 +1,2 @@
 export {CollectionList} from './CollectionList';
-export {CollectionEdit} from './CollectionEdit';
+export {CollectionForm} from './CollectionForm';

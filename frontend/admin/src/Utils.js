@@ -42,7 +42,7 @@ const getList = (resource, params, options={}) => {
   const seperator = (queryString === '') ? '' : '?';
   const url = `${apiUrl}/${resource}${seperator}${queryString}`;
   const requestHeaders = createHeadersFromOptions(options);
-  console.log(url, requestHeaders);
+  // console.log(url, requestHeaders);
 
   return fetch(url, { ...options, headers: requestHeaders })
     .then(response =>
@@ -84,7 +84,7 @@ const getOne = (resource, itemId, options={}) => {
   const apiUrl = 'http://127.0.0.1:5000/api/v1';
   const url = `${apiUrl}/${resource}/${itemId}`;
   const requestHeaders = createHeadersFromOptions(options);
-  console.log(url, requestHeaders);
+  // console.log(url, requestHeaders);
 
   return fetch(url, { ...options, headers: requestHeaders })
     .then(response =>

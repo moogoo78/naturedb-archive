@@ -30,13 +30,13 @@ def get_structed_list(options, value_dict={}):
     dict key must use id (str)
     '''
     res = []
-    for i, v in enumerate(options):
-        id_ = v.get('id', '')
+    for i, option in enumerate(options):
+        name = option.get('name')
         res.append({
-            'id': id_,
-            'name': v.get('name', ''),
-            'label': v.get('label', ''),
-            'data': value_dict.get(str(id_)) if id_ else ''
+            'id': option.get('id', ''),
+            'name': name,
+            'label': option.get('label', ''),
+            'value': value_dict.get(name),
         })
     return res
 
@@ -116,8 +116,8 @@ class MeasurementOrFactParameterOption(Base):
     def to_dict(self):
         return {
             'id': self.id,
-            'name': self.name,
-            'label': self.label if self.label else self.name,
+            'value': self.value,
+            'value_en': self.value_en,
         }
 
 
@@ -141,7 +141,15 @@ class MeasurementOrFact(Base):
 
     PARAMETER_FOR_COLLECTION = ('habitat', 'veget', 'topography', 'naturalness', 'light-intensity', 'humidity', 'abundance')
     PARAMETER_FOR_UNIT = ('life-form', 'flower', 'fruit', 'flower-color', 'fruit-color')
-
+    BIOTOPE_OPTIONS = (
+        {'id': 7, 'name': 'veget', 'label': '植群型'},
+        {'id': 6, 'name': 'topography', 'label': '地形位置'},
+        {'id': 2, 'name': 'habitat', 'label': '微棲地'},
+        {'id': 5 , 'name': 'naturalness', 'label': '自然度'},
+        {'id': 4, 'name': 'light-intensity', 'label': '環境光度'},
+        {'id': 3, 'name': 'humidity', 'label': '環境濕度'},
+        {'id': 1, 'name': 'abundance', 'label': '豐富度'},
+    )
     id = Column(Integer, primary_key=True)
     collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
     option_id = Column(ForeignKey('measurement_or_fact_parameter_option.id', ondelete='SET NULL'))
@@ -171,8 +179,9 @@ class MeasurementOrFact(Base):
         #item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
         return {
             'id': self.id,
+            'option_id': self.option_id if self.option_id else None,
             #'label': item[1],
-            'parameter': self.parameter.to_dict(),
+            #'parameter': self.parameter.to_dict(),
             'value': self.value,
             'value_en': self.value_en,
             #'collection_id': self.collection_id,
@@ -222,9 +231,9 @@ class AreaClass(Base):
     __tablename__ = 'area_class'
     DEFAULT_OPTIONS = [
         {'id': 1, 'name': 'country', 'label': '國家'},
-        {'id': 2, 'name': 'stateProvince', 'label': '省/州'},
-        {'id': 4, 'name': 'county', 'label': '縣/市'},
-        {'id': 3, 'name': 'municipality', 'label': '鄉/鎮'},
+        {'id': 2, 'name': 'stateProvince', 'label': '省/州', 'parent': 'country', 'root': 'country'},
+        {'id': 3, 'name': 'county', 'label': '縣/市', 'parent': 'stateProvince', 'root': 'country'},
+        {'id': 4, 'name': 'municipality', 'label': '鄉/鎮', 'parent': 'county', 'root': 'country'},
         {'id': 5, 'name': 'national_park', 'label': '國家公園'},
         {'id': 6, 'name': 'locality', 'label': '地名'},
     ]
@@ -261,7 +270,7 @@ class NamedArea(Base):
     def display_name(self):
         return '{}{}'.format(
             self.name_en if self.name_en else '',
-            f' ({self.name})' if self.name else ''
+            f' ({self.name})' if self.name.strip() else ''
         )
 
     @property
@@ -280,10 +289,11 @@ class NamedArea(Base):
             'name_en': self.name_en,
             'area_class_id': self.area_class_id,
             #'area_class': self.area_class.to_dict(),
-            'name_mix': '/'.join([self.name, self.name_en]),
+            #'name_mix': '/'.join([self.name, self.name_en]),
             'display_name': self.display_name(),
-            'name_best': self.name_best,
+            #'name_best': self.name_best,
         }
+
 
 collection_named_area = Table(
     'collection_named_area',
@@ -490,7 +500,11 @@ class Collection(Base):
     def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
         taxon = Taxon.query.filter(Taxon.id==self.last_taxon_id).first()
-        named_area_map = self.get_named_area_map()
+        # named_area_map = self.get_named_area_map()
+        named_area_list = self.get_named_area_list()
+        biotope_map = {f'{x.parameter.name}': x.to_dict() for x in self.biotope_measurement_or_facts}
+        biotopes = get_structed_list(MeasurementOrFact.BIOTOPE_OPTIONS, biotope_map)
+
         data = {
             'id': self.id,
             'key': self.key,
@@ -499,13 +513,14 @@ class Collection(Base):
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
             #'named_area_list': na_list,
-            'named_areas': named_area_map,
+            'named_areas': named_area_list,
             'altitude': self.altitude,
             'altitude2':self.altitude2,
             'longitude_decimal': self.longitude_decimal,
             'latitude_decimal': self.latitude_decimal,
             'locality_text': self.locality_text,
             #'biotope_measurement_or_facts': {x.parameter.name: x.to_dict() for x in self.biotope_measurement_or_facts},
+            'biotopes': biotopes,
             #'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
             #'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
             #'field_number_list': [x.todict() for x in self.field_numbers],
@@ -517,11 +532,11 @@ class Collection(Base):
             'last_taxon': taxon.to_dict() if taxon else None,
             'units': [x.to_dict() for x in self.units],
         }
-        for i,v in named_area_map.items():
-            data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None
+        #for i,v in named_area_map.items():
+        #    data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None
 
-        for x in self.biotope_measurement_or_facts:
-            data[f'biotope__{x.parameter.name}'] = x.get_value()
+        #for x in self.biotope_measurement_or_facts:
+        #    data[f'biotope__{x.parameter.name}'] = x.get_value()
 
         return data
 
@@ -562,20 +577,31 @@ class Collection(Base):
     def get_named_area_map(self):
         #named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
         named_area_map = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
+        print(named_area_map, '---',flush=True)
         return get_structed_map(AreaClass.DEFAULT_OPTIONS, named_area_map)
 
-    # DEPRICATED
-    def get_named_area_list(self, key=''):
-        if key == '':
-            named_area_dict = {f'{x.named_area.area_class_id}': x.named_area.to_dict() for x in self.named_area_relations}
-            data = get_structed_list(AreaClass.DEFAULT_OPTIONS,  named_area_dict)
-            return data
-        else:
-            for x in self.named_area_relations:
-                na = x.named_area
-                if na.area_class.name == key:
-                    return na.to_dict()
+    def get_named_area_list(self):
+        named_area_map = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
+        return get_structed_list(AreaClass.DEFAULT_OPTIONS, named_area_map)
 
+    def get_form_options(self):
+        rows_by_area_class = {}
+        for x in AreaClass.DEFAULT_OPTIONS:
+            rows_by_area_class[x['name']] = []
+            for na in NamedArea.query.filter(NamedArea.area_class_id==x['id']).order_by('id').all():
+                rows_by_area_class[x['name']].append(na.to_dict())
+
+        rows_by_parameter = {}
+        for param in MeasurementOrFact.BIOTOPE_OPTIONS:
+            rows_by_parameter[param['name']] = []
+            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
+                rows_by_parameter[param['name']].append(row.to_dict())
+
+        data = {
+            'named_areas': rows_by_area_class,
+            'biotopes': rows_by_parameter,
+        }
+        return data
 
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'
