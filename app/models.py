@@ -409,7 +409,6 @@ class Collection(Base):
     #NAMED_AREA_LIST = ['country', 'province', 'hsien', 'town', 'national_park', 'locality']
 
     id = Column(Integer, primary_key=True)
-    #project
     #method
 
     collect_date = Column(DateTime) # abcd: Date
@@ -454,6 +453,7 @@ class Collection(Base):
     units = relationship('Unit')
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
+    project_id = Column(Integer, ForeignKey('project.id'))
 
     @property
     def key(self):
@@ -872,3 +872,10 @@ class Transaction(Base):
             'organization_id': self.organization_id,
             'organization_text': self.organization_text,
         }
+
+
+class Project(Base):
+    __tablename__ = 'project'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))

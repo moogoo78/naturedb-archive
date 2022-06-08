@@ -22,6 +22,7 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
 
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -713,7 +714,7 @@ const CollectionForm = () => {
                       )
                     }) }
                   </Grid>
-                  <Grid item xs={12}><Typography variant="h6">鑑定 & 環境</Typography></Grid>
+                  <Grid item xs={12}><Typography variant="h6" sx={{mt:3}}>鑑定 & 環境</Typography></Grid>
                   <Grid item xs={12}>
                     <Accordion defaultExpanded={true}>
                       <AccordionSummary
@@ -759,7 +760,7 @@ const CollectionForm = () => {
                         </TableContainer>
                       </AccordionDetails>
                     </Accordion>
-                    <Accordion>
+                    <Accordion defaultExpanded={true}>
                       <AccordionSummary
                         expandIcon={<ExpandMoreIcon />}
                         aria-controls="panel2-content"
@@ -834,10 +835,12 @@ const CollectionForm = () => {
                     const mofList = unit.measurement_or_facts.map((x)=> x.value_en);
                     return (
                       <Card sx={{ my: 1.5 }} key={i}>
-                        <CardMedia
-                          component="img"
-                          image={unit.image_url.replace('_s.jpg', '_m.jpg')}
-                        />
+                        <Link href={unit.image_url.replace('_s.jpg', '_l.jpg')} rel="noopener" target="_blank">
+                          <CardMedia
+                            component="img"
+                            image={unit.image_url.replace('_s.jpg', '_m.jpg')}
+                          />
+                        </Link>
                         <CardContent>
                           <Typography gutterBottom variant="h5" component="div">
                             館號: {unit.accession_number}

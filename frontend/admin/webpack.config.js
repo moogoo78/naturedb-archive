@@ -41,7 +41,7 @@ module.exports = {
   devServer: {
     historyApiFallback: true,
   },
-  devtool: 'cheap-source-map',
+  devtool: 'source-map',
   plugins: [
     new HtmlWebPackPlugin({
       template: './src/index.html',

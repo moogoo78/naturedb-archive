@@ -1,14 +1,38 @@
+import csv
+
 from sqlalchemy import (
     create_engine,
     select,
     func,
 )
 
-from app.models import Unit, Collection, Person, FieldNumber, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction, MeasurementOrFactParameterOption, MeasurementOrFactParameterOptionGroup
+from app.models import Unit, Collection, Person, FieldNumber, NamedArea, Identification, AreaClass, MeasurementOrFact, Annotation, MeasurementOrFactParameter, Transaction, MeasurementOrFactParameterOption, MeasurementOrFactParameterOptionGroup, Project
 from app.taxon.models import Taxon, TaxonTree, TaxonRelation
 from app.database import session
 
+def make_proj(con):
 
+    rows = con.execute('SELECT * FROM specimen_specimen ORDER BY id')
+    for r in rows:
+        if hast := r[4].get('hast'):
+            if pid := hast.get('projectID'):
+                c = Collection.query.filter(Collection.id==r[0]).first()
+                #print (c, flush=True)
+                if int(pid) > 11:
+                    print (r[0], pid, flush=True)
+                else:
+                    c.project_id = int(pid)
+    session.commit()
+    '''
+    with open('./data/projectName_202102051854.csv') as csvfile:
+        spamreader = csv.reader(csvfile)
+        next(spamreader)
+        for row in spamreader:
+            print (row, flush=True)
+            p = Project(name=row[1])
+            session.add(p)
+        session.commit()
+    '''
 def make_person(con):
     rows = con.execute('SELECT * FROM specimen_person ORDER BY id')
     for r in rows:
@@ -152,6 +176,9 @@ def make_mof_option(con):
     return {}
 
 def make_collection(con):
+    '''
+    collection_id = r[0] (hast_21.specimen_specimen.id)
+    '''
     #LIMIT = ' LIMIT 500'
     LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
@@ -448,3 +475,5 @@ def conv_hast21(key):
             make_collection(con)
         elif key == 'mof_option':
             make_mof_option(con)
+        elif key == 'make-proj':
+            make_proj(con)

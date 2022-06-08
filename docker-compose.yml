@@ -10,7 +10,7 @@ services:
   flask:
     build:
       context: .
-      dockerfile: ./conf/Dockerfile
+      dockerfile: ./compose/Dockerfile
     #target: flask-dev
     image: naturedb-flask-dev-image
     container_name: naturedb-flask-dev-container

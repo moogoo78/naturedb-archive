@@ -6,27 +6,23 @@ RUN apt-get update \
   && apt-get install -y build-essential \
   && apt-get purge -y --auto-remove \
   && rm -fr /var/lib/apt/lists/*
-  #psycopg2
-  #&& apt-get install -y
-
-#RUN apt-get install xx
 
 WORKDIR /code
-
 
 #COPY --from=node
 #flask static
 COPY requirements requirements
+RUN pip install --upgrade pip
 RUN pip install --no-cache --user -r requirements/base.txt
 
 #ENTRYPOINT ["python"]
 #CMD ["app.py"]
 
-COPY ./conf/entrypoint /srv/entrypoint
+COPY ./compose/entrypoint /srv/entrypoint
 RUN sed -i 's/\r$//g' /srv/entrypoint
 RUN chmod +x /srv/entrypoint
 
-COPY ./conf/start /srv/start
+COPY ./compose/start /srv/start
 RUN sed -i 's/\r$//g' /srv/start
 RUN chmod +x /srv/start
 
