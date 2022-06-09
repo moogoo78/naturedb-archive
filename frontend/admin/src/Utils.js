@@ -141,4 +141,11 @@ const convertDMSToDD = (ddms) => {
   // console.log(ddms);
   return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
 }
-export {getList, getOne, convertDDToDMS, convertDMSToDD}
+
+
+export {
+  getList,
+  getOne,
+  convertDDToDMS,
+  convertDMSToDD,
+}

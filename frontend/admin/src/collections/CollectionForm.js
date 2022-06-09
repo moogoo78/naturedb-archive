@@ -37,9 +37,9 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 
-// import List from '@mui/material/List';
-// import ListItem from '@mui/material/ListItem';
-// import ListItemText from '@mui/material/ListItemText';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
 // import ListItemAvatar from '@mui/material/ListItemAvatar';
 // import Avatar from '@mui/material/Avatar';
 // import StraightenIcon from '@mui/icons-material/Straighten';
@@ -63,6 +63,9 @@ import {
   convertDDToDMS,
   convertDMSToDD,
 } from '../Utils';
+import {
+  DialogButtonToolbar
+} from '../SharedComponents';
 
 const DMS_MAP = {
   direction: 0,
@@ -119,7 +122,7 @@ const reducer = (state, action) => {
       }
     }
   case 'SET_LIST_DATA':{
-    let tmpList = state.data[action.list];
+    let tmpList = [...state.data[action.list]];
     tmpList[action.index][action.name] = action.value;
     return {
       ...state,
@@ -130,6 +133,7 @@ const reducer = (state, action) => {
     }
   }
   case 'SET_HELPER':
+    // console.log(action.input, action.opitons, action.value);
     if (action.value !== undefined) {
       return {
         ...state,
@@ -163,6 +167,85 @@ const reducer = (state, action) => {
           }
         }
       }
+    }
+  case 'SET_DIALOG_NEW':
+    if ( action.name === 'identifications' ) {
+      let tmpData = [...state.data.identifications];
+      let tmpHelpers = [...state.helpers.identifications];
+      tmpData.push({sequence: tmpData.length});
+      tmpHelpers.push({
+        taxonSelect: {input: '', options: []},
+        identifierSelect: {input: '', options: []},
+      });
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          identifications: tmpData,
+        },
+        helpers: {
+          ...state.helpers,
+          identifications: tmpHelpers,
+          identificationsIndex: tmpData.length - 1,
+        }
+      };
+    } else if ( action.name === 'units' ){
+      let tmpData = [...state.data.units];
+      // let tmpHelpers = [...state.helpers.identifications];
+      tmpData.push({measurement_or_facts:[]});
+      // tmpHelpers.push({
+      // taxonSelect: {input: '', options: []},
+      // identifierSelect: {input: '', options: []},
+      //});
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          units: tmpData,
+        },
+        helpers: {
+          ...state.helpers,
+          //units: tmpHelpers,
+          unitsIndex: tmpData.length - 1,
+        }
+      };
+    }
+  case 'SET_DIALOG_CANCEL':
+    if ( action.name === 'identifications' ) {
+      let tmpData = [...state.data.identifications];
+      let tmpHelpers = [...state.helpers.identifications];
+      if (tmpData[state.helpers.identificationsIndex] && tmpData[state.helpers.identificationsIndex].id === undefined) {
+        tmpData.pop();
+        tmpHelpers.pop();
+      }
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          identifications: tmpData,
+        },
+        helpers: {
+          ...state.helpers,
+          identifications: tmpHelpers,
+          identificationsIndex: -1,
+        }
+      };
+    } else if ( action.name === 'units' ) {
+      let tmpData = [...state.data.units];
+      if (tmpData[state.helpers.unitsIndex] && tmpData[state.helpers.unitsIndex].id === undefined) {
+        tmpData.pop();
+      }
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          units: tmpData,
+        },
+        helpers: {
+          ...state.helpers,
+          unitsIndex: -1,
+        }
+      };
     }
   default:
     throw new Error();
@@ -216,6 +299,7 @@ const CollectionForm = () => {
             }
           }}, {});
         */
+        // const units = json.units.map((x) => x);
         const identifications = json.identifications.map((x)=> {
           return {
             taxonSelect: {
@@ -234,11 +318,15 @@ const CollectionForm = () => {
             input: json.collector.display_name,
             options: [json.collector],
           },
-          identificationIndex: -1,
+          identificationsIndex: -1,
           identifications: identifications,
-          unitIndex: -1,
+          unitsIndex: -1,
+          deleteConfirmStatus: 'init',
+          // units: units,
           /*...namedAreas,*/
         }
+        console.log('🐣 init');
+
         dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: initialHelpers});
       })
       .catch(error => {
@@ -411,7 +499,7 @@ const CollectionForm = () => {
     }
 */
   }
-  console.log('🦚 state', state);
+  console.log((state.loading===true) ? '🥚': '🐔' + ' state', state);
 
   const {data, helpers} = state;
 
@@ -421,9 +509,9 @@ const CollectionForm = () => {
        : (state.error !== '' ? `⛔ ${state.error}`
           :
           <>
-            {(helpers.identificationIndex >= 0) ?
-             <Dialog open={(helpers.identificationIndex >= 0) ? true : false} onClose={() => {dispatch({'type': 'SET_HELPER', name: 'identificationIndex', value: -1});}}>
-               <DialogTitle>鑑定記錄 - {data.identifications[helpers.identificationIndex].sequence+1}</DialogTitle>
+            {(helpers.identificationsIndex >= 0) ?
+             <Dialog open={(helpers.identificationsIndex >= 0) ? true : false} onClose={() => {dispatch({'type': 'SET_HELPER', name: 'identificationsIndex', value: -1});}}>
+               <DialogTitle>鑑定記錄 - {data.identifications[helpers.identificationsIndex].sequence+1}</DialogTitle>
                <DialogContent>
                  <DialogContentText>
                  </DialogContentText>
@@ -431,25 +519,25 @@ const CollectionForm = () => {
                    <Grid item xs={12}>
                      <Autocomplete
                        id="taxon"
-                       options={helpers.identifications[helpers.identificationIndex].taxonSelect.options}
+                       options={helpers.identifications[helpers.identificationsIndex].taxonSelect.options}
                        isOptionEqualToValue={(option, value) => option.id === value.id}
                        getOptionLabel={(option) => option.display_name}
-                       value={data.identifications[helpers.identificationIndex].taxon}
+                       value={data.identifications[helpers.identificationsIndex].taxon || null}
                        onChange={(e, v, reason) => {
-                         dispatch({type: 'SET_LIST_DATA', name: 'taxon', value: v, list:'identifications', index: helpers.identificationIndex});
+                         dispatch({type: 'SET_LIST_DATA', name: 'taxon', value: v, list:'identifications', index: helpers.identificationsIndex});
                        }}
                        onInputChange={(e, v, reason) => {
                          // console.log('ON INPUT', reason, v, data.collector);
                          getList('taxa', { filter: { q: v } })
                            .then(({json}) => {
-                             const value = data.identifications[helpers.identificationIndex].taxon;
+                             const value = data.identifications[helpers.identificationsIndex].taxon;
                              if (value && (json.data.find((x) => x.id === value.id)) === undefined) {
                                json.data.push(value);
                              }
-                             dispatch({type: 'SET_HELPER', name: `identifications__${helpers.identificationIndex}__taxonSelect`, options: json.data, input: v});
+                             dispatch({type: 'SET_HELPER', name: `identifications__${helpers.identificationsIndex}__taxonSelect`, options: json.data, input: v});
                            });
                        }}
-                       inputValue={helpers.identifications[helpers.identificationIndex].taxonSelect.input}
+                       inputValue={helpers.identifications[helpers.identificationsIndex].taxonSelect.input}
                        renderInput={(params) => (
                          <TextField
                            {...params}
@@ -461,25 +549,25 @@ const CollectionForm = () => {
                    <Grid item xs={12}>
                      <Autocomplete
                        id="identifier"
-                       options={helpers.identifications[helpers.identificationIndex].identifierSelect.options}
+                       options={helpers.identifications[helpers.identificationsIndex].identifierSelect.options}
                        isOptionEqualToValue={(option, value) => option.id === value.id}
                        getOptionLabel={(option) => option.display_name}
-                       value={data.identifications[helpers.identificationIndex].identifier}
+                       value={data.identifications[helpers.identificationsIndex].identifier || null}
                        onChange={(e, v, reason) => {
-                         dispatch({type: 'SET_LIST_DATA', name: 'identifier', value: v, list:'identifications', index: helpers.identificationIndex});
+                         dispatch({type: 'SET_LIST_DATA', name: 'identifier', value: v, list:'identifications', index: helpers.identificationsIndex});
                        }}
                        onInputChange={(e, v, reason) => {
                          // console.log('ON INPUT', reason, v, data.collector);
                          getList('people', { filter: { q: v } })
                            .then(({json}) => {
-                             const value = data.identifications[helpers.identificationIndex].identifier;
+                             const value = data.identifications[helpers.identificationsIndex].identifier;
                              if (value && (json.data.find((x) => x.id === value.id)) === undefined) {
                                json.data.push(value);
                              }
-                             dispatch({type: 'SET_HELPER', name: `identifications__${helpers.identificationIndex}__identifierSelect`, options: json.data, input: v});
+                             dispatch({type: 'SET_HELPER', name: `identifications__${helpers.identificationsIndex}__identifierSelect`, options: json.data, input: v});
                            });
                        }}
-                       inputValue={helpers.identifications[helpers.identificationIndex].identifierSelect.input}
+                       inputValue={helpers.identifications[helpers.identificationsIndex].identifierSelect.input}
                        renderInput={(params) => (
                           <TextField
                             {...params}
@@ -494,7 +582,7 @@ const CollectionForm = () => {
                        openTo="year"
                        clearable={true}
                        views={['year', 'month', 'day']}
-                       value={data.identifications[helpers.identificationIndex].date}
+                       value={data.identifications[helpers.identificationsIndex].date || new Date()}
                        inputFormat="yyyy-MM-dd"
                        mask='____-__-__'
                        onChange={(selectDate, input)=> {
@@ -509,7 +597,7 @@ const CollectionForm = () => {
                             const y = selectDate.getFullYear();
                             const m = String(selectDate.getMonth()+1).padStart(2, '0');
                             const d = String(selectDate.getDate()).padStart(2, '0');
-                            dispatch({type: 'SET_LIST_DATA', name: 'date', value: `${y}-${m}-${d}`, list:'identifications', index: helpers.identificationIndex});
+                            dispatch({type: 'SET_LIST_DATA', name: 'date', value: `${y}-${m}-${d}`, list:'identifications', index: helpers.identificationsIndex});
                           }
                        }}
                        renderInput={(params) => <TextField {...params} variant="standard" fullWidth />}
@@ -521,22 +609,39 @@ const CollectionForm = () => {
                        label="日期格式不完整"
                        fullWidth
                        variant="standard"
-                       value={data.units[helpers.identificationIndex].date_text}
+                       value={data.identifications[helpers.identificationsIndex].date_text || ''}
                        onChange={(e)=> {
-                         dispatch({type: 'SET_LIST_DATA', name: 'date_text', value: e.target.value, list:'identifications', index: helpers.identificationIndex});
+                         dispatch({type: 'SET_LIST_DATA', name: 'date_text', value: e.target.value, list:'identifications', index: helpers.identificationsIndex});
                        }}
                      />
                    </Grid>
                  </Grid>
                </DialogContent>
                <DialogActions>
-                 <Button onClick={() => {dispatch({'type': 'SET_HELPER', name: 'identificationIndex', value: -1});}}>取消</Button>
-                 <Button variant="contained">送出</Button>
+                 <DialogButtonToolbar
+                   status={helpers.deleteConfirmStatus}
+                   hasId={(data.identifications[helpers.identificationsIndex].id) ? true : false}
+                   onDeleteYes={() => {
+                     console.log('TODO DELETE');
+                   }}
+                   onDeleteNo={() => {
+                     dispatch({type:'SET_HELPER', name:'deleteConfirmStatus', value: 'init'});
+                   }}
+                   onDelete={() => {
+                     dispatch({type:'SET_HELPER', name:'deleteConfirmStatus', value: 'clicked'});
+                   }}
+                   onCancel={() => {
+                     dispatch({type: 'SET_DIALOG_CANCEL', name: 'identifications'});
+                   }}
+                   onSubmit={() => {
+                     console.log('submit');
+                   }}
+                 />
                </DialogActions>
              </Dialog> : null}
-            {(helpers.unitIndex >= 0) ?
-             <Dialog open={(helpers.unitIndex >= 0) ? true : false} onClose={() => {dispatch({'type': 'SET_HELPER', name: 'unitIndex', value: -1});}}>
-               <DialogTitle>標本記錄 - {data.units[helpers.unitIndex].accession_number}</DialogTitle>
+            {(helpers.unitsIndex >= 0) ?
+             <Dialog open={(helpers.unitsIndex >= 0) ? true : false} onClose={() => {dispatch({'type': 'SET_HELPER', name: 'unitsIndex', value: -1});}}>
+               <DialogTitle>標本記錄 - {data.units[helpers.unitsIndex].accession_number}</DialogTitle>
                <DialogContent>
                  <DialogContentText>
                  </DialogContentText>
@@ -547,16 +652,20 @@ const CollectionForm = () => {
                        label="館號"
                        fullWidth
                        variant="standard"
-                       value={data.units[helpers.unitIndex].accession_number}
+                       value={data.units[helpers.unitsIndex].accession_number}
                        onChange={(e)=> {
-                         dispatch({type: 'SET_LIST_DATA', name: 'accession_number', value: e.target.value, list:'units', index: helpers.unitIndex});
+                         dispatch({type: 'SET_LIST_DATA', name: 'accession_number', value: e.target.value, list:'units', index: helpers.unitsIndex});
                        }}
                      />
+                   </Grid>
+                   <Grid item xs={12}>
+                     <Stack spacing={1}>
+                     </Stack>
                    </Grid>
                  </Grid>
                </DialogContent>
                <DialogActions>
-                 <Button onClick={() => {dispatch({'type': 'SET_HELPER', name: 'unitIndex', value: -1});}}>取消</Button>
+                 <Button onClick={() => {dispatch({'type': 'SET_HELPER', name: 'unitsIndex', value: -1});}}>取消</Button>
                  <Button variant="contained">送出</Button>
                </DialogActions>
              </Dialog> : null}
@@ -726,6 +835,9 @@ const CollectionForm = () => {
                         <Typography sx={{ color: 'text.secondary' }}></Typography>
                       </AccordionSummary>
                       <AccordionDetails>
+                        <Grid container justifyContent="flex-end"><Button variant="contained" sx={{ mb:2 }} onClick={() => {
+                          dispatch({type: 'SET_DIALOG_NEW', name: 'identifications'});
+                        }}>新增</Button></Grid>
                         <TableContainer component={Paper}>
                           <Table sx={{ minWidth: 650 }} aria-label="simple table">
                             <TableHead>
@@ -734,7 +846,7 @@ const CollectionForm = () => {
                                 <TableCell>學名</TableCell>
                                 <TableCell>鑑訂者</TableCell>
                                 <TableCell>鑑訂日期</TableCell>
-                                <TableCell>編輯</TableCell>
+                                <TableCell></TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -751,7 +863,7 @@ const CollectionForm = () => {
                                     <TableCell align="right">{(row.identifier) ? row.identifier.display_name : ''}</TableCell>
                                     <TableCell align="right">{(row.date_text) ? row.date_text : (row.date || '')}</TableCell>
                                     <TableCell align="right"><Button variant="outlined" onClick={() => {
-                                      dispatch({type: 'SET_HELPER', name: 'identificationIndex', value: index});
+                                      dispatch({type: 'SET_HELPER', name: 'identificationsIndex', value: index});
                                     }}>編輯</Button></TableCell>
                                   </TableRow>
                                 )})}
@@ -797,7 +909,7 @@ const CollectionForm = () => {
                           {/*
                           {biotopeOptions.map((parameter) => {
                             const key = `biotope__${parameter.name}`;
-                            const optionValue = (data.hasOwnProperty(key)) ? data[key] : null;
+                            const optionValue = (data.hashOwnProperty(key)) ? data[key] : null;
                             let value = '';
                             let inputValue = '';
                             let label = '';
@@ -831,16 +943,19 @@ const CollectionForm = () => {
               <Grid item xs={3}>
                 <Paper>
                   <Typography variant="h5">標本</Typography>
+          <Grid container justifyContent="flex-end"><Button size="small" variant="contained" onClick={() => {
+            dispatch({type: 'SET_DIALOG_NEW', name: 'units'});
+          }}>新增</Button></Grid>
                   {data.units.map((unit, i) => {
-                    const mofList = unit.measurement_or_facts.map((x)=> x.value_en);
                     return (
                       <Card sx={{ my: 1.5 }} key={i}>
-                        <Link href={unit.image_url.replace('_s.jpg', '_l.jpg')} rel="noopener" target="_blank">
-                          <CardMedia
-                            component="img"
-                            image={unit.image_url.replace('_s.jpg', '_m.jpg')}
-                          />
-                        </Link>
+                        {(unit.image_url) ?
+                         <Link href={unit.image_url.replace('_s.jpg', '_l.jpg')} rel="noopener" target="_blank">
+                           <CardMedia
+                             component="img"
+                             image={unit.image_url.replace('_s.jpg', '_m.jpg')}
+                           />
+                         </Link> : null }
                         <CardContent>
                           <Typography gutterBottom variant="h5" component="div">
                             館號: {unit.accession_number}
@@ -848,16 +963,59 @@ const CollectionForm = () => {
                           <Typography variant="subtitle1" color="text.primary">
                             物候
                           </Typography>
-                          <Typography variant="body1" color="text.secondary">
-                            {mofList.join(' | ')}
-                          </Typography>
+                          <TableContainer component="div">
+                            <Table aria-label="simple table" size="small" padding="none">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>參數</TableCell>
+                                  <TableCell>數值</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {unit.measurement_or_facts.map((x, xid) => {
+                                  return (
+                                    <TableRow
+                                      key={xid}
+                                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                    >
+                                      <TableCell component="th" scope="row">
+                                        {x.label}
+                                      </TableCell>
+                                      <TableCell>{ x.value?.value_en } {( x.value && x.value.value ) ? <Typography variant="body2" color="text.secondary">{ `(${x.value.value})` }</Typography> : null }</TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                          {/*
+                          <Box sx={{ width: '100%' }}>
+                            <List dense={true}>
+                              {unit.measurement_or_facts.map((x, xid) => {
+                                let display_value = '';
+                                if (x.value !== null) {
+                                  if (x.value.value_en != null) {
+                                    display_value = x.value.value_en;
+                                  }
+                                  if (x.value.value !== null) {
+                                    display_value = `${display_value} (${x.value.value})`;
+                                  }
+                                }
+                                return (
+                                  <ListItem key={xid}>
+                                    <ListItemText primary={`${x.label}: ${display_value}`} secondary={ null } />
+                                  </ListItem>
+                                );
+                              })}
+                            </List>
+                            </Box>*/}
                           <Typography variant="subtitle1" color="text.primary">
                             Transaction
                           </Typography>
                         </CardContent>
                         <CardActions>
-                      <Button size="small" variant="contained" onClick={() => {
-                        dispatch({type: 'SET_HELPER', name: 'unitIndex', value: i})}}>編輯</Button>
+                          <Button size="small" variant="outlined" onClick={() => {
+                            dispatch({type: 'SET_HELPER', name: 'unitsIndex', value: i})}}>編輯</Button>
                         </CardActions>
                       </Card>
                     )})}

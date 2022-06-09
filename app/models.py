@@ -53,29 +53,6 @@ def get_structed_map(options, value_dict={}):
         }
     return res
 
-def get_hast_parameters(obj=None):
-    '''obj is Collection.biotope_measurement_or_facts
-    '''
-    rows = []
-    if obj:
-        mof_dict = {f'{x.parameter}': x for x in obj}
-
-    for param in MeasurementOrFact.PARAMETER_FOR_COLLECTION:
-        mof_id = None
-        mof_text = ''
-        if obj:
-            if x := mof_dict.get(param):
-                mof_id = x.id
-                mof_text = x.text
-        rows.append({
-            'id': mof_id,
-            'parameter': param,
-            'label': MeasurementOrFact.find_label(param),
-            'text': mof_text,
-        })
-
-    return rows
-
 #class UnitAnnotation(Base):
 #    __tablename__ = 'unit_annotation'
     #id = Column(Integer, primary_key=True)
@@ -139,8 +116,14 @@ class MeasurementOrFact(Base):
         ('fruit-color', '果色'),
     )
 
-    PARAMETER_FOR_COLLECTION = ('habitat', 'veget', 'topography', 'naturalness', 'light-intensity', 'humidity', 'abundance')
-    PARAMETER_FOR_UNIT = ('life-form', 'flower', 'fruit', 'flower-color', 'fruit-color')
+    #PARAMETER_FOR_COLLECTION = ('habitat', 'veget', 'topography', 'naturalness', 'light-intensity', 'humidity', 'abundance')
+    UNIT_OPTIONS = (
+        {'id': 10, 'name': 'life-form', 'label': '生長型'},
+        {'id': 11, 'name': 'flower', 'label': '花'},
+        {'id': 12, 'name': 'fruit', 'label': '果'},
+        {'id': 13, 'name': 'flower-color', 'label': '花色'},
+        {'id': 14, 'name': 'fruit-color', 'label': '果色'}
+    )
     BIOTOPE_OPTIONS = (
         {'id': 7, 'name': 'veget', 'label': '植群型'},
         {'id': 6, 'name': 'topography', 'label': '地形位置'},
@@ -187,13 +170,6 @@ class MeasurementOrFact(Base):
             #'collection_id': self.collection_id,
         }
 
-
-    @staticmethod
-    def find_label(param):
-        for i in MeasurementOrFact.PARAMETER_CHOICES:
-            if i[0] == param:
-                return i[1]
-        return ''
 
 class Annotation(Base):
 
@@ -597,9 +573,16 @@ class Collection(Base):
             for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
                 rows_by_parameter[param['name']].append(row.to_dict())
 
+        rows_by_parameter2 = {}
+        for param in MeasurementOrFact.UNIT_OPTIONS:
+            rows_by_parameter2[param['name']] = []
+            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
+                rows_by_parameter2[param['name']].append(row.to_dict())
+
         data = {
             'named_areas': rows_by_area_class,
             'biotopes': rows_by_parameter,
+            'measurement_or_facts': rows_by_parameter2,
         }
         return data
 
@@ -702,6 +685,9 @@ class Unit(Base):
 
     # unit.to_dict
     def to_dict(self, mode='with-collection'):
+        mof_map = {f'{x.parameter.name}': x.to_dict() for x in self.measurement_or_facts}
+        mofs = get_structed_list(MeasurementOrFact.UNIT_OPTIONS, mof_map)
+
         data = {
             'id': self.id,
             'key': self.key,
@@ -710,7 +696,7 @@ class Unit(Base):
             #'collection_id': self.collection_id,
             'preparation_type': self.preparation_type,
             'preparation_date': self.preparation_date,
-            'measurement_or_facts': [x.to_dict() for x in self.measurement_or_facts],
+            'measurement_or_facts': mofs,
             'image_url': self.get_image(),
             'transactions': [x.to_dict() for x in self.transactions],
             #'dataset': self.dataset.to_dict(), # too many
