@@ -48,7 +48,9 @@ from .helpers_react_admin import (
     get_list_payload,
     ReactAdminProvider,
 )
-
+# from app.utils import (
+#    update_or_create,
+# )
 
 
 @api.route('/auth', methods=['POST', 'OPTIONS'])
@@ -380,7 +382,7 @@ class CollectionSpecimenMethodView(MethodView):
         # NamedArea list
         #if len(named_area_list) > 0:
         #    for i in named_area_list:
-        #        cna = CollectionNamedArea(collection_id=obj.id, named_area_id=i)
+        #        cna = CollectionNamedArea(collection_nameid=obj.id, named_area_id=i)
         #        session.add(cna)
         #    session.commit()
 
@@ -664,8 +666,8 @@ class CollectionMethodView(MethodView):
 
     def post(self, item_id):
         # create
-        obj = self.model()
-        obj = self._modify(obj, request.json)
+        obj = self.model(collection_id=item_id)
+        obj = self._update_or_create(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def delete(self, item_id):
@@ -678,35 +680,157 @@ class CollectionMethodView(MethodView):
     def put(self, item_id):
         # update
         obj = session.get(self.model, item_id)
-        obj = self._modify(obj, request.json)
+        obj = self._update_or_create(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
     def options(self, item_id):
         return make_cors_preflight_response()
 
-    def _modify(self, obj, data):
-        #print(data, flush=True)
-        named_area_list = []
-        for i, v in data.items():
-            # available types: str, int, NoneType
-            if 'named_area_' in i and i != 'named_area_list':
-                named_area_list.append(v)
-            elif i != 'id' and isinstance(v, str | int | None):
-                setattr(obj, i, v)
+    def _update_or_create(self, obj, params):
+        ret = {}
+        #if obj.id
+        print(params, flush=True)
+        for k, v in params.items():
+            if k == 'named_areas':
+                new_named_area_ids = [x[1] for x in v if x[1]]
+                obj.named_areas = NamedArea.query.filter(NamedArea.id.in_(new_named_area_ids)).all()
+            elif k == 'biotopes':
+                biotopes = []
+                for parameter_id, values in v:
+                    mof = None
+                    if values and len(values) > 0:
+                        if mof_id := values[0]:
+                            mof = session.get(MeasurementOrFact, mof_id)
+                        else:
+                            mof = MeasurementOrFact(
+                                collection_id=obj.id,
+                            )
+                            session.add(mof)
 
-        if not obj.id:
-            session.add(obj)
+                        mof.option_id = values[2]
+                        mof.value_en = values[1]
+                        mof.parameter_id = parameter_id
+
+                        if mof.value_en != '':
+                            biotopes.append(mof)
+
+                # update by relations
+                obj.biotope_measurement_or_facts = biotopes
+
+            elif k == 'units':
+                units = []
+                for unit in v:
+                    if unit_id := unit.get('id'):
+                        unit_obj = session.get(Unit, unit_id)
+                    else:
+                        unit_obj = Unit(collection_id=obj.id, dataset_id=1) # TODO: default HAST
+                        session.add(unit_obj)
+                        session.commit()
+
+                    unit_obj.accession_number = unit.get('accession_number')
+                    unit_obj.preparation_date = unit.get('preparation_date')
+
+                    mofs = []
+                    for parameter_id, values in unit['measurement_or_facts']:
+                        if values and len(values) > 0:
+                            if mof_id := values[0]:
+                                mof = session.get(MeasurementOrFact, mof_id)
+                            else:
+                                mof = MeasurementOrFact(
+                                    unit_id=unit_obj.id,
+                                )
+                                session.add(mof)
+
+                            mof.option_id = values[2]
+                            mof.value_en = values[1]
+                            mof.parameter_id = parameter_id
+
+                            if mof.value_en != '':
+                                mofs.append(mof)
+
+                    unit_obj.measurement_or_facts = mofs
+                    units.append(unit_obj)
+
+                obj.units = units
+
+            elif k == 'identifications':
+                ids = []
+                for id_ in v:
+                    id_obj = None
+                    if iid := id_.get('id'):
+                        id_obj = session.get(Identification, iid)
+                    else:
+                        id_obj = Identification(collection_id=obj.id)
+                        session.add(id_obj)
+
+                    id_obj.identifier_id = id_.get('identifier_id')
+                    id_obj.date = id_.get('date')
+                    id_obj.date_text = id_.get('date_text')
+                    id_obj.sequence = id_.get('sequence')
+                    id_obj.taxon_id = id_.get('taxon_id')
+
+            elif k == 'collect_date':
+                # 手動判斷是不是同一天
+                ymd = obj.collect_date.strftime('%Y-%m-%d')
+                if ymd != v:
+                    obj.collect_date = v
+            else:
+                setattr(obj, k, v)
 
         session.commit()
+        '''
+        # Identifications
+        id_map = {x['id']: x for x in data['identifications'] if x.get('id')}
+        orig_obj_map = {x.id: x for x in obj.identifications.order_by(Identification.sequence).all()}
 
-        # NamedArea list
-        if len(named_area_list) > 0:
-            for i in named_area_list:
-                cna = CollectionNamedArea(collection_id=obj.id, named_area_id=i)
-                session.add(cna)
-            session.commit()
+        for value in data['identifications'] :
+            is_new_id = True
+            id_obj = None
+            if iid := value.get('id'):
+                if orig_obj_map[iid]:
+                    id_obj = orig_obj_map[iid]
+                    is_new_id = False
 
+            if not id_obj:
+                id_obj = Identification(collection_id=obj.id)
+
+            print(value, id_obj, is_new_id, flush=True)
+            if identifier := value.get('identifier', ''):
+                if id_obj.identifier_id != identifier['id']:
+                    id_obj.identifier_id = identifier['id']
+            else:
+                id_obj.identifier_id = None
+
+            if taxon := value.get('taxon', ''):
+                if id_obj.taxon_id != taxon['id']:
+                    id_obj.taxon_id = taxon['id']
+            else:
+                id_obj.taxon_id = None
+
+            if date := value.get('date', ''):
+                if id_obj.date != date:
+                    id_obj.date = date
+                else:
+                    id_obj.date = None
+
+            if date_text := value.get('date_text', ''):
+                if id_obj.date_text != date_text:
+                    id_obj.date_text = date_text
+                else:
+                    id_obj.date_text = ''
+
+            if sequence := value.get('sequence', ''):
+                if id_obj.sequence != sequence:
+                    id_obj.sequence = sequence
+                else:
+                    id_obj.sequence = ''
+
+            if is_new_id is True:
+                session.add(id_obj)
+                print(is_new_id,id_obj, '-----', flush=True)
+        '''
         return obj
+
 
 class PersonMethodView(MethodView):
 
@@ -889,7 +1013,10 @@ class IdentificationMethodView(MethodView):
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, obj)
+        #return ra_item_response(self.RESOURCE_NAME, obj)
+        resp = jsonify({})
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        return resp
 
     def put(self, item_id):
         # update

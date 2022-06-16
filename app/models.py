@@ -142,8 +142,8 @@ class MeasurementOrFact(Base):
     option = relationship('MeasurementOrFactParameterOption')
     #parameter = Column(String(500))
     #text = Column(String(500))
-    value = Column(String(500))
-    value_en = Column(String(500))
+    value = Column(String(500)) # TODO: rename to description
+    value_en = Column(String(500)) # TODO real value
     #lower_value
     #upper_value
     #accuracy
@@ -384,6 +384,19 @@ class Collection(Base):
 
     #NAMED_AREA_LIST = ['country', 'province', 'hsien', 'town', 'national_park', 'locality']
 
+    # HALT
+    EDITABLE_COLUMNS = [
+        ('collect_date', 'datetime'),
+        ('collector_id', 'fk'),
+        ('field_number', 'str'),
+        ('companion_text', 'str'),
+        ('companion_text_en', 'str'),
+        ('named_areas', 'm2m', 'NamedArea'),
+        ('identifications', 'o2m', 'Identification'),
+        ('identifications.taxon', 'fk', 'Taxon'),
+        ('identifications.identifier', 'fk', 'Person'),
+        ('units', 'o2m', 'Unit')
+    ]
     id = Column(Integer, primary_key=True)
     #method
 
@@ -474,7 +487,7 @@ class Collection(Base):
 
     # collection.to_dict
     def to_dict(self, include_units=True):
-        ids = [x.to_dict() for x in self.identifications.order_by(Identification.verification_level).all()]
+        ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
         taxon = Taxon.query.filter(Taxon.id==self.last_taxon_id).first()
         # named_area_map = self.get_named_area_map()
         named_area_list = self.get_named_area_list()
@@ -488,6 +501,8 @@ class Collection(Base):
             'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'collector_id': self.collector_id,
             'collector': self.collector.to_dict() if self.collector else '',
+            'companion_text': self.companion_text,
+            'companion_text_en': self.companion_text_en,
             #'named_area_list': na_list,
             'named_areas': named_area_list,
             'altitude': self.altitude,
@@ -561,28 +576,28 @@ class Collection(Base):
         return get_structed_list(AreaClass.DEFAULT_OPTIONS, named_area_map)
 
     def get_form_options(self):
-        rows_by_area_class = {}
+        named_areas = {}
         for x in AreaClass.DEFAULT_OPTIONS:
-            rows_by_area_class[x['name']] = []
+            named_areas[x['name']] = {'id': x['id'], 'label': x['label'], 'options': []}
             for na in NamedArea.query.filter(NamedArea.area_class_id==x['id']).order_by('id').all():
-                rows_by_area_class[x['name']].append(na.to_dict())
+                named_areas[x['name']]['options'].append(na.to_dict())
 
-        rows_by_parameter = {}
+        biotopes = {}
         for param in MeasurementOrFact.BIOTOPE_OPTIONS:
-            rows_by_parameter[param['name']] = []
+            biotopes[param['name']] = {'id': param['id'], 'label': param['label'], 'options': []}
             for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
-                rows_by_parameter[param['name']].append(row.to_dict())
+                biotopes[param['name']]['options'].append(row.to_dict())
 
-        rows_by_parameter2 = {}
+        mofs = {}
         for param in MeasurementOrFact.UNIT_OPTIONS:
-            rows_by_parameter2[param['name']] = []
+            mofs[param['name']] = {'id': param['id'], 'label': param['label'], 'options': []}
             for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
-                rows_by_parameter2[param['name']].append(row.to_dict())
+                mofs[param['name']]['options'].append(row.to_dict())
 
         data = {
-            'named_areas': rows_by_area_class,
-            'biotopes': rows_by_parameter,
-            'measurement_or_facts': rows_by_parameter2,
+            'named_areas': named_areas,
+            'biotopes': biotopes,
+            'measurement_or_facts': mofs,
         }
         return data
 
@@ -695,7 +710,7 @@ class Unit(Base):
             'duplication_number': self.duplication_number,
             #'collection_id': self.collection_id,
             'preparation_type': self.preparation_type,
-            'preparation_date': self.preparation_date,
+            'preparation_date': self.preparation_date.strftime('%Y-%m-%d') if self.preparation_date else '',
             'measurement_or_facts': mofs,
             'image_url': self.get_image(),
             'transactions': [x.to_dict() for x in self.transactions],
@@ -855,7 +870,7 @@ class Transaction(Base):
             'title': self.title,
             'transaction_type': self.transaction_type,
             'display_transaction_type': display_type[0][1] if len(display_type) else '',
-            'organization_id': self.organization_id,
+            # 'organization_id': self.organization_id,
             'organization_text': self.organization_text,
         }
 

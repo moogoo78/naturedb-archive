@@ -40,6 +40,9 @@ import TableRow from '@mui/material/TableRow';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
+
+import CachedIcon from '@mui/icons-material/Cached';
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 // import ListItemAvatar from '@mui/material/ListItemAvatar';
 // import Avatar from '@mui/material/Avatar';
 // import StraightenIcon from '@mui/icons-material/Straighten';
@@ -60,16 +63,20 @@ import {
 import {
   getOne,
   getList,
+  postOne,
+  deleteOne,
   convertDDToDMS,
   convertDMSToDD,
+  formatDate,
 } from '../Utils';
+
 import {
   DialogButtonToolbar
 } from '../SharedComponents';
 
 const DMS_MAP = {
   direction: 0,
-  degree: 2,
+  degree: 1,
   minute: 2,
   second: 3
 }
@@ -102,26 +109,15 @@ const reducer = (state, action) => {
       error: action.error,
     }
   case 'SET_DATA':
-    console.log('set data', action);
-    if (action.name.indexOf('__') === -1) {
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          [action.name]: action.value
-        }
-      }
-    } else {
-      const k = action.name.split('__');
-      state.data[k[0]][parseInt(k[1], 10)].value = action.value;
-      return {
-        ...state,
-        data: {
-          ...state.data,
-        }
+    // console.log('set data', action);
+    return {
+      ...state,
+      data: {
+        ...state.data,
+        [action.name]: action.value
       }
     }
-  case 'SET_LIST_DATA':{
+  case 'SET_LIST_DATA':
     let tmpList = [...state.data[action.list]];
     tmpList[action.index][action.name] = action.value;
     return {
@@ -130,8 +126,18 @@ const reducer = (state, action) => {
         ...state.data,
         [action.list]: tmpList,
       }
-    }
-  }
+    };
+  case 'SET_UNIT_MOF':
+    let tmpUnits = [...state.data.units];
+    tmpUnits[state.helpers.unitsIndex].measurement_or_facts[action.index].value = action.value;
+    // console.log(tmpUnits, 'set', action.value);
+    return {
+      ...state,
+      data: {
+        ...state.data,
+        units: tmpUnits,
+      }
+      };
   case 'SET_HELPER':
     // console.log(action.input, action.opitons, action.value);
     if (action.value !== undefined) {
@@ -191,12 +197,21 @@ const reducer = (state, action) => {
       };
     } else if ( action.name === 'units' ){
       let tmpData = [...state.data.units];
-      // let tmpHelpers = [...state.helpers.identifications];
-      tmpData.push({measurement_or_facts:[]});
-      // tmpHelpers.push({
-      // taxonSelect: {input: '', options: []},
-      // identifierSelect: {input: '', options: []},
-      //});
+      const mofs = [];
+      for (const x in state.data.form_options.measurement_or_facts) {
+
+        mofs.push({
+          name: x,
+          id: state.data.form_options.measurement_or_facts[x].id,
+          label: state.data.form_options.measurement_or_facts[x].label,
+          value: null,
+        });
+      }
+      tmpData.push({
+        measurement_or_facts:mofs,
+        accession_number: '',
+      });
+      // console.log(tmpData, 'xxx');
       return {
         ...state,
         data: {
@@ -214,7 +229,10 @@ const reducer = (state, action) => {
     if ( action.name === 'identifications' ) {
       let tmpData = [...state.data.identifications];
       let tmpHelpers = [...state.helpers.identifications];
-      if (tmpData[state.helpers.identificationsIndex] && tmpData[state.helpers.identificationsIndex].id === undefined) {
+      if (tmpData[state.helpers.identificationsIndex] &&
+          tmpData[state.helpers.identificationsIndex].id === undefined &&
+          !action.notPop
+         ) {
         tmpData.pop();
         tmpHelpers.pop();
       }
@@ -232,7 +250,9 @@ const reducer = (state, action) => {
       };
     } else if ( action.name === 'units' ) {
       let tmpData = [...state.data.units];
-      if (tmpData[state.helpers.unitsIndex] && tmpData[state.helpers.unitsIndex].id === undefined) {
+      if (tmpData[state.helpers.unitsIndex] &&
+          tmpData[state.helpers.unitsIndex].id === undefined &&
+         !action.notPop) {
         tmpData.pop();
       }
       return {
@@ -246,6 +266,99 @@ const reducer = (state, action) => {
           unitsIndex: -1,
         }
       };
+    }
+  case 'SET_GEO_DATA':
+    const regex = /(longitude|latitude)_(direction|degree|minute|second)/g;
+    const match = regex.exec(action.name);
+    console.log(action.name, action.value, match);
+    if (action.name === 'longitude_decimal') {
+      const dms_lon = convertDDToDMS(action.value);
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          longitude_direction: dms_lon[0],
+          longitude_degree: dms_lon[1].toString(),
+          longitude_minute: dms_lon[2].toString(),
+          longitude_second: dms_lon[3].toString(),
+          longitude_decimal: action.value,
+        }
+      }
+    } else if (action.name === 'latitude_decimal') {
+      const dms_lat = convertDDToDMS(action.value);
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          latitude_direction: dms_lat[0],
+          latitude_degree: dms_lat[1].toString(),
+          latitude_minute: dms_lat[2].toString(),
+          latitude_second: dms_lat[3].toString(),
+          latitude_decimal: action.value,
+        }
+      }
+    } else if (match) {
+      console.log(match[1], match[2], action.name, action.value);
+      // validate
+      if (['minute', 'second'].indexOf(match[2]) >= 0) {
+        if (parseInt(action.value) >= 60 || parseInt(action.value) <= -1) {
+          return {
+            ...state
+          };
+        }
+      } else if ((action.name === 'longitude_degree') &&
+                 (parseInt(action.value) >= 180 || parseInt(action.value) <= -1)) {
+        return {
+          ...state
+        };
+      } else if ((action.name === 'latitude_degree') &&
+                 (parseInt(action.value) >= 90 || parseInt(action.value) <= -1)) {
+        return {
+          ...state
+        };
+      }
+
+      if (match[1] === 'longitude') {
+        let dms = [
+          state.data.longitude_direction,
+          state.data.longitude_degree,
+          state.data.longitude_minute,
+          state.data.longitude_second
+        ];
+        const index = DMS_MAP[match[2]];
+        dms[index] = action.value;
+        const lon_dd = convertDMSToDD(dms);
+        return {
+          ...state,
+          data: {
+            ...state.data,
+            longitude_decimal: lon_dd,
+            [action.name]: action.value
+          }
+        }
+      } else if (match[1] === 'latitude') {
+        let dms = [
+          state.data.latitude_direction,
+          state.data.latitude_degree,
+          state.data.latitude_minute,
+          state.data.latitude_second
+        ];
+        const index = DMS_MAP[match[2]];
+        dms[index] = action.value;
+        const lat_dd = convertDMSToDD(dms);
+        return {
+          ...state,
+          data: {
+            ...state.data,
+            latitude_decimal: lat_dd,
+            [action.name]: action.value
+          }
+        }
+      } else {
+        return {
+          ...state
+        };
+      }
     }
   default:
     throw new Error();
@@ -284,22 +397,6 @@ const CollectionForm = () => {
           json.latitude_second = dms_lat[3];
         }
         //setData(json);
-        let taxa = [];
-        /*
-        for (const i=0; i< data.identifications.length; i++) {
-          taxa.push([data.iddentifications[i].taxon]);
-          }*/
-
-        /*
-        const namedAreas = json.named_areas.reduce( (p, v) => {
-          return {
-            ...p, [`namedArea__${v.name}__Select`]: {
-              options: (v.value) ? [v.value] : [] ,
-              input: v.value.display_name
-            }
-          }}, {});
-        */
-        // const units = json.units.map((x) => x);
         const identifications = json.identifications.map((x)=> {
           return {
             taxonSelect: {
@@ -312,14 +409,18 @@ const CollectionForm = () => {
             }
           }
         });
-
+        const idSequenceOptions = [];
+        for (let i=0; i < 10 ; i++) {
+          idSequenceOptions.push(i+1);
+        }
         const initialHelpers = {
           collectorSelect: {
-            input: json.collector.display_name,
+            input: json.collector.display_name || '',
             options: [json.collector],
           },
           identificationsIndex: -1,
           identifications: identifications,
+          idSequenceOptions: idSequenceOptions,
           unitsIndex: -1,
           deleteConfirmStatus: 'init',
           // units: units,
@@ -343,162 +444,50 @@ const CollectionForm = () => {
     })
   }
 
-    /*
-  const handleAutocompleteChange = (event, name) => {
-    const params = {
-      filter: {
-        q: event.target.value
-      }
-    }
-    if (name === 'collector') {
-      getList('people', params)
-        .then(({json}) => {
-          if ((json.data.find((x) => x.id === state.data.collector.id)) === undefined) {
-            json.data.push(state.data.collector);
-            //setAllOptions({...allOptions, collector: json.data});
-            dispatch({type: 'SET_OPTION', name: 'collector', choices: json.data})
-          }
-        });
-    } else if (name === 'taxon') {
-      getList('taxa', params)
-        .then(({json}) => {
-          const d = data.identifications[identificationFlag];
-          if ((json.data.find((x) => x.id === d.id)) === undefined) {
-            json.data.push(d);
-            //setTaxonOptions(json.data);
-            //let taxa = options.taxa;
-            //setOptions({...data, taxa: taxa});
-          }
-        });
-    }
+  const handleSubmitCont = (event) => {
+    handleSubmit(event, true);
   }
 
-  const handleTaxonChange = (event) => {
-    const params = {
-      filter: {
-        q: event.target.value
-      }
+  const handleSubmit = (event, isReload=false) => {
+    const data = state.data;
+    let cleaned = {
+      collector_id: (data.collector) ? data.collector.id : null,
+      collect_date: formatDate(data.collect_date),
+      field_number: data.field_number || '',
+      companion_text: data.companion_text || '',
+      companion_text_en: data.companion_text_en || '',
+      named_areas: data.named_areas.map((x) => [x.id, x.value ? x.value.id : null]),
+      biotopes: data.biotopes.map((x) => [x.id, x.value ? [x.value.id, x.value.value_en, x.value.option_id] : null]),
+      identifications: data.identifications.map((x)=> {
+        return {
+          id: x.id,
+          identifier_id: x.identifier ? x.identifier.id : null,
+          date: formatDate(x.date),
+          date_text: x.date_text,
+          taxon_id:  x.taxon ? x.taxon.id : null,
+          sequence: x.sequence,
+        };
+      }),
+      units: data.units.map((x) => {
+        return {
+          id: x.id,
+          accession_number: x.accession_number,
+          preparation_date: formatDate(x.preparation_date),
+          measurement_or_facts: x.measurement_or_facts.map((mof) => [mof.id, mof.value ? [mof.value.id, mof.value.value_en, mof.value.option_id] : null]),
+        }
+      }),
     }
-    getList('taxa', params)
-      .then(({json}) => {
-        setTaxonOptions(json.data);
-        //console.log(json);
-      })
-  }
+    console.log('update or create:', cleaned);
 
-  const handleNamedAreaChange = (event, area_class_id) => {
-    const params = {
-      filter: {
-        q: event.target.value,
-        area_class_id: area_class_id,
-      }
-    }
-    const namedAreaKey = NAMED_AREA_MAP[area_class_id];
-
-    getList('named_areas', params)
-      .then(({json}) => {
-        setNamedAreaOptions((ps) => ({...ps, [namedAreaKey]: json.data}));
+    postOne('collections', params.collectionId, cleaned)
+      .then((json) => {
+        console.log('return ', json);
+        if (isReload === true) {
+          window.location.reload();
+        }
       });
   }
-  */
-  const handleChange = (event, set_name=null, set_value=null) => {
-    console.log(event, set_name, set_value);
 
-    if (event === null) {
-      return
-    }
-    console.log('handleChange', event.target.id, event.target.value, set_name);
-    const name = (set_name === null && event) ? (event.target.id) ? event.target.id : '' : set_name;
-    const value = (set_value === null && event) ? (event.target.value) ? event.target.value : '' : set_value;
-    const regex = /(longitude|latitude)_(direction|degree|minute|second)/g;
-    console.log(name, value, 'xxx');
-    switch(name) {
-    case 'collector_options':
-      const params = {filter: {q: value}};
-      getList('people', params)
-        .then(({json}) => {
-          if ((json.data.find((x) => x.id === state.data.collector.id)) === undefined) {
-            json.data.push(state.data.collector);
-            dispatch({type: 'SET_SELECT', name: 'collectorSelect', options: json.data, input: value})
-          }
-        });
-      break;
-    default:
-      if (name !== '') {
-        console.log('set_data', name, value);
-        dispatch({type: 'SET_DATA', name: name, value: value});
-      }
-      break;
-    }
-
-    /*
-    const match = regex.exec(key);
-    // console.log(key, value, '----', match, event);
-    if (key === 'longitude_decimal') {
-      const dms_lon = convertDDToDMS(value);
-      setData((ps) => ({
-        ...ps,
-        longitude_direction: dms_lon[0],
-        longitude_degree: dms_lon[1].toString(),
-        longitude_minute: dms_lon[2].toString(),
-        longitude_second: dms_lon[3].toString(),
-        longitude_decimal: value,
-      }));
-    } else if (key === 'latitude_decimal') {
-      const dms_lat = convertDDToDMS(value);
-      setData((ps) => ({
-        ...ps,
-        latitude_direction: dms_lat[0],
-        latitude_degree: dms_lat[1].toString(),
-        latitude_minute: dms_lat[2].toString(),
-        latitude_second: dms_lat[3].toString(),
-        latitude_decimal: value,
-      }));
-    } else if (match) {
-      console.log(match[2] !== 'direction' , parseInt(value) >=60 , parseInt(value) <= -1, 'xxxx');
-      // validate
-      if (match[2] !== 'direction' && (
-        parseInt(value) >=60 || parseInt(value) <= -1)) {
-        return
-      }
-
-      if (match[1] === 'longitude') {
-        let dms = [
-          data.longitude_direction,
-          data.longitude_degree,
-          data.longitude_minute,
-          data.longitude_second
-        ];
-        const index = DMS_MAP[match[2]];
-        dms[index] = value;
-        const lon_dd = convertDMSToDD(dms);
-        setData((ps) => ({
-          ...ps,
-          longitude_decimal: lon_dd,
-          [key]: value,
-        }));
-      } else if (match[1] === 'latitude') {
-        let dms = [
-          data.latitude_direction,
-          data.latitude_degree,
-          data.latitude_minute,
-          data.latitude_second
-        ];
-        const index = DMS_MAP[match[2]];
-        dms[index] = value;
-        const lat_dd = convertDMSToDD(dms);
-        setData((ps) => ({
-          ...ps,
-          latitude_decimal: lat_dd,
-          [key]: value,
-        }));
-      }
-    } else {
-      //setData((ps) => ({...ps, [event.target.id]: event.target.value}));
-      dispatch({type: 'SET_DATA', name: key, value: value});
-    }
-*/
-  }
   console.log((state.loading===true) ? '🥚': '🐔' + ' state', state);
 
   const {data, helpers} = state;
@@ -575,35 +564,27 @@ const CollectionForm = () => {
                             variant="standard"/>)}
                      />
                    </Grid>
-                   <Grid item xs={6}>
+                   <Grid item xs={5}>
                      <DatePicker
                        disableFuture
                        label="鑑定日期"
                        openTo="year"
                        clearable={true}
                        views={['year', 'month', 'day']}
-                       value={data.identifications[helpers.identificationsIndex].date || new Date()}
+                       value={data.identifications[helpers.identificationsIndex].date || null}
                        inputFormat="yyyy-MM-dd"
                        mask='____-__-__'
                        onChange={(selectDate, input)=> {
-                         if (input) {
-                           try {
-                             const _ = new Date(input).toISOString();
-                             dispatch({type: 'SET_DATA', name: 'collect_date', value: input});
-                           } catch (error) {
-                             console.error(error);
-                           }
-                          } else if (selectDate) {
-                            const y = selectDate.getFullYear();
-                            const m = String(selectDate.getMonth()+1).padStart(2, '0');
-                            const d = String(selectDate.getDate()).padStart(2, '0');
-                            dispatch({type: 'SET_LIST_DATA', name: 'date', value: `${y}-${m}-${d}`, list:'identifications', index: helpers.identificationsIndex});
-                          }
+                         if (!isNaN(selectDate)) {
+                           dispatch({type: 'SET_LIST_DATA', name: 'date', value: selectDate, list:'identifications', index: helpers.identificationsIndex});
+                         } else {
+                           console.log('collect_date: invalid Date', selectDate, input);
+                         }
                        }}
                        renderInput={(params) => <TextField {...params} variant="standard" fullWidth />}
                      />
                    </Grid>
-                   <Grid item xs={6}>
+                   <Grid item xs={5}>
                      <TextField
                        id="verbatim-identification-date"
                        label="日期格式不完整"
@@ -615,6 +596,24 @@ const CollectionForm = () => {
                        }}
                      />
                    </Grid>
+                   <Grid item xs={2}>
+                     <TextField
+                       label="鑑定次數"
+                       select
+                       fullWidth
+                       variant="standard"
+                       value={parseInt(data.identifications[helpers.identificationsIndex].sequence, 10) + 1}
+                       onChange={(e)=> {
+                         dispatch({type: 'SET_LIST_DATA', name: 'sequence', value: parseInt(e.target.value)-1, list:'identifications', index: helpers.identificationsIndex});
+                       }}
+                     >
+                       {helpers.idSequenceOptions.map((x) => (
+                         <MenuItem key={x} value={x}>
+                           {x}
+                         </MenuItem>
+                       ))}
+                     </TextField>
+                   </Grid>
                  </Grid>
                </DialogContent>
                <DialogActions>
@@ -622,7 +621,12 @@ const CollectionForm = () => {
                    status={helpers.deleteConfirmStatus}
                    hasId={(data.identifications[helpers.identificationsIndex].id) ? true : false}
                    onDeleteYes={() => {
-                     console.log('TODO DELETE');
+                     if (data.identifications[helpers.identificationsIndex].id) {
+                       deleteOne('identifications', data.identifications[helpers.identificationsIndex].id).then((resp)=> {
+                         window.location.reload();
+                       });
+
+                     }
                    }}
                    onDeleteNo={() => {
                      dispatch({type:'SET_HELPER', name:'deleteConfirmStatus', value: 'init'});
@@ -634,7 +638,7 @@ const CollectionForm = () => {
                      dispatch({type: 'SET_DIALOG_CANCEL', name: 'identifications'});
                    }}
                    onSubmit={() => {
-                     console.log('submit');
+                     dispatch({type: 'SET_DIALOG_CANCEL', name: 'identifications', notPop: true}); 
                    }}
                  />
                </DialogActions>
@@ -659,14 +663,87 @@ const CollectionForm = () => {
                      />
                    </Grid>
                    <Grid item xs={12}>
+                     <Typography variants="subtitle1">物候</Typography>
                      <Stack spacing={1}>
+                       {data.units[helpers.unitsIndex].measurement_or_facts.map((x, i)=> {
+                         //console.log(x);
+                         let inputValue = '';
+                         if (x.value) {
+                           inputValue = x.value.value_en;
+                         }
+                         return (
+                           <Autocomplete
+                             freeSolo
+                             key={i}
+                             id={x.name}
+                             isOptionEqualToValue={(option, value) => option.id === value.option_id}
+                             getOptionLabel={(option) => `${option.value_en} (${option.value})`}
+                             options={data.form_options.measurement_or_facts[x.name].options}
+                             value={(x.value && x.value.option_id) ? x.value : null}
+                             inputValue={inputValue}
+                             onChange={(e, v, reason) => {
+                               //console.log('SEL', v);
+                               dispatch({type: 'SET_UNIT_MOF', value: v, index: i});
+                             }}
+                             onInputChange={(e, v, reason) => {
+                               //console.log('INP', v);
+                               if (reason === 'input') {
+                                 dispatch({type: 'SET_UNIT_MOF', value: {...x.value, value_en: v}, index: i});
+                               }
+                             }}
+                             renderInput={(params) => (
+                               <TextField
+                                 {...params}
+                                 label={data.form_options.measurement_or_facts[x.name].label}
+                                 variant="standard"
+                               />)}
+                           />)
+                       })}
                      </Stack>
+                   </Grid>
+                   <Grid item xs={12}>
+                     <DatePicker
+                       disableFuture
+                       label="壓製日期"
+                       openTo="year"
+                       clearable={true}
+                       views={['year', 'month', 'day']}
+                       value={data.units[helpers.unitsIndex].preparation_date || null}
+                       inputFormat="yyyy-MM-dd"
+                       mask='____-__-__'
+                       onChange={(selectDate, input)=> {
+                         // console.log(selectDate, input, 'ee');
+                         if (!isNaN(selectDate)) {
+                           dispatch({type: 'SET_LIST_DATA', name: 'preparation_date', value: selectDate, list:'units', index: helpers.unitsIndex});
+                         } else {
+                           console.log('unit preparation: invalid Date', selectDate, input);
+                         }
+                       }}
+                       renderInput={(params) => <TextField {...params} variant="standard"/>}
+                     />
                    </Grid>
                  </Grid>
                </DialogContent>
                <DialogActions>
-                 <Button onClick={() => {dispatch({'type': 'SET_HELPER', name: 'unitsIndex', value: -1});}}>取消</Button>
-                 <Button variant="contained">送出</Button>
+                 <DialogButtonToolbar
+                   status={helpers.deleteConfirmStatus}
+                   hasId={(data.units[helpers.unitsIndex].id) ? true : false}
+                   onDeleteYes={() => {
+                     console.log('TODO DELETE');
+                   }}
+                   onDeleteNo={() => {
+                     dispatch({type:'SET_HELPER', name:'deleteConfirmStatus', value: 'init'});
+                   }}
+                   onDelete={() => {
+                     dispatch({type:'SET_HELPER', name:'deleteConfirmStatus', value: 'clicked'});
+                   }}
+                   onCancel={() => {
+                     dispatch({type: 'SET_DIALOG_CANCEL', name: 'units'});
+                   }}
+                   onSubmit={() => {
+                     dispatch({type: 'SET_DIALOG_CANCEL', name: 'units', notPop: true}); 
+                   }}
+                 />
                </DialogActions>
              </Dialog> : null}
             <Typography variant="h4">Collection</Typography>
@@ -680,8 +757,8 @@ const CollectionForm = () => {
                         id="collector"
                         options={helpers.collectorSelect.options}
                         isOptionEqualToValue={(option, value) => option.id === value.id }
-                        getOptionLabel={(option) => option.display_name}
-                        value={data.collector}
+                        getOptionLabel={(option) => (option && option.display_name ) ? option.display_name : ''}
+                        value={(data.collector && data.collector.id ) ? data.collector : null}
                         onChange={(e, v, reason) => {
                           //console.log('ON CHANGE', reason, v);
                           dispatch({type: 'SET_DATA', name: 'collector', value: v});
@@ -726,19 +803,10 @@ const CollectionForm = () => {
                         inputFormat="yyyy-MM-dd"
                         mask='____-__-__'
                         onChange={(selectDate, input)=> {
-                          // console.log(selectDate, input, 'ee');
-                          if (input) {
-                            try {
-                              const _ = new Date(input).toISOString();
-                              dispatch({type: 'SET_DATA', name: 'collect_date', value: input});
-                            } catch (error) {
-                              console.error(error);
-                            }
-                          } else if (selectDate) {
-                            const y = selectDate.getFullYear();
-                            const m = String(selectDate.getMonth()+1).padStart(2, '0');
-                            const d = String(selectDate.getDate()).padStart(2, '0');
-                            dispatch({type: 'SET_DATA', name: 'collect_date', value: `${y}-${m}-${d}`});
+                          if (!isNaN(selectDate)) {
+                            dispatch({type: 'SET_DATA', name: 'collect_date', value: selectDate});
+                          } else {
+                            console.log('collect_date: invalid Date', selectDate, input);
                           }
                         }}
                         renderInput={(params) => <TextField {...params} variant="standard"/>}
@@ -752,7 +820,7 @@ const CollectionForm = () => {
                         multiline
                         fullWidth
                         rows={3}
-                        value={data.companion_text}
+                        value={data.companion_text || ''}
                         onChange={handleChangeByID}
                       />
                     </Grid>
@@ -764,21 +832,21 @@ const CollectionForm = () => {
                         multiline
                         fullWidth
                         rows={3}
-                        value={data.companion_text_en}
+                        value={data.companion_text_en || ''}
                         onChange={handleChangeByID}
                       />
                     </Grid>
                     <Grid item xs={12}><Typography variant="h6">地點</Typography></Grid>
                     {data.named_areas.map((named_area, i)=> {
-                      const areaName = `namedArea__${named_area.name}`;
                       return (
                         <Grid item xs={6} key={i}>
                           <Autocomplete
-                            id={areaName}
                             isOptionEqualToValue={(option, value) => option.id === value.id}
                             getOptionLabel={(option) => option.display_name || ''}
                             filterOptions={(options, {inputValue}) => {
-                              if (i > 0 && data.named_areas[i-1].value) {
+                              if (i > 0 &&
+                                  data.named_areas[i-1].value &&
+                                  data.named_areas[i].parent_id >= 0) {
                                 const parentId = data.named_areas[i-1].value.id;
                                 return options.filter((x) => (x.parent_id === parentId) && (x.display_name.toLowerCase().indexOf(inputValue.toLowerCase()) >=0) );
                               } else {
@@ -786,11 +854,12 @@ const CollectionForm = () => {
                               }
                             }}
                             /*options={helpers[`${areaName}__Select`].options}*/
-                            options={data.form_options.named_areas[named_area.name]}
+                            options={data.form_options.named_areas[named_area.name].options}
                             value={data.named_areas[i].value || null}
                             onChange={(e, v, reason) => {
                               //console.log('ON CHANGE', reason, v);
-                              dispatch({type: 'SET_DATA', name: `named_areas__${i}`, value: v, });
+                              //dispatch({type: 'SET_DATA', name: `named_areas__${i}`, value: v });
+                              dispatch({type: 'SET_LIST_DATA', list: 'named_areas', index: i, name: 'value', value: v});
                             }}
                             /*onInputChange={(e, v, reason) => {
                               // console.log('ON INPUT', reason, v);
@@ -822,6 +891,192 @@ const CollectionForm = () => {
                         </Grid>
                       )
                     }) }
+                    <Grid item xs={10}>
+                      <TextField
+                        id="locality_text"
+                        variant="standard"
+                        label="地點描述"
+                        multiline
+                        fullWidth
+                        rows={3}
+                        value={data.locality_text || ''}
+                        onChange={handleChangeByID}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <Grid container>
+                        <Grid item>
+                          <TextField
+                            id="altitude"
+                            variant="standard"
+                            label="海拔(低)"
+                            fullWidth
+                            value={data.altitude || ''}
+                            onChange={handleChangeByID}
+                          />
+                        </Grid>
+                        <Grid item>
+                          <TextField
+                            id="altitude2"
+                            variant="standard"
+                            label="海拔(高)"
+                            fullWidth
+                            value={data.altitude2 || ''}
+                            onChange={handleChangeByID}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <TextField
+                        id="longitude_decimal"
+                        variant="standard"
+                        label="經度(十進位)"
+                        fullWidth
+                        value={data.longitude_decimal || ''}
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <FormControl fullWidth>
+                        <InputLabel id="longitude_direction-label">東/西經</InputLabel>
+                        <Select
+                          labelId="longitude_direction-label"
+                          id="longitude_direction"
+                          value={data.longitude_direction}
+                          label="東/西經"
+                          onChange={(e) => {
+                            dispatch({type: 'SET_GEO_DATA', name: 'longitude_direction', value: e.target.value});
+                          }}
+                        >
+                          <MenuItem value={""}>--</MenuItem>
+                          <MenuItem value={1}>東經</MenuItem>
+                          <MenuItem value={-1}>西經</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={2}>
+                      <TextField
+                        id="longitude_degree"
+                        variant="outlined"
+                        label="經度(度)"
+                        type="number"
+                        value={data.longitude_degree || ''}
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">°</InputAdornment>,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <TextField
+                        id="longitude_minute"
+                        variant="outlined"
+                        label="經度(分)"
+                        type="number"
+                        value={data.longitude_minute || ''}
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">'</InputAdornment>,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <TextField
+                        id="longitude_second"
+                        variant="outlined"
+                        label="經度(秒)"
+                        type="number"
+                        value={data.longitude_second || ''}
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">"</InputAdornment>,
+                     }}
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <TextField
+                        id="latitude_decimal"
+                        variant="standard"
+                        label="緯度(十進位)"
+                        fullWidth
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                        value={data.latitude_decimal || ''}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <FormControl fullWidth>
+                        <InputLabel id="demo-simple-select-label">南/北緯度</InputLabel>
+                        <Select
+                          labelId="demo-simple-select-label"
+                          id="latitude_direction"
+                          value={data.latitude_direction}
+                          label="南/北緯度"
+                          onChange={(e) => {
+                            dispatch({type: 'SET_GEO_DATA', name: 'latitude_direction', value: e.target.value});
+                        }}
+                        >
+                          <MenuItem value={""}></MenuItem>
+                          <MenuItem value={1}>北緯</MenuItem>
+                          <MenuItem value={-1}>南緯</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={2}>
+                      <TextField
+                        id="latitude_degree"
+                        label="緯度(度)"
+                        type="number"
+                        variant="outlined"
+                        value={data.latitude_degree}
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                        InputProps={{
+                       endAdornment: <InputAdornment position="end">°</InputAdornment>
+                     }}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <TextField
+                        id="latitude_minute"
+                        variant="outlined"
+                        label="緯度(分)"
+                        value={data.latitude_minute || ''}
+                        type="number"
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                        InputProps={{
+                       endAdornment: <InputAdornment position="end">'</InputAdornment>
+                     }}
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <TextField
+                        id="latitude_second"
+                        label="緯度(秒)"
+                        variant="outlined"
+                        type="number"
+                        value={data.latitude_second || ''}
+                        onChange={(e) => {
+                          dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
+                        }}
+                        InputProps={{
+                       endAdornment: <InputAdornment position="end">"</InputAdornment>,
+                        }}
+                      />
+                    </Grid>
                   </Grid>
                   <Grid item xs={12}><Typography variant="h6" sx={{mt:3}}>鑑定 & 環境</Typography></Grid>
                   <Grid item xs={12}>
@@ -861,7 +1116,7 @@ const CollectionForm = () => {
                                     </TableCell>
                                     <TableCell align="right">{(row.taxon) ? row.taxon.full_scientific_name : ''}</TableCell>
                                     <TableCell align="right">{(row.identifier) ? row.identifier.display_name : ''}</TableCell>
-                                    <TableCell align="right">{(row.date_text) ? row.date_text : (row.date || '')}</TableCell>
+                                    <TableCell align="right">{(row.date_text) ? row.date_text : formatDate(row.date)}</TableCell>
                                     <TableCell align="right"><Button variant="outlined" onClick={() => {
                                       dispatch({type: 'SET_HELPER', name: 'identificationsIndex', value: index});
                                     }}>編輯</Button></TableCell>
@@ -872,7 +1127,7 @@ const CollectionForm = () => {
                         </TableContainer>
                       </AccordionDetails>
                     </Accordion>
-                    <Accordion defaultExpanded={true}>
+                    <Accordion defaultExpanded={false}>
                       <AccordionSummary
                         expandIcon={<ExpandMoreIcon />}
                         aria-controls="panel2-content"
@@ -884,24 +1139,34 @@ const CollectionForm = () => {
                       <AccordionDetails>
                         <Stack spacing={1} sx={{ width: 650 }}>
                           {data.biotopes.map((biotope, i)=> {
-                            //console.log(biotope.name, data.form_options.biotopes[biotope.name], biotope);
-                            //console.log(biotope.value);
+                            let inputValue = '';
+                            if (biotope.value) {
+                              inputValue = biotope.value.value_en;
+                            }
                             return (
                               <Autocomplete
                                 key={i}
                                 id={biotope.name}
+                                freeSolo
                                 isOptionEqualToValue={(option, value) => option.id === value.option_id}
-                                getOptionLabel={(option) => `${option.value_en} (${option.value})` || ''}
-                                options={data.form_options.biotopes[biotope.name]}
+                                getOptionLabel={(option) => `${option.value_en} (${option.value})`}
+                                options={data.form_options.biotopes[biotope.name].options}
                                 value={(biotope.value && biotope.value.option_id) ? biotope.value : null }
+                                inputValue={inputValue}
                                 onChange={(e, v, reason) => {
-                                  //console.log('ON CHANGE', reason, v);
-                                  //dispatch({type: 'SET_DATA', name: `named_areas__${i}`, value: v, });
+                                  dispatch({type: 'SET_LIST_DATA', list: 'biotopes', index: i, name: 'value', value: v});
+                                }}
+                                onInputChange={(e, v, reason) => {
+                                  //console.log(e, v, 'inpt', reason);
+                                  if (reason === 'input') {
+                                    dispatch({type: 'SET_LIST_DATA', list: 'biotopes', index: i, name: 'value', value: {...biotope.value, value_en: v}});
+                                  }
+
                                 }}
                                 renderInput={(params) => (
                                   <TextField
                                     {...params}
-                                    label={`${biotope.label}`}
+                                    label={data.form_options.biotopes[biotope.name].label}
                                     variant="standard"
                                   />)}
                               />)
@@ -938,6 +1203,14 @@ const CollectionForm = () => {
                       </AccordionDetails>
                     </Accordion>
                   </Grid>
+                  <Grid container justifyContent="flex-end" sx={{pt:2}} spacing={1}>
+                    <Grid item>
+                      <Button variant="contained" onClick={handleSubmitCont} endIcon={<CachedIcon />}>儲存並繼續編輯</Button>
+                    </Grid>
+                    <Grid item>
+                      <Button variant="contained" onClick={handleSubmit} endIcon={<FormatListBulletedIcon />}>儲存回到列表</Button>
+                    </Grid>
+                  </Grid>
                 </Paper>
               </Grid>
               <Grid item xs={3}>
@@ -965,12 +1238,6 @@ const CollectionForm = () => {
                           </Typography>
                           <TableContainer component="div">
                             <Table aria-label="simple table" size="small" padding="none">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell>參數</TableCell>
-                                  <TableCell>數值</TableCell>
-                                </TableRow>
-                              </TableHead>
                               <TableBody>
                                 {unit.measurement_or_facts.map((x, xid) => {
                                   return (
@@ -981,14 +1248,15 @@ const CollectionForm = () => {
                                       <TableCell component="th" scope="row">
                                         {x.label}
                                       </TableCell>
-                                      <TableCell>{ x.value?.value_en } {( x.value && x.value.value ) ? <Typography variant="body2" color="text.secondary">{ `(${x.value.value})` }</Typography> : null }</TableCell>
+                                      <TableCell>{ x.value?.value_en } {( x.value && x.value.value_en && x.value.value ) ? <Typography variant="body2" color="text.secondary">{ `(${x.value.value})` }</Typography> : null }</TableCell>
                                     </TableRow>
                                   );
                                 })}
                               </TableBody>
                             </Table>
                           </TableContainer>
-                          {/*
+                          <Typography>壓製日期: {formatDate(unit.preparation_date)}</Typography>
+                          {/* by List
                           <Box sx={{ width: '100%' }}>
                             <List dense={true}>
                               {unit.measurement_or_facts.map((x, xid) => {
@@ -1009,9 +1277,6 @@ const CollectionForm = () => {
                               })}
                             </List>
                             </Box>*/}
-                          <Typography variant="subtitle1" color="text.primary">
-                            Transaction
-                          </Typography>
                         </CardContent>
                         <CardActions>
                           <Button size="small" variant="outlined" onClick={() => {

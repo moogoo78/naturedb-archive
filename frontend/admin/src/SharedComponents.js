@@ -11,13 +11,13 @@ const DialogButtonToolbar = ({status, hasId, onDelete, onDeleteYes, onDeleteNo, 
       <>
         {(hasId) ? <Grid container justifyContent="flex-start"><Button variant="contained" color="error" onClick={onDelete}>刪除</Button></Grid> : null}
         <Button onClick={onCancel}>取消</Button>
-        <Button variant="contained" onClick={onSubmit}>送出</Button>
+        <Button variant="contained" onClick={onSubmit}>儲存</Button>
       </>);
   case 'clicked':
     return (
       <>
         <Typography sx={{p:1}}>確定要刪除?</Typography>
-        <Button variant="outlined" onClick={onDeleteNo}>取消</Button>
+        <Button variant="outlined" onClick={onDeleteNo}>否</Button>
         <Button variant="contained" onClick={onDeleteYes}>是</Button>
       </>
     );

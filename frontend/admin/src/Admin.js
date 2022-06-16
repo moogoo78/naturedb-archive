@@ -214,7 +214,7 @@ export default function Admin() {
   return (
     <BrowserRouter>
       <ThemeProvider theme={mdTheme}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} locale={zhTW}>
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={zhTW}>
           <AdminContainer />
         </LocalizationProvider>
       </ThemeProvider>

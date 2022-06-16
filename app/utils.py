@@ -17,3 +17,19 @@ def dd2dms(deg):
     m = int(md)
     sd = (md - m) * 60
     return [d, m, sd]
+
+# HALT
+def update_or_create(session, obj, params):
+    data = {}
+    # original value
+    for c in obj.EDITABLE_COLUMNS:
+        k = c[0]
+        v = getattr(obj, k)
+        if k in params:
+            v = params[k]
+        setattr(obj, k, v)
+    session.commit()
+
+    print('update_or_create', params, data, flush=True)
+
+    return obj

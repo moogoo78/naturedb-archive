@@ -19,8 +19,7 @@ const createHeadersFromOptions = (options) => {
 }
 
 const getList = (resource, params, options={}) => {
-  //const apiUrl = process.env.REACT_APP_API_URL;
-  const apiUrl = 'http://127.0.0.1:5000/api/v1';
+  const apiUrl = process.env.API_URL;
   let payload = {};
   if (params) {
     if (params.hasOwnProperty('range')) {
@@ -80,8 +79,7 @@ const getList = (resource, params, options={}) => {
 }
 
 const getOne = (resource, itemId, options={}) => {
-  //const apiUrl = process.env.REACT_APP_API_URL;
-  const apiUrl = 'http://127.0.0.1:5000/api/v1';
+  const apiUrl = process.env.API_URL;
   const url = `${apiUrl}/${resource}/${itemId}`;
   const requestHeaders = createHeadersFromOptions(options);
   // console.log(url, requestHeaders);
@@ -121,6 +119,97 @@ const getOne = (resource, itemId, options={}) => {
      });
 }
 
+const postOne = (resource, itemId, data)=> {
+  const apiUrl = process.env.API_URL;
+  const url = `${apiUrl}/${resource}/${itemId}`;
+  const options = {
+    body: JSON.stringify(data), // must match 'Content-Type' header
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    // credentials: 'same-origin', // include, same-origin, *omit
+    method: 'PUT', //'POST', 
+    // mode: 'cors', // no-cors, cors, *same-origin
+    redirect: 'follow', // manual, *follow, error
+    referrer: 'no-referrer', // *client, no-referrer
+  };
+  const requestHeaders = createHeadersFromOptions(options);
+  // console.log(url, requestHeaders);
+  return fetch(url, { ...options, headers: requestHeaders })
+    .then(response =>
+      response.text().then(text => ({
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        body: text,
+      }))
+    )
+    .then(({ status, statusText, headers, body }) => {
+      let json;
+      try {
+        json = JSON.parse(body);
+      } catch (e) {
+        // not json, no big deal
+      }
+      if (status < 200 || status >= 300) {
+        console.log('!!! HttpError');
+        /*
+        return Promise.reject(
+          new HttpError(
+            (json && json.message) || statusText,
+            status,
+            json
+          )
+        );*/
+      }
+      return Promise.resolve({ status, headers, body, json });
+      return json;
+    }).
+     catch((error) => {
+       console.log('getOne error', error);
+     });
+}
+const deleteOne = (resource, itemId, data)=> {
+  const apiUrl = process.env.API_URL;
+  const url = `${apiUrl}/${resource}/${itemId}`;
+  const options = {
+    method: 'DELETE',
+  };
+  const requestHeaders = createHeadersFromOptions(options);
+  // console.log(url, requestHeaders);
+  return fetch(url, { ...options, headers: requestHeaders })
+    .then(response =>
+      response.text().then(text => ({
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        body: text,
+      }))
+    )
+    .then(({ status, statusText, headers, body }) => {
+      let json;
+      try {
+        json = JSON.parse(body);
+      } catch (e) {
+        // not json, no big deal
+      }
+      if (status < 200 || status >= 300) {
+        console.log('!!! HttpError');
+        /*
+        return Promise.reject(
+          new HttpError(
+            (json && json.message) || statusText,
+            status,
+            json
+          )
+        );*/
+      }
+      return Promise.resolve({ status, headers, body, json });
+      return json;
+    }).
+     catch((error) => {
+       console.log('deleteOne error', error);
+     });
+}
+
 const convertDDToDMS = (dd) => {
   /* arguments: decimal degree
    */
@@ -131,7 +220,7 @@ const convertDDToDMS = (dd) => {
   const minute = Math.floor(minuteFloat);
   const secondFloat = ((minuteFloat - minute) * 60);
   const second = parseFloat(secondFloat.toFixed(4));
-  console.log(dd, ddFloat,minuteFloat, [degree, minute, second]);
+  //console.log(dd, ddFloat,minuteFloat, [degree, minute, second]);
   return [direction, degree, minute, second];
 }
 
@@ -142,10 +231,48 @@ const convertDMSToDD = (ddms) => {
   return ddms[0] * (parseFloat(ddms[1]) + parseFloat(ddms[2]) / 60 + parseFloat(ddms[3]) / 3600);
 }
 
+const dateToYMD = (dateTime) => {
+  // const dateString = dateTime.toISOString().split('T')[0];
+  //const x = dateString.split('-');
+  //return `${x[0]}-${x[1]}-${x[2]}`;
+  const dateString = dateTime.toLocaleDateString('en-GB',  { timeZone: 'Asia/Taipei' })
+  const x = dateString.split('/');
+  return `${x[2]}-${x[1]}-${x[0]}`;
+}
+
+const YMDToDate = (YMD) => {
+  const x = YMD.split('-')
+  const y = parseInt(x[0], 10);
+  const m = parseInt(x[1], 10) - 1;
+  const d = parseInt(x[2], 10);
+  return new Date(y, m, d); // *note* Date will just return "string"
+}
+
+const formatDate = (date) => {
+  if (date === null || date === '') {
+    return null;
+  } else if (date instanceof Date && !isNaN(date)) {
+    // console.log(date.toLocaleDateString(), date.toISOString(), date, date.toLocaleDateString('zh-TW',  { timeZone: 'UTC' }), date.getTimezoneOffset(), date.toLocaleDateString('en-GB',  { timeZone: 'Asia/Taipei' }));
+    return dateToYMD(date);
+  } else if (typeof date === 'string' && date.split('-').length > 1){
+    try {
+      const goodDate = YMDToDate(date);
+      return dateToYMD(goodDate);
+    } catch(error) {
+      console.error('formatDate: string input error => ', error);
+      return null;
+    }
+  }
+}
 
 export {
   getList,
   getOne,
+  postOne,
+  deleteOne,
   convertDDToDMS,
   convertDMSToDD,
+  dateToYMD,
+  YMDToDate,
+  formatDate,
 }
