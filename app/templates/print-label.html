@@ -43,9 +43,10 @@
             </div>
           </div>
           {% endfor %}
+          {% set named_areas = item.collection.get_named_area_list() %}
           <div class="institution">
             <!-- LAYOUT1 span class="institution-name">中央研究院植物標本館</span><span class="institution-code">(HAST)</span-->
-            <span class="collection-name">{{ item.collection.get_named_area_list('country').name_en }}</span>
+            <span class="collection-name">{{ named_areas[0].name_en }}</span>
           </div>
           <div class="taxon">
             {% set first_id_taxon = item.collection.identifications[0].taxon %}
@@ -57,7 +58,7 @@
 
         <div class="locality">
           {# if taiwan: show from hsien, else other country, show from province (ex: china) #}
-          <span class="locality-list">{{ item.collection.get_named_area_list()[1:]|rejectattr('data', 'none')|map(attribute='data.display_name')|join(', ')|replace('TAIWAN (台灣), ', '', 1) }}</span>
+          <span class="locality-list">{{ named_areas[1:]|rejectattr('value', 'none')|map(attribute='value.display_name')|join(', ')|replace('TAIWAN (台灣), ', '', 1) }}</span>
           {% if item.locality_text %}<span class="box">{{ item.locality_text }}</span>{% endif %}
         </div>
         <div class="geographic-position">

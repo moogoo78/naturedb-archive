@@ -51,7 +51,7 @@ const columns = [
   {
     field: 'id',
     headerName: 'ID',
-    width: 50,
+    width: 80,
   },
   {
     field: 'last_taxon_text',
@@ -255,6 +255,11 @@ const reducer = (state, action) => {
         [action.name]: [action.options, action.input]
       }
     }
+  case 'SET_SELECTION':
+    return {
+      ...state,
+      selection: action.value,
+    }
   default:
     throw new Error();
   }
@@ -273,6 +278,7 @@ const CollectionList = () => {
       collector: [[], ''],
       taxon: [[], ''],
     },
+    selection: []
   };
   const [state, dispatch] = React.useReducer(reducer, initialArg);
 
@@ -384,8 +390,13 @@ const CollectionList = () => {
          </Grid>
          <DataGrid
            loading={state.isLoading}
+           checkboxSelection
+           onSelectionModelChange={(ids) => {
+             dispatch({type: 'SET_SELECTION', value: ids});
+           }}
+           selectionModel={state.selection}
            components={{
-             Toolbar: CustomToolbar,
+             /*Toolbar: CustomToolbar,*/
              LoadingOverlay: LinearProgress,
              NoRowsOverlay: CustomNoRowsOverlay,
            }}

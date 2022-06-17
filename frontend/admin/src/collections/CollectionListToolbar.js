@@ -14,6 +14,8 @@ import {
   getList,
 } from '../Utils';
 
+const BASE_URL = process.env.BASE_URL;
+
 const CollectionListFilterMenu = ({dispatch, state}) => {
   const open = Boolean(state.filterMenuAnchorEl);
   return (
@@ -44,6 +46,14 @@ const CollectionListFilterMenu = ({dispatch, state}) => {
         <MenuItem onClick={()=> dispatch({type: 'ADD_FILTER', item: 'field_number'})}>採集號</MenuItem>
         <MenuItem onClick={()=> dispatch({type: 'ADD_FILTER', item: 'collect_date'})}>採集日期</MenuItem>
       </Menu>
+      <Button
+        onClick={(e)=> {
+          const ids = state.selection.join(',');
+          window.open(`${BASE_URL}/print-label?ids=${ids}`, '_blank');
+        }}
+        startIcon={<PrintIcon />}
+        variant=""
+      >列印</Button>
     </>
   )
 }
@@ -172,7 +182,7 @@ const CollectionListFilterBox = ({dispatch, index, data, options}) => {
         onChange={(selectDate, input)=> {
           if (!isNaN(selectDate)) {
             if (data[1] && data[1][0]) {
-              // 第一個有設才可以設第二個
+              // 第一個有設才可以設
               dispatch({type: 'SET_FILTER_DATE_RANGE', index: index, value: selectDate, isRangeEnd: true});
             }
           } else {

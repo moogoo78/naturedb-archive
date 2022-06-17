@@ -568,7 +568,6 @@ class Collection(Base):
     def get_named_area_map(self):
         #named_area_map = {f'{x.named_area.area_class.name}': x.named_area.to_dict() for x in self.named_area_relations}
         named_area_map = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
-        print(named_area_map, '---',flush=True)
         return get_structed_map(AreaClass.DEFAULT_OPTIONS, named_area_map)
 
     def get_named_area_list(self):
