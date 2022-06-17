@@ -6,7 +6,6 @@ import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import Box from '@mui/material/Box';
 import MuiPaper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
@@ -298,7 +297,7 @@ const reducer = (state, action) => {
         }
       }
     } else if (match) {
-      console.log(match[1], match[2], action.name, action.value);
+      //console.log(match[1], match[2], action.name, action.value);
       // validate
       if (['minute', 'second'].indexOf(match[2]) >= 0) {
         if (parseInt(action.value) >= 60 || parseInt(action.value) <= -1) {

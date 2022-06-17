@@ -1,13 +1,20 @@
 import React, {useEffect, useState} from 'react';
 
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import Paper from '@mui/material/Paper';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 // for search
 import TextField from '@mui/material/TextField';
-
 import { styled } from '@mui/material/styles';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+
 import {
   DataGrid,
   GridToolbarContainer,
@@ -22,6 +29,7 @@ import {
 } from "react-router-dom";
 
 import { getList } from '../Utils';
+import { CollectionListToolbar } from './CollectionListToolbar';
 
 function CustomToolbar() {
   return (
@@ -165,6 +173,45 @@ function CustomNoRowsOverlay() {
   );
 }
 
+const reducer = (state, action) => {
+  // console.log(state, action);
+  switch (action.type) {
+  case 'OPEN_FILTER_MENU':
+    return {
+      ...state,
+      filterMenuAnchorEl: action.anchor,
+    }
+  case 'CLOSE_FILTER_MENU':
+    return {
+      ...state,
+      filterMenuAnchorEl: null,
+    }
+  case 'ADD_FILTER':
+    return {
+      ...state,
+      filterMenuAnchorEl: null,
+      filterList: [...state.filterList, [action.item, null]],
+    }
+  case 'SET_FILTER':
+    let tmp = [...state.filterList];
+    tmp[action.index][1] = action.value;
+    return {
+      ...state,
+      filterList: tmp,
+    }
+  case 'REMOVE_FILTER':
+    let filterList = [...state.filterList];
+    delete filterList[action.index];
+    return {
+      ...state,
+      filterMenuAnchorEl: null,
+      filterList: filterList,
+    }
+  default:
+    throw new Error();
+  }
+}
+
 const CollectionList = () => {
   const [result, setResult] = useState(null);
   const [rowsState, setRowsState] = useState({
@@ -172,6 +219,11 @@ const CollectionList = () => {
     pageSize: 20,
     pageIndex: 0,
   });
+  const initialArg = {
+    filterMenuAnchorEl: null,
+    filterList: [],
+  };
+  const [state, dispatch] = React.useReducer(reducer, initialArg);
 
   useEffect(() => {
     fetchData();
@@ -220,11 +272,67 @@ const CollectionList = () => {
     fetchData({pageIndex:0, pageSize: pageSize});
   }
 
+  let data = {};
+  for (const x in state.filterList) {
+    const key = state.filterList[x][0];
+  }
+  console.log(data);
   return (
     <div style={{ height: 550, width: '100%' }}>
       {(result !== null) ?
        <>
-         <Typography>{`query elapsed: ${result.elapsed.toFixed(2)} secs`}</Typography>
+         <Grid container>
+           {state.filterList.length > 0 ?
+            <Grid item xs={12}>
+              <Box sx={{ p: 1, }}>
+                <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
+                  篩選條件
+                </Typography>
+                <Grid container spacing={2}>
+                  {state.filterList.map((x, index) => {
+                    let filterItem = null;
+                    if (x[0] === 'accession_number') {
+                      filterItem = <TextField
+                                     label="館號"
+                                     variant="filled"
+                                     value={state.filterList[index][1]}
+                                     onChange={(e) => {
+                                       dispatch({type:'SET_FILTER', name:'accession_number' , value:e.target.value, index: index});
+                                     }}/>;
+                    } else if (x === 'collector') {
+                    } else if (x === 'field_number') {
+                      filterItem = <TextField label="採集號" variant="filled" />;
+                    }
+                    return (
+                      <Grid item key={index}>
+                        <Card variant="outlined">
+                          <CardContent>
+                            {filterItem}
+                          </CardContent>
+                          <CardActions>
+                            <RemoveCircleOutlineIcon onClick={()=>{
+                              dispatch({type: 'REMOVE_FILTER', index: index});
+                            }}/>
+                          </CardActions>
+                        </Card>
+                      </Grid>
+                    )
+                  })}
+                </Grid>
+              </Box>
+              <Button variant="contained">搜尋</Button>
+            </Grid> : null}
+           <Grid item xs={6}>
+             <Typography>{`query elapsed: ${result.elapsed.toFixed(2)} secs`}</Typography>
+           </Grid>
+           <Grid item xs={6}>
+             <Grid container justifyContent="flex-end">
+               <Grid item>
+                 <CollectionListToolbar dispatch={dispatch} state={state} />
+               </Grid>
+             </Grid>
+           </Grid>
+         </Grid>
          <DataGrid
            loading={rowsState.isLoading}
            components={{
