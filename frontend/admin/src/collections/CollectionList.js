@@ -10,7 +10,6 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 // for search
-import TextField from '@mui/material/TextField';
 import { styled } from '@mui/material/styles';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -28,8 +27,14 @@ import {
   Link as RouterLink,
 } from "react-router-dom";
 
-import { getList } from '../Utils';
-import { CollectionListToolbar } from './CollectionListToolbar';
+import {
+  getList,
+  formatDate,
+} from '../Utils';
+import {
+  CollectionListFilterMenu,
+  CollectionListFilterBox,
+} from './CollectionListToolbar';
 
 function CustomToolbar() {
   return (
@@ -174,8 +179,28 @@ function CustomNoRowsOverlay() {
 }
 
 const reducer = (state, action) => {
-  // console.log(state, action);
+  //console.log('!!!', state, action);
   switch (action.type) {
+  case 'START_LOADING':
+    return {
+      ...state,
+      isLoading: true,
+    };
+  case 'SET_ROWS':
+    let newState = {
+      ...state,
+      isLoading: false,
+    };
+    if (action.pageIndex) {
+      newState.pageIndex = action.pageIndex;
+    }
+    if (action.pageSize) {
+      newState.pageSize = action.pageSize;
+    }
+    if (action.result) {
+      newState.result = action.result;
+    }
+    return newState;
   case 'OPEN_FILTER_MENU':
     return {
       ...state,
@@ -199,13 +224,36 @@ const reducer = (state, action) => {
       ...state,
       filterList: tmp,
     }
+  case 'SET_FILTER_DATE_RANGE':
+    let tmp2 = [...state.filterList];
+    if (action.isRangeStart === true) {
+      if (tmp2[action.index][1] === null) {
+        tmp2[action.index][1] = [action.value, null];
+      } else {
+        tmp2[action.index][1][0] = action.value;
+      }
+    } else if (tmp2[action.index][1][0] && action.isRangeEnd === true) {
+      tmp2[action.index][1][1] = action.value;
+    }
+    return {
+      ...state,
+      filterList: tmp2,
+    }
   case 'REMOVE_FILTER':
     let filterList = [...state.filterList];
-    delete filterList[action.index];
+    filterList.splice(action.index, 1);
     return {
       ...state,
       filterMenuAnchorEl: null,
       filterList: filterList,
+    }
+  case 'SET_OPTION':
+    return {
+      ...state,
+      options: {
+        ...state.options,
+        [action.name]: [action.options, action.input]
+      }
     }
   default:
     throw new Error();
@@ -213,27 +261,31 @@ const reducer = (state, action) => {
 }
 
 const CollectionList = () => {
-  const [result, setResult] = useState(null);
-  const [rowsState, setRowsState] = useState({
-    isLoading: false,
-    pageSize: 20,
-    pageIndex: 0,
-  });
+
   const initialArg = {
     filterMenuAnchorEl: null,
     filterList: [],
+    isLoading: false,
+    pageSize: 20,
+    pageIndex: 0,
+    result: null,
+    options: {
+      collector: [[], ''],
+      taxon: [[], ''],
+    },
   };
   const [state, dispatch] = React.useReducer(reducer, initialArg);
 
   useEffect(() => {
     fetchData();
+    console.log('🐣 init');
   }, []);
 
   const fetchData = (props) => {
-    // console.log('fetchData', props);
+    console.log('fetchData', props);
     let params = {};
-    const pageIndex = (props && props.hasOwnProperty('pageIndex')) ? props['pageIndex']: rowsState['pageIndex'];
-    const pageSize = (props && props.hasOwnProperty('pageSize')) ? props['pageSize'] : rowsState['pageSize'];
+    const pageIndex = (props && props.hasOwnProperty('pageIndex')) ? props.pageIndex : state.pageIndex;
+    const pageSize = (props && props.hasOwnProperty('pageSize')) ? props.pageSize : state.pageSize;
     if (props) {
       if (props.hasOwnProperty('pageSize')) {
         params['range'] = [0, pageSize];
@@ -242,44 +294,53 @@ const CollectionList = () => {
       }
     }
     // re-count total only if filter change
-    if (result && result['total'] >= 0) {
-      params['total'] = result['total'];
+    if (state.result && state.result.total >= 0) {
+      params['total'] = state.result.total;
     }
+
+    let ft = {};
+    for (let x of state.filterList) {
+      const key = x[0];
+      const value = x[1];
+      if (!ft[key]) {
+        ft[key] = [];
+      }
+      if (['accession_number','field_number'].indexOf(key) >= 0) {
+        ft[key].push(value);
+      } else if (['taxon','collector'].indexOf(key) >= 0) {
+        ft[key].push(value.id);
+      } else if (key === 'collect_date') {
+        const rangeString = `${formatDate(value[0])}/${formatDate(value[1])}`;
+        ft[key].push(rangeString);
+      }
+    }
+    console.log('filter to', ft);
+    params['filter'] = ft;
+
     getList('collections', params)
       .then(({ json }) => {
         console.log('getList', json);
-        setResult(json);
-        setRowsState({
-          isLoading: false,
-          pageIndex: pageIndex,
-          pageSize: pageSize,
-        });
+        dispatch({type: 'SET_ROWS', result: json, pageIndex: pageIndex, pageSize: pageSize});
       });
   }
 
   const handlePageChange = (pageIndex) => {
-    setRowsState((ps) => ({
-      ...ps,
-      isLoading: true
-    }))
+    dispatch({type: 'START_LOADING'});
     fetchData({pageIndex:pageIndex});
   }
   const handlePageSizeChange = (pageSize) => {
-    setRowsState((ps) => ({
-      ...ps,
-      isLoading: true
-    }))
+    dispatch({type: 'START_LOADING'});
     fetchData({pageIndex:0, pageSize: pageSize});
   }
-
-  let data = {};
-  for (const x in state.filterList) {
-    const key = state.filterList[x][0];
+  const handleSearch = () => {
+    dispatch({type: 'START_LOADING'});
+    fetchData();
   }
-  console.log(data);
+
+  console.log((state.isLoading === false && state.result === null) ? '🥚': '🐔' + ' state', state);
   return (
     <div style={{ height: 550, width: '100%' }}>
-      {(result !== null) ?
+      {(state.result !== null) ?
        <>
          <Grid container>
            {state.filterList.length > 0 ?
@@ -290,24 +351,12 @@ const CollectionList = () => {
                 </Typography>
                 <Grid container spacing={2}>
                   {state.filterList.map((x, index) => {
-                    let filterItem = null;
-                    if (x[0] === 'accession_number') {
-                      filterItem = <TextField
-                                     label="館號"
-                                     variant="filled"
-                                     value={state.filterList[index][1]}
-                                     onChange={(e) => {
-                                       dispatch({type:'SET_FILTER', name:'accession_number' , value:e.target.value, index: index});
-                                     }}/>;
-                    } else if (x === 'collector') {
-                    } else if (x === 'field_number') {
-                      filterItem = <TextField label="採集號" variant="filled" />;
-                    }
+                    const minWidth = (x[0] === 'taxon') ? 400 : 300;
                     return (
                       <Grid item key={index}>
-                        <Card variant="outlined">
+                        <Card variant="outlined" sx={{minWidth: minWidth}}>
                           <CardContent>
-                            {filterItem}
+                            <CollectionListFilterBox dispatch={dispatch} index={index} data={x} options={state.options}/>
                           </CardContent>
                           <CardActions>
                             <RemoveCircleOutlineIcon onClick={()=>{
@@ -320,31 +369,31 @@ const CollectionList = () => {
                   })}
                 </Grid>
               </Box>
-              <Button variant="contained">搜尋</Button>
+              <Button variant="contained" onClick={handleSearch}>搜尋</Button>
             </Grid> : null}
            <Grid item xs={6}>
-             <Typography>{`query elapsed: ${result.elapsed.toFixed(2)} secs`}</Typography>
+             <Typography>{`query elapsed: ${state.result.elapsed.toFixed(2)} secs`}</Typography>
            </Grid>
            <Grid item xs={6}>
              <Grid container justifyContent="flex-end">
                <Grid item>
-                 <CollectionListToolbar dispatch={dispatch} state={state} />
+                 <CollectionListFilterMenu dispatch={dispatch} state={state} />
                </Grid>
              </Grid>
            </Grid>
          </Grid>
          <DataGrid
-           loading={rowsState.isLoading}
+           loading={state.isLoading}
            components={{
              Toolbar: CustomToolbar,
              LoadingOverlay: LinearProgress,
              NoRowsOverlay: CustomNoRowsOverlay,
            }}
            columns={columns}
-           rows={result.data}
-           rowCount={result.total}
+           rows={state.result.data}
+           rowCount={state.result.total}
            pagination
-           pageSize={rowsState.pageSize}
+           pageSize={state.pageSize}
            rowsPerPageOptions={[20, 50, 100]}
            paginationMode='server'
            onPageChange={(page) => handlePageChange(page)}

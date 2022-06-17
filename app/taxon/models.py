@@ -79,6 +79,10 @@ class Taxon(Base):
         res = TaxonRelation.query.filter(TaxonRelation.child_id==self.id).order_by(TaxonRelation.depth).all()
         return [x.parent for x in res]
 
+    def get_children(self):
+        res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
+        return [x.child for x in res]
+
     def get_higher_taxon(self, rank=''):
         if rank:
             if parents:= self.get_parents():

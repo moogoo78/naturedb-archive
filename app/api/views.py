@@ -17,6 +17,7 @@ from sqlalchemy import (
     between,
     Integer,
     extract,
+    or_,
 )
 
 from flask.views import MethodView
@@ -93,6 +94,44 @@ class AdminQuery(object):
         }
         start = int(payload['range'][0])
         end = int(payload['range'][1])
+
+
+        if ft := payload.get('filter'):
+            total = None  # re-count total
+            if taxa := ft.get('taxon'):
+                taxa_ids = []
+                for x in taxa:
+                    if t:= session.get(Taxon, x):
+                        for c in t.get_children():
+                            taxa_ids.append(c.id)
+
+                # stmt = stmt.where(Identification.taxon_id.in_(taxon)) # strange join (not group?)
+                stmt = stmt.where(Collection.last_taxon_id.in_(taxa_ids))
+
+            if accession_number := ft.get('accession_number'):
+                many_or = or_()
+                for x in accession_number:
+                    many_or = or_(many_or, Unit.accession_number.ilike(f'%{x}%'))
+                stmt = stmt.where(many_or)
+
+            if collector := ft.get('collector'):
+                stmt = stmt.where(Collection.collector_id.in_(collector))
+
+            if field_number := ft.get('field_number'):
+                many_or = or_()
+                for x in field_number:
+                    many_or = or_(many_or, Collection.field_number.ilike(f'%{x}%'))
+                stmt = stmt.where(many_or)
+
+            if collect_date := ft.get('collect_date'):
+                # only pick one
+                date_range = collect_date[0].split('/')
+                stmt = stmt.where(
+                    Collection.collect_date >= date_range[0],
+                    Collection.collect_date <= date_range[1],
+                )
+
+            print(stmt, flush=True)
 
         self.limit = min((end-start), self.MAX_QUERY_RANGE)
         self.offset = start
@@ -642,6 +681,7 @@ class CollectionMethodView(MethodView):
         if item_id is None:
             # item_list
             stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
+            #print('xxxxxxxx', request.args, flush=True)
             # ra_provider = ReactAdminProvider(request, stmt)
             total = None
             if t := request.args.get('total'):
@@ -649,9 +689,7 @@ class CollectionMethodView(MethodView):
             admin_query = AdminQuery(request, stmt, collection_mapping, total=total)
             #admin_query = AdminQuery(request, stmt, lambda x: x[0].to_dict())
 
-            # filter
-
-            print(stmt, flush=True)
+            # print(stmt, flush=True)
             return admin_query.get_result()
 
         else:
@@ -1041,7 +1079,7 @@ class MeasurementOrFactsMethodView(MethodView):
         if item_id is None:
             # item_list
             query = self.model.query
-            if filter_str := request.args.get('filter', ''):
+            if filter_str := request.argsh.get('filter', ''):
                 filter_dict = json.loads(filter_str)
                 if collection_id := filter_dict.get('collection_id', ''):
                     query = query.filter(MeasurementOrFact.collection_id==collection_id)
