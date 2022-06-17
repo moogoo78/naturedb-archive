@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  flask:
+    build:
+      dockerfile: ./docker/Dockerfile_prod
+    expose:
+      - 8001
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.observ.entrypoints=web
+      - traefik.http.routers.observ.rule=Host(`${WEB_HOST}`)
+      - traefik.http.services.observ.loadbalancer.server.port=8001
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - 80:80
+      #- 443:443
+    volumes:
+      - ./conf/naturedb.conf:/etc/nginx/conf.d/naturedb.conf
+      - ../naturedb-volumes/static:/naturedb-volumes/static
+      - ../naturedb-volumes/admin:/naturedb-volumes/admin
+
+  #traefik:
+  #  image: traefik:v2.7
+  #  command:
+  #    - --api.insecure=true
+  #    - --providers.docker
+  #    - --entryPoints.web.address=:80
+  #  ports:
+  #    - "80:80"
+  #    - "8080:8080"
+  #  volumes:
+  #    - /var/run/docker.sock:/var/run/docker.sock

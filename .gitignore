@@ -3,5 +3,7 @@ __pycache__
 node_modules
 .parcel-cache
 
+.env
+
 dist
 load_data_conf.py
