@@ -19,7 +19,7 @@ services:
       - 80:80
       #- 443:443
     volumes:
-      - ./conf/naturedb.conf:/etc/nginx/conf.d/naturedb.conf
+      - ./docker/naturedb.conf:/etc/nginx/conf.d/naturedb.conf
       - ../naturedb-volumes/static:/naturedb-volumes/static
       - ../naturedb-volumes/admin:/naturedb-volumes/admin
 
