@@ -5,6 +5,7 @@ node_modules
 
 .env
 frontend/admin/.env
+frontend/admin/build
 
 dist
 load_data_conf.py
