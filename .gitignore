@@ -4,6 +4,7 @@ node_modules
 .parcel-cache
 
 .env
+frontend/admin/.env
 
 dist
 load_data_conf.py
