@@ -2,5 +2,6 @@ version: "3.7"
 
 services:
   postgres:
-    context: .
-    dockerfile: ./docker/Dockerfile_postgres
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile_postgres
