@@ -1,5 +1,16 @@
 # NatureDB
 
+
+## Development
+
+Create .env (copy dotenv.sample & edit)
+
+```
+$ cp dotenv.sample .env
+
+```
+
+
 ## workflow
 
 create db (naturedb) use adminer web ui

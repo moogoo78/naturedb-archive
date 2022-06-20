@@ -17,9 +17,12 @@ services:
     restart: always
     ports:
       - 80:80
+      #- 8888:9000
       #- 443:443
+    links:
+      - flask 
     volumes:
-      - ./docker/naturedb.conf:/etc/nginx/conf.d/naturedb.conf
+      - ./docker/nginx:/etc/nginx/conf.d
       - ../naturedb-volumes/static:/naturedb-volumes/static
       - ../naturedb-volumes/admin:/naturedb-volumes/admin
 
