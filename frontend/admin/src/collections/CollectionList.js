@@ -26,6 +26,7 @@ import {
 import {
   Link as RouterLink,
 } from "react-router-dom";
+import { useLocation } from "react-router";
 
 import {
   getList,
@@ -46,65 +47,6 @@ function CustomToolbar() {
     </GridToolbarContainer>
   );
 }
-
-const columns = [
-  {
-    field: 'id',
-    headerName: 'ID',
-    width: 80,
-  },
-  {
-    field: 'last_taxon_text',
-    headerName: '學名/中文名',
-    minWidth: 350,
-  },
-  {
-    field: 'display_name',
-    headerName: '採集者',
-    // description': 'Collector'
-    // width, minWidth, valueGetter, renderCell
-    minWidth: 200,
-  },
-  {
-    field: 'field_number',
-    headerName: '採集號',
-  },
-  {
-    field: 'collect_date',
-    headerName: '採集日期',
-  },
-  {
-    field: 'units',
-    headerName: '標本/館號',
-    renderCell: (params) => {
-      const specimens = params.value.map((x, i) => (
-        <Grid container alignItems="center" columnSpacing={1} key={i}>
-          <Grid item>
-            <img src={x.image_url} height="50" style={{objectFit: 'contain'}}/>
-          </Grid>
-          <Grid item>
-            <Typography variant='body2'>{x.accession_number}</Typography>
-          </Grid>
-        </Grid>
-      ));
-      return (
-        <>
-          {specimens}
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginLeft: 16 }}
-            component={RouterLink}
-            to={`/collections/${params.row.id}`}
-          >
-            Edit
-        </Button>
-        </>)
-    },
-    minWidth: 200,
-  },
-];
 
 
 const StyledGridOverlay = styled('div')(({ theme }) => ({
@@ -266,10 +208,79 @@ const reducer = (state, action) => {
 }
 
 const CollectionList = () => {
+  let location = useLocation();
+
+  const columns = [
+  {
+    field: 'id',
+    headerName: 'ID',
+    width: 80,
+  },
+  {
+    field: 'last_taxon_text',
+    headerName: '學名/中文名',
+    minWidth: 350,
+  },
+  {
+    field: 'display_name',
+    headerName: '採集者',
+    // description': 'Collector'
+    // width, minWidth, valueGetter, renderCell
+    minWidth: 200,
+  },
+  {
+    field: 'field_number',
+    headerName: '採集號',
+  },
+  {
+    field: 'collect_date',
+    headerName: '採集日期',
+  },
+  {
+    field: 'units',
+    headerName: '標本/館號',
+    renderCell: (params) => {
+      const specimens = params.value.map((x, i) => (
+        <Grid container alignItems="center" columnSpacing={1} key={i}>
+          <Grid item>
+            <img src={x.image_url} height="50" style={{objectFit: 'contain'}}/>
+          </Grid>
+          <Grid item>
+            <Typography variant='body2'>{x.accession_number}</Typography>
+          </Grid>
+        </Grid>
+      ));
+      return (
+        <>
+          {specimens}
+        </>)
+    },
+    minWidth: 200,
+  },
+  {
+    field: 'edit',
+    headerName: '',
+    renderCell: (params) => {
+      return (
+        <Button
+          variant="contained"
+          color="primary"
+          size="small"
+          style={{ marginLeft: 16 }}
+          component={RouterLink}
+          state={{ filterList: state.filterList }}
+          to= {`/collections/${params.row.id}`}
+        >
+          Edit
+        </Button>
+      );
+    }
+  }
+  ];
 
   const initialArg = {
     filterMenuAnchorEl: null,
-    filterList: [],
+    filterList: (location.state?.filterList) ? location.state.filterList : [],
     isLoading: false,
     pageSize: 20,
     pageIndex: 0,

@@ -212,7 +212,7 @@ export function AdminContainer() {
 
 export default function Admin() {
   return (
-    <BrowserRouter  basename="/admin">
+    <BrowserRouter basename={(process.env.MY_ENV === 'prod') ? '/admin' : '/'}>
       <ThemeProvider theme={mdTheme}>
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={zhTW}>
           <AdminContainer />

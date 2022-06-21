@@ -1,50 +1,49 @@
 import React from 'react';
 
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import InputAdornment from '@mui/material/InputAdornment';
-import TextField from '@mui/material/TextField';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import MuiPaper from '@mui/material/Paper';
-import Grid from '@mui/material/Grid';
-import Typography from '@mui/material/Typography';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 import Autocomplete from '@mui/material/Autocomplete';
-import CircularProgress from '@mui/material/CircularProgress';
-import Stack from '@mui/material/Stack';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
-import Button from '@mui/material/Button';
-import Link from '@mui/material/Link';
-
+import CircularProgress from '@mui/material/CircularProgress';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-
+import FormControl from '@mui/material/FormControl';
+import Grid from '@mui/material/Grid';
+import Input from '@mui/material/Input';
+import InputLabel from '@mui/material/InputLabel';
+import InputAdornment from '@mui/material/InputAdornment';
+import Link from '@mui/material/Link';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import MenuItem from '@mui/material/MenuItem';
+import MuiPaper from '@mui/material/Paper';
+import Select from '@mui/material/Select';
+import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CachedIcon from '@mui/icons-material/Cached';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
-// import ListItemAvatar from '@mui/material/ListItemAvatar';
-// import Avatar from '@mui/material/Avatar';
-// import StraightenIcon from '@mui/icons-material/Straighten';
+import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
 
 // import DatePicker from '@mui/x-date-pickers/DatePicker'; import error ?
 import { DatePicker } from '@mui/x-date-pickers';
@@ -52,7 +51,10 @@ import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
 
 import {
   useParams,
+  Link as RouterLink,
 } from "react-router-dom";
+
+import { useLocation } from "react-router";
 
 /*
 import {
@@ -97,6 +99,7 @@ const reducer = (state, action) => {
   switch (action.type) {
   case 'GET_ONE_SUCCESS':
     return {
+      ...state,
       loading: false,
       data: action.data,
       helpers: action.helpers,
@@ -104,6 +107,7 @@ const reducer = (state, action) => {
     }
   case 'GET_ONE_ERROR':
     return {
+      ...state,
       loading: false,
       error: action.error,
     }
@@ -171,6 +175,16 @@ const reducer = (state, action) => {
             options: action.options
           }
         }
+      }
+    }
+  case 'SET_ALERT':
+    return {
+      ...state,
+      alert: {
+        ...alert,
+        text: action.text,
+        time: (action.time) ? action.time : undefined,
+        isDisplay: action.isDisplay,
       }
     }
   case 'SET_DIALOG_NEW':
@@ -363,10 +377,18 @@ const reducer = (state, action) => {
     throw new Error();
   }
 }
+
 const CollectionForm = () => {
   let params = useParams();
+  let location = useLocation();
+
   const initialArg = {
     loading: true,
+    alert: {
+      isDisplay: false,
+      text: '',
+      time: null,
+    },
     error: '',
     data: {},
     helpers: {
@@ -376,10 +398,14 @@ const CollectionForm = () => {
       },
     }
   };
+
   const [state, dispatch] = React.useReducer(reducer, initialArg, init);
 
-
   React.useEffect(() => {
+    init();
+  }, []);
+
+  const init = () => {
     getOne('collections', params.collectionId)
       .then(({ json }) => {
         // console.log('getOne', json);
@@ -426,14 +452,12 @@ const CollectionForm = () => {
           /*...namedAreas,*/
         }
         console.log('🐣 init');
-
         dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: initialHelpers});
       })
       .catch(error => {
         dispatch({type: 'GET_ONE_ERROR', error: error});
       });
-
-    }, []);
+  }
 
   const handleChangeByID = (event) => {
     dispatch({
@@ -444,10 +468,15 @@ const CollectionForm = () => {
   }
 
   const handleSubmitCont = (event) => {
-    handleSubmit(event, true);
+    doSubmit();
+    dispatch({type: 'SET_ALERT', text:'已儲存', time: new Date(), isDisplay: true});
   }
 
-  const handleSubmit = (event, isReload=false) => {
+  const handleSubmit = (event) => {
+    doSubmit();
+  };
+
+  const doSubmit = () => {
     const data = state.data;
     let cleaned = {
       collector_id: (data.collector) ? data.collector.id : null,
@@ -481,9 +510,9 @@ const CollectionForm = () => {
     postOne('collections', params.collectionId, cleaned)
       .then((json) => {
         console.log('return ', json);
-        if (isReload === true) {
-          window.location.reload();
-        }
+        //if (isReload === true) {
+        //  window.location.reload();
+        //}
       });
   }
 
@@ -745,7 +774,35 @@ const CollectionForm = () => {
                  />
                </DialogActions>
              </Dialog> : null}
-            <Typography variant="h4">Collection</Typography>
+
+            <Breadcrumbs aria-label="breadcrumb" sx={{ pb:2 }}>
+              <Link underline="hover" color="inherit" href="/">
+                HAST
+              </Link>
+              <Link
+                underline="hover"
+                color="inherit"
+                href="/collections"
+                >
+                Collections
+              </Link>
+              <Typography color="text.primary">採集號: {data.field_number}</Typography>
+            </Breadcrumbs>
+            {state.alert.isDisplay ?
+             <Alert variant="outlined" severity="success" onClose={()=>{dispatch({type: 'SET_ALERT', isDisplay: false})}}>
+               {`${state.alert.text} - ${state.alert.time}`}
+             </Alert> : null}
+            {location.state?.filterList.length > 0 ?
+             <Button
+               variant="outlined"
+               startIcon={<KeyboardBackspaceIcon />}
+               to="/collections"
+               state={{filterList: location.state.filterList}}
+               component={RouterLink}
+             >
+              回去剛才的查詢
+             </Button> : null}
+            {/*<Typography variant="h4">Collection</Typography>*/}
             <Grid container spacing={2}>
               <Grid item xs={9}>
                 <Paper elevation={0}>
@@ -912,16 +969,21 @@ const CollectionForm = () => {
                             fullWidth
                             value={data.altitude || ''}
                             onChange={handleChangeByID}
+                            InputProps={{
+                              endAdornment: <InputAdornment position="end">m</InputAdornment>,
+                            }}
                           />
                         </Grid>
                         <Grid item>
                           <TextField
                             id="altitude2"
-                            variant="standard"
                             label="海拔(高)"
-                            fullWidth
                             value={data.altitude2 || ''}
                             onChange={handleChangeByID}
+                            InputProps={{
+                              endAdornment: <InputAdornment position="end">m</InputAdornment>,
+                            }}
+                            variant="standard"
                           />
                         </Grid>
                       </Grid>
@@ -1157,7 +1219,7 @@ const CollectionForm = () => {
                                 }}
                                 onInputChange={(e, v, reason) => {
                                   //console.log(e, v, 'inpt', reason);
-                                  if (reason === 'input') {
+                                  if (['input', 'clear'].includes(reason)) {
                                     dispatch({type: 'SET_LIST_DATA', list: 'biotopes', index: i, name: 'value', value: {...biotope.value, value_en: v}});
                                   }
 
@@ -1207,7 +1269,7 @@ const CollectionForm = () => {
                       <Button variant="contained" onClick={handleSubmitCont} endIcon={<CachedIcon />}>儲存並繼續編輯</Button>
                     </Grid>
                     <Grid item>
-                      <Button variant="contained" onClick={handleSubmit} endIcon={<FormatListBulletedIcon />}>儲存回到列表</Button>
+                      <Button variant="contained" onClick={handleSubmit} endIcon={<FormatListBulletedIcon />}>儲存 (回到列表)</Button>
                     </Grid>
                   </Grid>
                 </Paper>
