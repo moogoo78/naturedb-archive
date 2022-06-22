@@ -3,7 +3,7 @@ __pycache__
 node_modules
 .parcel-cache
 
-.env
+.env*
 frontend/admin/.env
 frontend/admin/build
 
