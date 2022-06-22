@@ -6,11 +6,12 @@ services:
       dockerfile: ./docker/Dockerfile_prod
     expose:
       - 8001
+
   nginx:
     image: nginx:alpine
     restart: always
-    #ports:
-    #  - 80:80
+    ports:
+      - 80:80
     #  #- 8888:9000
     #  #- 443:443
     links:
@@ -19,21 +20,17 @@ services:
       - ./docker/nginx:/etc/nginx/conf.d
       - ../naturedb-volumes/static:/naturedb-volumes/static
       - ../naturedb-volumes/admin:/naturedb-volumes/admin
+      - ../naturedb-volumes/bucket:/bucket
 
-  traefik:
-    image: traefik:v2.7
-    command:
-      - --api.insecure=true
-      - --providers.docker
-      - --entryPoints.web.address=:80
-    ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.nginx.entrypoints=web
-      - traefik.http.routers.nginx.rule=Host(`${WEB_HOST}`)
-      - traefik.http.routers.nginx.middlewares=simple-auth
-      - traefik.http.middlewares.simple-auth.basicauth.users=${HTPASSWD}
+  # traefik:
+  #   image: traefik:v2.7
+  #   command:
+  #     - --api.insecure=true
+  #     - --providers.docker
+  #     - --entryPoints.web.address=:80
+  #     - --providers.docker.exposedByDefault=false
+  #   ports:
+  #     - "80:80"
+  #     - "8080:8080"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
