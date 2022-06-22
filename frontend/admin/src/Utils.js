@@ -119,14 +119,16 @@ const getOne = (resource, itemId, options={}) => {
      });
 }
 
-const postOne = (resource, itemId, data)=> {
+
+const updateOrCreate = (resource, data, itemId)=> {
   const apiUrl = process.env.API_URL;
-  const url = `${apiUrl}/${resource}/${itemId}`;
+  const urlPrefix = `${apiUrl}/${resource}`;
+  const url = (itemId === null) ? `${urlPrefix}` :`${urlPrefix}/${itemId}`;
   const options = {
     body: JSON.stringify(data), // must match 'Content-Type' header
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
     // credentials: 'same-origin', // include, same-origin, *omit
-    method: 'PUT', //'POST', 
+    method: (itemId === null) ? 'POST' : 'PUT',
     // mode: 'cors', // no-cors, cors, *same-origin
     redirect: 'follow', // manual, *follow, error
     referrer: 'no-referrer', // *client, no-referrer
@@ -268,7 +270,7 @@ const formatDate = (date) => {
 export {
   getList,
   getOne,
-  postOne,
+  updateOrCreate,
   deleteOne,
   convertDDToDMS,
   convertDMSToDD,

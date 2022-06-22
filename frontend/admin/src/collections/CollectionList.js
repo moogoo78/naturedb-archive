@@ -269,7 +269,7 @@ const CollectionList = () => {
           style={{ marginLeft: 16 }}
           component={RouterLink}
           state={{ filterList: state.filterList }}
-          to= {`/collections/${params.row.id}`}
+          to={`/collections/${params.row.id}`}
         >
           Edit
         </Button>

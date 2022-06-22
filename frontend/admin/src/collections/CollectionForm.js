@@ -64,7 +64,7 @@ import {
 import {
   getOne,
   getList,
-  postOne,
+  updateOrCreate,
   deleteOne,
   convertDDToDMS,
   convertDMSToDD,
@@ -406,6 +406,27 @@ const CollectionForm = () => {
   }, []);
 
   const init = () => {
+    if (!params.collectionId) {
+      const initialHelpers = {
+        collectorSelect: {
+          input: '',
+          options: [],
+        },
+        identificationsIndex: -1,
+        identifications: [],
+        idSequenceOptions: [0],
+        unitsIndex: -1,
+        deleteConfirmStatus: 'init',
+      }
+      const initData = {
+        named_areas: [],
+        identifications: [],
+        units: [],
+        biotopes: [],
+      }
+      dispatch({type: 'GET_ONE_SUCCESS', data: initData, helpers: initialHelpers});
+      return
+    }
     getOne('collections', params.collectionId)
       .then(({ json }) => {
         // console.log('getOne', json);
@@ -507,7 +528,11 @@ const CollectionForm = () => {
     }
     console.log('update or create:', cleaned);
 
-    postOne('collections', params.collectionId, cleaned)
+    let itemId = null;
+    if (params?.collectionId) {
+      itemId = params.collectionId;
+    }
+    updateOrCreate('collections', cleaned, itemId)
       .then((json) => {
         console.log('return ', json);
         //if (isReload === true) {
@@ -515,6 +540,7 @@ const CollectionForm = () => {
         //}
       });
   }
+
 
   console.log((state.loading===true) ? '🥚': '🐔' + ' state', state);
 
@@ -855,10 +881,11 @@ const CollectionForm = () => {
                         openTo="year"
                         clearable={true}
                         views={['year', 'month', 'day']}
-                        value={data.collect_date}
+                        value={data.collect_date || null}
                         inputFormat="yyyy-MM-dd"
                         mask='____-__-__'
                         onChange={(selectDate, input)=> {
+                          console.log('collect_date: change', selectDate, input);
                           if (!isNaN(selectDate)) {
                             dispatch({type: 'SET_DATA', name: 'collect_date', value: selectDate});
                           } else {
@@ -1006,7 +1033,7 @@ const CollectionForm = () => {
                         <Select
                           labelId="longitude_direction-label"
                           id="longitude_direction"
-                          value={data.longitude_direction}
+                          value={data.longitude_direction || ''}
                           label="東/西經"
                           onChange={(e) => {
                             dispatch({type: 'SET_GEO_DATA', name: 'longitude_direction', value: e.target.value});
@@ -1081,10 +1108,10 @@ const CollectionForm = () => {
                         <Select
                           labelId="demo-simple-select-label"
                           id="latitude_direction"
-                          value={data.latitude_direction}
+                          value={data.latitude_direction || ''}
                           label="南/北緯度"
                           onChange={(e) => {
-                            dispatch({type: 'SET_GEO_DATA', name: 'latitude_direction', value: e.target.value});
+                            dispatch({type: 'SET_GEO_DATA', name: 'latitude_directfion', value: e.target.value});
                         }}
                         >
                           <MenuItem value={""}></MenuItem>

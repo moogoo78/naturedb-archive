@@ -123,7 +123,7 @@ const AdminMain = () => (
     <Route path="/" element={<Dashboard />} />
     <Route path="/collections" element={<CollectionList />} />
     <Route path="/collections/:collectionId" element={<CollectionForm />} />
-    <Route path="/collections/new" element={<Dashboard />} />
+    <Route path="/collections/create" element={<CollectionForm />} />
   </Routes>
 );
 

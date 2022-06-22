@@ -704,7 +704,7 @@ class CollectionMethodView(MethodView):
 
     def post(self, item_id):
         # create
-        obj = self.model(collection_id=item_id)
+        obj = Collection()
         obj = self._update_or_create(obj, request.json)
         return ra_item_response(self.RESOURCE_NAME, obj)
 
@@ -726,8 +726,12 @@ class CollectionMethodView(MethodView):
 
     def _update_or_create(self, obj, params):
         ret = {}
-        #if obj.id
-        print(params, flush=True)
+        # print(params, obj, obj.id, flush=True)
+
+        if not obj.id:
+            session.add(obj)
+            session.commit()
+
         for k, v in params.items():
             if k == 'named_areas':
                 new_named_area_ids = [x[1] for x in v if x[1]]

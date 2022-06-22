@@ -2,13 +2,20 @@ import React  from 'react';
 
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
-import { DatePicker } from '@mui/x-date-pickers';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import Grid from '@mui/material/Grid';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import PrintIcon from '@mui/icons-material/Print';
 import TextField from '@mui/material/TextField';
+
+import AddIcon from '@mui/icons-material/Add';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import PrintIcon from '@mui/icons-material/Print';
+
+import { DatePicker } from '@mui/x-date-pickers';
+
+import {
+  Link as RouterLink,
+} from "react-router-dom";
 
 import {
   getList,
@@ -20,6 +27,11 @@ const CollectionListFilterMenu = ({dispatch, state}) => {
   const open = Boolean(state.filterMenuAnchorEl);
   return (
     <>
+      <Button
+        component={RouterLink}
+        to="/collections/create"
+        startIcon={<AddIcon />}
+      >新增</Button>
       <Button
         id="filter-button"
         aria-controls={open ? 'filter-menu' : undefined}
