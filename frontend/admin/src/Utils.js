@@ -119,16 +119,14 @@ const getOne = (resource, itemId, options={}) => {
      });
 }
 
-
 const updateOrCreate = (resource, data, itemId)=> {
   const apiUrl = process.env.API_URL;
-  const urlPrefix = `${apiUrl}/${resource}`;
-  const url = (itemId === null) ? `${urlPrefix}` :`${urlPrefix}/${itemId}`;
+  const url = `${apiUrl}/${resource}/${itemId}`;
   const options = {
     body: JSON.stringify(data), // must match 'Content-Type' header
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
     // credentials: 'same-origin', // include, same-origin, *omit
-    method: (itemId === null) ? 'POST' : 'PUT',
+    method: 'PUT', //'POST', 
     // mode: 'cors', // no-cors, cors, *same-origin
     redirect: 'follow', // manual, *follow, error
     referrer: 'no-referrer', // *client, no-referrer

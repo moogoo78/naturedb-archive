@@ -425,59 +425,59 @@ const CollectionForm = () => {
         biotopes: [],
       }
       dispatch({type: 'GET_ONE_SUCCESS', data: initData, helpers: initialHelpers});
-      return
-    }
-    getOne('collections', params.collectionId)
-      .then(({ json }) => {
-        // console.log('getOne', json);
-        if (json.longitude_decimal) {
-          const dms_lon = convertDDToDMS(json.longitude_decimal);
-          json.longitude_direction = dms_lon[0];
-          json.longitude_degree = dms_lon[1];
-          json.longitude_minute = dms_lon[2];
-          json.longitude_second = dms_lon[3];
-          const dms_lat = convertDDToDMS(json.latitude_decimal);
-          json.latitude_direction = dms_lat[0];
-          json.latitude_degree = dms_lat[1];
-          json.latitude_minute = dms_lat[2];
-          json.latitude_second = dms_lat[3];
-        }
-        //setData(json);
-        const identifications = json.identifications.map((x)=> {
-          return {
-            taxonSelect: {
-              input: (x.taxon) ? x.taxon.display_name : '',
-              options: (x.taxon) ? [x.taxon] : [],
-            },
-            identifierSelect: {
-              input: (x.identifier) ? x.identifier.display_name : '',
-              options: (x.identifier) ? [x.identifier] : [],
-            }
+    } else {
+      getOne('collections', params.collectionId)
+        .then(({ json }) => {
+          // console.log('getOne', json);
+          if (json.longitude_decimal) {
+            const dms_lon = convertDDToDMS(json.longitude_decimal);
+            json.longitude_direction = dms_lon[0];
+            json.longitude_degree = dms_lon[1];
+            json.longitude_minute = dms_lon[2];
+            json.longitude_second = dms_lon[3];
+            const dms_lat = convertDDToDMS(json.latitude_decimal);
+            json.latitude_direction = dms_lat[0];
+            json.latitude_degree = dms_lat[1];
+            json.latitude_minute = dms_lat[2];
+            json.latitude_second = dms_lat[3];
           }
+          //setData(json);
+          const identifications = json.identifications.map((x)=> {
+            return {
+              taxonSelect: {
+                input: (x.taxon) ? x.taxon.display_name : '',
+                options: (x.taxon) ? [x.taxon] : [],
+              },
+              identifierSelect: {
+                input: (x.identifier) ? x.identifier.display_name : '',
+                options: (x.identifier) ? [x.identifier] : [],
+              }
+            }
+          });
+          const idSequenceOptions = [];
+          for (let i=0; i < 10 ; i++) {
+            idSequenceOptions.push(i+1);
+          }
+          const initialHelpers = {
+            collectorSelect: {
+              input: json.collector.display_name || '',
+              options: [json.collector],
+            },
+            identificationsIndex: -1,
+            identifications: identifications,
+            idSequenceOptions: idSequenceOptions,
+            unitsIndex: -1,
+            deleteConfirmStatus: 'init',
+            // units: units,
+            /*...namedAreas,*/
+          }
+          console.log('🐣 init');
+          dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: initialHelpers});
+        })
+        .catch(error => {
+          dispatch({type: 'GET_ONE_ERROR', error: error});
         });
-        const idSequenceOptions = [];
-        for (let i=0; i < 10 ; i++) {
-          idSequenceOptions.push(i+1);
-        }
-        const initialHelpers = {
-          collectorSelect: {
-            input: json.collector.display_name || '',
-            options: [json.collector],
-          },
-          identificationsIndex: -1,
-          identifications: identifications,
-          idSequenceOptions: idSequenceOptions,
-          unitsIndex: -1,
-          deleteConfirmStatus: 'init',
-          // units: units,
-          /*...namedAreas,*/
-        }
-        console.log('🐣 init');
-        dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: initialHelpers});
-      })
-      .catch(error => {
-        dispatch({type: 'GET_ONE_ERROR', error: error});
-      });
+    }
   }
 
   const handleChangeByID = (event) => {

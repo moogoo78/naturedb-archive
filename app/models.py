@@ -439,6 +439,8 @@ class Collection(Base):
     identifications = relationship('Identification', back_populates='collection', lazy='dynamic')
     last_taxon_text = Column(Text)
     last_taxon_id = Column(Integer, ForeignKey('taxon.id'))
+    proxy_unit_accession_numbers = Column(String(1000))
+    proxy_units = Column(JSONB)
     units = relationship('Unit')
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified

@@ -95,7 +95,6 @@ class AdminQuery(object):
         start = int(payload['range'][0])
         end = int(payload['range'][1])
 
-
         if ft := payload.get('filter'):
             total = None  # re-count total
             if taxa := ft.get('taxon'):
@@ -131,7 +130,12 @@ class AdminQuery(object):
                     Collection.collect_date <= date_range[1],
                 )
 
-            print(stmt, flush=True)
+
+        if len(payload['sort'].keys()) == 0:
+            stmt = stmt.order_by(desc(Collection.id))
+            #stmt = stmt.order_by(Collection.id)
+
+        print(stmt, flush=True)
 
         self.limit = min((end-start), self.MAX_QUERY_RANGE)
         self.offset = start
@@ -645,7 +649,8 @@ class NamedAreaMethodView(MethodView):
         return make_cors_preflight_response()
 
 def collection_mapping(row):
-    #print(row, flush=True)
+    #print(row, row[0].id, flush=True)
+
     units = []
     for k, v in enumerate(row[1]):
         unit = {'id': v}
@@ -654,13 +659,15 @@ def collection_mapping(row):
             accession_number_int = int(x)
             instance_id = f'{accession_number_int:06}'
             first_3 = instance_id[0:3]
-            image_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+            image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
             unit['image_url'] = image_url
         units.append(unit)
 
     c = row[0]
+    #units = [x.to_dict() for x in c.units]
     #print (row, flush=True)
     #na_list = [x.name for x in c.named_areas]
+
     return {
         'id': c.id,
         #'collector_id': c.collector_id,
@@ -680,9 +687,10 @@ class CollectionMethodView(MethodView):
     def get(self, item_id):
         if item_id is None:
             # item_list
-            stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
-            #print('xxxxxxxx', request.args, flush=True)
-            # ra_provider = ReactAdminProvider(request, stmt)
+            stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection, full=True).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
+            # TODO: full outer join cause slow
+            #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Collection).join(Unit).group_by(Collection.id)
+
             total = None
             if t := request.args.get('total'):
                 total = int(t)
