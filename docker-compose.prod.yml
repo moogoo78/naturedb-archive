@@ -35,4 +35,5 @@ services:
       - traefik.enable=true
       - traefik.http.routers.nginx.entrypoints=web
       - traefik.http.routers.nginx.rule=Host(`${WEB_HOST}`)
-      - traefik.http.middlewares.nginx.basicauth.users=${HTPASSWD}
+      - traefik.http.routers.nginx.middlewares=simple-auth
+      - traefik.http.middlewares.simple-auth.basicauth.users=${HTPASSWD}
