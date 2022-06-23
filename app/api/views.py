@@ -110,7 +110,7 @@ class AdminQuery(object):
             if accession_number := ft.get('accession_number'):
                 many_or = or_()
                 for x in accession_number:
-                    many_or = or_(many_or, Unit.accession_number.ilike(f'%{x}%'))
+                    many_or = or_(many_or, Unit.accession_number==x)
                 stmt = stmt.where(many_or)
 
             if collector := ft.get('collector'):
@@ -119,8 +119,22 @@ class AdminQuery(object):
             if field_number := ft.get('field_number'):
                 many_or = or_()
                 for x in field_number:
-                    many_or = or_(many_or, Collection.field_number.ilike(f'%{x}%'))
+                    many_or = or_(many_or, Collection.field_number==x)
                 stmt = stmt.where(many_or)
+
+            if field_number_range := ft.get('field_number_range'):
+                field_numbers = []
+                for pair in field_number_range:
+                    print (pair, flush=True)
+                    try:
+                        values = list(range(int(pair[0]), int(pair[1])+1))
+                        values = [str(x) for x in values]
+                        field_numbers += values
+                    except ValueError:
+                        print('field_number_range value error', pair)
+
+                if len(values):
+                    stmt = stmt.where(Collection.field_number.in_(values))
 
             if collect_date := ft.get('collect_date'):
                 # only pick one

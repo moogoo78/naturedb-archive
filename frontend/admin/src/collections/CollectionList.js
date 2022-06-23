@@ -322,7 +322,7 @@ const CollectionList = () => {
       if (!ft[key]) {
         ft[key] = [];
       }
-      if (['accession_number','field_number'].indexOf(key) >= 0) {
+      if (['accession_number','field_number', 'field_number_range'].indexOf(key) >= 0) {
         ft[key].push(value);
       } else if (['taxon','collector'].indexOf(key) >= 0) {
         ft[key].push(value.id);

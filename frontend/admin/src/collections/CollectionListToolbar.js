@@ -56,6 +56,7 @@ const CollectionListFilterMenu = ({dispatch, state}) => {
         <MenuItem onClick={()=> dispatch({type: 'ADD_FILTER', item: 'accession_number'})}>館號</MenuItem>
         <MenuItem onClick={()=> dispatch({type: 'ADD_FILTER', item: 'collector'})}>採集者</MenuItem>
         <MenuItem onClick={()=> dispatch({type: 'ADD_FILTER', item: 'field_number'})}>採集號</MenuItem>
+        <MenuItem onClick={()=> dispatch({type: 'ADD_FILTER', item: 'field_number_range'})}>採集號範圍</MenuItem>
         <MenuItem onClick={()=> dispatch({type: 'ADD_FILTER', item: 'collect_date'})}>採集日期</MenuItem>
       </Menu>
       <Button
@@ -126,6 +127,34 @@ const CollectionListFilterBox = ({dispatch, index, data, options}) => {
         onChange={(e) => {
           dispatch({type:'SET_FILTER', name:'field_number' , value:e.target.value, index: index});
         }}/>);
+  case 'field_number_range':
+    const start = (data[1] && data[1].length > 0) ? data[1][0] : '';
+    const end = (data[1] && data[1].length > 0) ? data[1][1] : '';
+    return (
+      <Grid container alignItems="center" spacing={2}>
+        <Grid item>
+          <TextField
+            label="採集號(開始)"
+            variant="filled"
+            value={start}
+            onChange={(e) => {
+              console.log(data);
+              dispatch({type:'SET_FILTER', name:'field_number_range' , value: [e.target.value, end], index: index});
+            }}/>
+      </Grid>
+        <Grid item>
+        </Grid>
+        <Grid item>
+          <TextField
+            label="採集號(結束)"
+            variant="filled"
+            value={end}
+            onChange={(e) => {
+              dispatch({type:'SET_FILTER', name:'field_number_range' , value: [start, e.target.value], index: index});
+            }}/>
+        </Grid>
+      </Grid>
+    );
   case 'taxon':
     return (
       <Autocomplete
