@@ -18,6 +18,7 @@ from app.models import (
     Identification,
     MeasurementOrFactParameterOption,
     MeasurementOrFact,
+    Dataset,
 )
 from app.helpers import conv_hast21
 
@@ -309,3 +310,11 @@ def print_label():
         item_list += i.units
 
     return render_template('print-label.html', item_list=item_list)
+
+@main.route('/specimen-image/<org_and_accession_number>')
+def specimen_image(org_and_accession_number):
+    keys = org_and_accession_number.split(':')
+    # Dataset.query.filter(Dataset.name==keys[0])
+    u = Unit.query.filter(Unit.accession_number==keys[1]).join(Dataset).filter(Dataset.name==keys[0]).one()
+    
+    return render_template('specimen-image.html', unit=u)
