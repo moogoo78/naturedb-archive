@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import './autocomplete.css';
 
 // inspired via: https://blog.logrocket.com/build-react-autocomplete-component/
@@ -39,6 +39,7 @@ const Autocomplete = ({ name, label, apiUrl, source, onChange }) => {
   }, [])
 
   const handleClick = (e, item) => {
+    console.log('onclick', item);
     if (item === undefined) {
       setData({
         ...data,
@@ -106,7 +107,7 @@ const Autocomplete = ({ name, label, apiUrl, source, onChange }) => {
       );
     });
     return data.optionList.length ? (
-      <ul className="suggestions">
+      <ul className="suggestions query-input-width">
         {options}
       </ul>
     ) : (
@@ -118,9 +119,10 @@ const Autocomplete = ({ name, label, apiUrl, source, onChange }) => {
 
   //console.log(`<Autocomplete ${label}>`, data);
   //<span style={{marginLeft: '20px;',zIndex:'100'}}>x</span>
+
   return (
     <>
-      <input type="text" className="input" name={name} onChange={handleChange} onKeyDown={handleKeyDown} value={data.value} onFocus={() => setData({...data, showList:true})} /> 
+      <input type="text" className="input query-input-width" name={name} onChange={handleChange} onKeyDown={handleKeyDown} value={data.value} onFocus={() => setData({...data, showList:true})} onBlur={(e)=> { /*setData({...data, showList: false});*/ console.log('onblur', e.currentTarget);}}/> 
       {data.showList && <SuggestionList />}
     </>
   );

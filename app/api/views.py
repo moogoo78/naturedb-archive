@@ -92,6 +92,7 @@ class AdminQuery(object):
             'sort': json.loads(req.args.get('sort')) if req.args.get('sort') else {},
             'range': json.loads(req.args.get('range')) if req.args.get('range') else [0, 20],
         }
+        # print (payload['filter'], flush=True)
         start = int(payload['range'][0])
         end = int(payload['range'][1])
 

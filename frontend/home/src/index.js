@@ -1,11 +1,9 @@
-import ReactDOM from "react-dom";
-import dotenv from "dotenv";
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 
-dotenv.config();
+import { App } from './App';
 
-import { QuerySpecimen } from "./QuerySpecimen";
+const container = document.getElementById('root');
+const root = createRoot(container);
 
-
-console.log(process.env.API_URR, 'aoeu');
-const main = document.getElementById("main");
-ReactDOM.render(<QuerySpecimen />, main);
+root.render(<App />);

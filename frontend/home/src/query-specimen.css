@@ -1,0 +1,15 @@
+.query-input-width {
+  width: 75%;
+}
+
+.query-form-panel {
+  transition: max-height 2.2s ease-out;
+  display: block;
+}
+
+.my-display {
+  display: block;
+}
+.my-display-none {
+  display: none;
+}
