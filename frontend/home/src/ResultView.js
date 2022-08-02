@@ -70,9 +70,9 @@ const ResultView = ({state}) => {
           return (
             <tr key={i}>
               <UnitCells units={v.units}/>
-              <td>{v.last_taxon_text || ''}<br/>common</td>
-              <td><div>{ v.collector.display_name } {v.field_number}</div><span className="text is-dark9 font-size-xs">{v.collect_date}</span></td>
-              <td></td>
+              <td>{v.last_taxon_text || ''}<br/>{ v.last_taxon_common_name }</td>
+              <td><div>{ v.collector.display_name } {v.field_number}</div><span className="text is-dark9 font-size-xs">{ v.collect_date }</span></td>
+              <td>{ v.named_areas }</td>
             </tr>);
         })}
       </tbody>

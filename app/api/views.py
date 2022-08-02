@@ -126,7 +126,6 @@ class AdminQuery(object):
             if field_number_range := ft.get('field_number_range'):
                 field_numbers = []
                 for pair in field_number_range:
-                    print (pair, flush=True)
                     try:
                         values = list(range(int(pair[0]), int(pair[1])+1))
                         values = [str(x) for x in values]
@@ -681,8 +680,8 @@ def collection_mapping(row):
     c = row[0]
     #units = [x.to_dict() for x in c.units]
     #print (row, flush=True)
-    #na_list = [x.name for x in c.named_areas]
-
+    na_list = [x.name for x in c.named_areas]
+    taxon = session.get(Taxon, c.last_taxon_id)
     return {
         'id': c.id,
         #'collector_id': c.collector_id,
@@ -692,6 +691,8 @@ def collection_mapping(row):
         'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
         'last_taxon_text': c.last_taxon_text,
         'last_taxon_id': c.last_taxon_id,
+        'last_taxon_common_name': taxon.common_name,
+        'named_areas': ', '.join(na_list),
         'units': units
     }
 

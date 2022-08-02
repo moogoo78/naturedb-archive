@@ -43,7 +43,21 @@ export default function QueryForm({state, dispatch}) {
       params['total'] = state.result.total;
     }
 
-    params['filter'] = state.filters;
+    // params['filter'] = state.filters;
+    let filter = {...state.filters};
+    if (state.filters.hasOwnProperty('collect_date') && state.filters.hasOwnProperty('collect_date2')) {
+      let collectDateMerged = `${state.filters.collect_date}/${state.filters.collect_date2}`;
+      filter.collect_date = [collectDateMerged];
+      delete filter.collect_date2;
+    }
+    if (state.filters.hasOwnProperty('field_number') && state.filters.hasOwnProperty('field_number2')) {
+      let fieldNumberRange = [state.filters.field_number[0], state.filters.field_number2[0]];
+      filter.field_number_range = [fieldNumberRange];
+      delete filter.field_number;
+      delete filter.field_number2;
+    }
+
+    params['filter'] = filter;
     //const filters = JSON.stringify(state.filters);
     //const filtersQS = encodeURIComponent(filters);
     //const rangeQS = encodeURIComponent('[0,9]')
@@ -91,11 +105,11 @@ export default function QueryForm({state, dispatch}) {
         <div className="grid is-gap-horizontal-md is-padding-xs">
           <div className="column is-2 is-lg">採集日期</div>
           <div className="column is-3">
-            <input className="input" type="date" name="collect_date" onChange={handleInput} value={state.filters.collect || ''}/>
+            <input className="input" type="date" name="collect_date" onChange={(e) => handleInput(e, 'collect_date', e.target.value)} value={state.filters.collect_date || ''}/>
           </div>
           <div className="column is-7">
             <span style={{margin:'0 30px 0 -30px'}}> - </span>
-            <input className="input" type="date" name="collect_date2" onChange={handleInput} value={state.filters.collect_date2 || ''}/>
+            <input className="input" type="date" name="collect_date2" onChange={(e) => handleInput(e, 'collect_date2', e.target.value)} value={state.filters.collect_date2 || ''}/>
           </div>
         </div>
       </fieldset>
