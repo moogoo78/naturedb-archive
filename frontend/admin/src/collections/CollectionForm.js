@@ -1095,8 +1095,8 @@ const CollectionForm = () => {
                         variant="outlined"
                         label="經度(秒)"
                         value={intValue(data.longitude_second)}
-                        helperText={(parseInt(data.longitude_second, 10) > 59 || parseInt(data.longitude_second, 10) < 1 ) ? '超出範圍': ''}
-                        error={(parseInt(data.longitude_second, 10) > 59 || parseInt(data.longitude_second, 10) < 1 ) ? true: false}
+                        helperText={(parseInt(data.longitude_second, 10) > 59 || parseInt(data.longitude_second, 10) < 0 ) ? '超出範圍': ''}
+                        error={(parseInt(data.longitude_second, 10) > 59 || parseInt(data.longitude_second, 10) < 0 ) ? true: false}
                         onChange={(e) => {
                           dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
                         }}
