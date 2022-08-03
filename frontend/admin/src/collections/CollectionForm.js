@@ -283,7 +283,7 @@ const reducer = (state, action) => {
   case 'SET_GEO_DATA':
     const regex = /(longitude|latitude)_(direction|degree|minute|second)/g;
     const match = regex.exec(action.name);
-    console.log(action.name, action.value, match);
+    // console.log(action.name, action.value, match);
     if (action.name === 'longitude_decimal') {
       const dms_lon = convertDDToDMS(action.value);
       return {
@@ -506,6 +506,11 @@ const CollectionForm = () => {
       companion_text: data.companion_text || '',
       companion_text_en: data.companion_text_en || '',
       named_areas: data.named_areas.map((x) => [x.id, x.value ? x.value.id : null]),
+      latitude_decimal: data.latitude_decimal,
+      longitude_decimal: data.longitude_decimal,
+      altitude: data.altitude,
+      altitude2: data.altitude2,
+      locality_text: data.locality_text,
       biotopes: data.biotopes.map((x) => [x.id, x.value ? [x.value.id, x.value.value_en, x.value.option_id] : null]),
       identifications: data.identifications.map((x)=> {
         return {
@@ -545,6 +550,14 @@ const CollectionForm = () => {
   console.log((state.loading===true) ? '🥚': '🐔' + ' state', state);
 
   const {data, helpers} = state;
+
+  const intValue = (value) => {
+    if (value || value === 0) {
+      return parseInt(value, 10);
+    } else {
+      return '';
+    }
+  }
 
   return (
     <>
@@ -1051,7 +1064,7 @@ const CollectionForm = () => {
                         variant="outlined"
                         label="經度(度)"
                         type="number"
-                        value={data.longitude_degree || ''}
+                        value={parseInt(data.longitude_degree,10) || ''}
                         onChange={(e) => {
                           dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
                         }}
@@ -1065,8 +1078,9 @@ const CollectionForm = () => {
                         id="longitude_minute"
                         variant="outlined"
                         label="經度(分)"
-                        type="number"
-                        value={data.longitude_minute || ''}
+                        value={intValue(data.longitude_minute)}
+                        helperText={(parseInt(data.longitude_minute, 10) > 59 || parseInt(data.longitude_minute, 10) < 0 ) ? '超出範圍': ''}
+                        error={(parseInt(data.longitude_minute, 10) > 59 || parseInt(data.longitude_minute, 10) < 0 ) ? true: false}
                         onChange={(e) => {
                           dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
                         }}
@@ -1080,8 +1094,9 @@ const CollectionForm = () => {
                         id="longitude_second"
                         variant="outlined"
                         label="經度(秒)"
-                        type="number"
-                        value={data.longitude_second || ''}
+                        value={intValue(data.longitude_second)}
+                        helperText={(parseInt(data.longitude_second, 10) > 59 || parseInt(data.longitude_second, 10) < 1 ) ? '超出範圍': ''}
+                        error={(parseInt(data.longitude_second, 10) > 59 || parseInt(data.longitude_second, 10) < 1 ) ? true: false}
                         onChange={(e) => {
                           dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
                         }}
@@ -1111,7 +1126,7 @@ const CollectionForm = () => {
                           value={data.latitude_direction || ''}
                           label="南/北緯度"
                           onChange={(e) => {
-                            dispatch({type: 'SET_GEO_DATA', name: 'latitude_directfion', value: e.target.value});
+                            dispatch({type: 'SET_GEO_DATA', name: 'latitude_direction', value: e.target.value});
                         }}
                         >
                           <MenuItem value={""}></MenuItem>
@@ -1126,7 +1141,7 @@ const CollectionForm = () => {
                         label="緯度(度)"
                         type="number"
                         variant="outlined"
-                        value={data.latitude_degree}
+                        value={parseInt(data.latitude_degree, 10) || ''}
                         onChange={(e) => {
                           dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
                         }}
@@ -1140,8 +1155,9 @@ const CollectionForm = () => {
                         id="latitude_minute"
                         variant="outlined"
                         label="緯度(分)"
-                        value={data.latitude_minute || ''}
-                        type="number"
+                        value={intValue(data.latitude_minute)}
+                        helperText={(parseInt(data.latitude_minute, 10) > 59 || parseInt(data.latitude_minute, 10) < 0 ) ? '超出範圍': ''}
+                        error={(parseInt(data.latitude_minute, 10) > 59 || parseInt(data.latitude_minute, 10) < 0 ) ? true: false}
                         onChange={(e) => {
                           dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
                         }}
@@ -1155,8 +1171,9 @@ const CollectionForm = () => {
                         id="latitude_second"
                         label="緯度(秒)"
                         variant="outlined"
-                        type="number"
-                        value={data.latitude_second || ''}
+                        value={intValue(data.latitude_second)}
+                        helperText={(parseInt(data.latitude_second, 10) > 59 || parseInt(data.latitude_second, 10) < 0 ) ? '超出範圍': ''}
+                        error={(parseInt(data.latitude_second, 10) > 59 || parseInt(data.latitude_second, 10) < 0 ) ? true: false}
                         onChange={(e) => {
                           dispatch({type: 'SET_GEO_DATA', name: e.target.id, value: e.target.value});
                         }}

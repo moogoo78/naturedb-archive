@@ -2,13 +2,12 @@ import React  from 'react';
 import Autocomplete from './Autocomplete';
 
 import { AppContext } from './App';
-import { getList } from './Utils'
 
-export default function QueryForm({state, dispatch}) {
+export default function QueryForm({state, dispatch, fetchData}) {
   const context = React.useContext(AppContext);
 
   const handleInput = (e, name, value) => {
-    console.log('input', e.target.value, name, value);
+    // console.log('input', e.target.value, name, value);
     dispatch({type:'UPDATE_FILTERS', name: name, value: value});
   };
 
@@ -27,48 +26,6 @@ export default function QueryForm({state, dispatch}) {
       });
     };
 
-  const fetchData = (props) => {
-    let params = {};
-    const pageIndex = (props && props.hasOwnProperty('pageIndex')) ? props.pageIndex : state.pageIndex;
-    const pageSize = (props && props.hasOwnProperty('pageSize')) ? props.pageSize : state.pageSize;
-    if (props) {
-      if (props.hasOwnProperty('pageSize')) {
-        params['range'] = [0, pageSize];
-      } else if (props.hasOwnProperty('pageIndex')) {
-        params['range'] = [(pageIndex) * pageSize, (pageIndex + 1) * pageSize];
-      }
-    }
-    // re-count total only if filter change
-    if (state.result && state.result.total >= 0) {
-      params['total'] = state.result.total;
-    }
-
-    // params['filter'] = state.filters;
-    let filter = {...state.filters};
-    if (state.filters.hasOwnProperty('collect_date') && state.filters.hasOwnProperty('collect_date2')) {
-      let collectDateMerged = `${state.filters.collect_date}/${state.filters.collect_date2}`;
-      filter.collect_date = [collectDateMerged];
-      delete filter.collect_date2;
-    }
-    if (state.filters.hasOwnProperty('field_number') && state.filters.hasOwnProperty('field_number2')) {
-      let fieldNumberRange = [state.filters.field_number[0], state.filters.field_number2[0]];
-      filter.field_number_range = [fieldNumberRange];
-      delete filter.field_number;
-      delete filter.field_number2;
-    }
-
-    params['filter'] = filter;
-    //const filters = JSON.stringify(state.filters);
-    //const filtersQS = encodeURIComponent(filters);
-    //const rangeQS = encodeURIComponent('[0,9]')
-    console.log(params);
-    getList('collections', params)
-      .then(({ json }) => {
-        console.log('getList', json);
-        dispatch({type: 'SET_ROWS', result: json, pageIndex: pageIndex, pageSize: pageSize});
-        console.log(json);
-      });
-  }
   const handleSubmit = (e) => {
     dispatch({type: 'START_LOADING'});
     fetchData();

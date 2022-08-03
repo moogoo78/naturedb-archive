@@ -180,7 +180,8 @@ class AdminQuery(object):
         data = []
         if func_mapping := self.func_mapping:
             for r in result.all():
-                data.append(func_mapping(r))
+                if r[0]: # no collection_id, only unit
+                    data.append(func_mapping(r))
 
         resp = jsonify({
             'data': data,
@@ -664,7 +665,6 @@ class NamedAreaMethodView(MethodView):
 
 def collection_mapping(row):
     #print(row, row[0].id, flush=True)
-
     units = []
     for k, v in enumerate(row[1]):
         unit = {'id': v}
@@ -680,6 +680,7 @@ def collection_mapping(row):
     c = row[0]
     #units = [x.to_dict() for x in c.units]
     #print (row, flush=True)
+
     na_list = [x.name for x in c.named_areas]
     taxon = session.get(Taxon, c.last_taxon_id)
     return {
@@ -691,7 +692,7 @@ def collection_mapping(row):
         'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
         'last_taxon_text': c.last_taxon_text,
         'last_taxon_id': c.last_taxon_id,
-        'last_taxon_common_name': taxon.common_name,
+        'last_taxon_common_name': taxon.common_name if taxon and taxon.common_name else '',
         'named_areas': ', '.join(na_list),
         'units': units
     }
@@ -837,10 +838,12 @@ class CollectionMethodView(MethodView):
 
             elif k == 'collect_date':
                 # 手動判斷是不是同一天
-                ymd = obj.collect_date.strftime('%Y-%m-%d')
-                if ymd != v:
-                    obj.collect_date = v
+                if collect_date := obj.collect_date:
+                    ymd = collect_date.strftime('%Y-%m-%d')
+                    if ymd != v:
+                        obj.collect_date = v
             else:
+                # print(k, v, flush=True)
                 setattr(obj, k, v)
 
         session.commit()

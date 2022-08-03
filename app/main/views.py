@@ -306,7 +306,6 @@ def print_label():
     collections = query.all()
     item_list = []
     for i in collections:
-        #print (i.key, flush=True)
         item_list += i.units
 
     return render_template('print-label.html', item_list=item_list)
@@ -316,5 +315,5 @@ def specimen_image(org_and_accession_number):
     keys = org_and_accession_number.split(':')
     # Dataset.query.filter(Dataset.name==keys[0])
     u = Unit.query.filter(Unit.accession_number==keys[1]).join(Dataset).filter(Dataset.name==keys[0]).one()
-    
+
     return render_template('specimen-image.html', unit=u)

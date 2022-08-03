@@ -430,7 +430,7 @@ class Collection(Base):
     # Coordinate
     latitude_decimal = Column(Numeric(precision=9, scale=6))
     longitude_decimal = Column(Numeric(precision=9, scale=6))
-    latitude_text = Column(String(50))
+    latitude_text = Column(String(50)) # verbatim
     longitude_text = Column(String(50))
 
     field_note = Column(Text)
@@ -555,8 +555,8 @@ class Collection(Base):
             elif type_ == 'dms':
                 dms_lng = dd2dms(self.longitude_decimal)
                 dms_lat = dd2dms(self.latitude_decimal)
-                x_label = '{}{}\u00b0{:02d}\'{:02d}"'.format('N' if dms_lng[0] > 0 else 'S', dms_lng[0], dms_lng[1], int(dms_lng[2]))
-                y_label = '{}{}\u00b0{}\'{:02d}"'.format('E' if dms_lat[0] > 0 else 'W', dms_lat[0], dms_lat[1], int(dms_lat[2]))
+                x_label = '{}{}\u00b0{:02d}\'{:02d}"'.format('N' if dms_lng[0] > 0 else 'S', dms_lng[0], dms_lng[1], round(dms_lng[2]))
+                y_label = '{}{}\u00b0{}\'{:02d}"'.format('E' if dms_lat[0] > 0 else 'W', dms_lat[0], dms_lat[1], round(dms_lat[2]))
                 return {
                     'x': dms_lng,
                     'y': dms_lat,
@@ -601,6 +601,12 @@ class Collection(Base):
             'measurement_or_facts': mofs,
         }
         return data
+
+    def get_first_id_taxon(self):
+        if len(self.identifications.all()) > 0:
+            self.identifications[0].taxon
+        else:
+            return None
 
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'

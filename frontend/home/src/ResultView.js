@@ -56,8 +56,15 @@ const UnitCells = ({units}) => {
 
 }
 
-const ResultView = ({state}) => {
+const ResultView = ({state, dispatch, fetchData}) => {
   console.log(state);
+
+  const handlePageChange = (event, pageIndex) => {
+    console.log(pageIndex, state.pageIndex);
+    dispatch({type: 'START_LOADING'});
+    fetchData({pageIndex:pageIndex});
+  }
+
   return (
     <>
     <div>found: {state.result.total.toLocaleString()} 採集 in {state.result.elapsed.toFixed(2)} seconds</div>
@@ -77,6 +84,7 @@ const ResultView = ({state}) => {
         })}
       </tbody>
     </table>
+      <button className="button is-plain" type="button" onClick={(e) => handlePageChange(e, state.pageIndex-1)}>&lt;</button>{"[ "+ (state.pageIndex+1) +" / " + Math.ceil(state.result.total / state.pageSize ) + " ]"}<button className="button is-plain" type="button" onClick={(e) => handlePageChange(e, state.pageIndex+1)}>&gt;</button>
     </>
   );
 }
