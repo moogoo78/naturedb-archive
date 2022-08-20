@@ -3,8 +3,6 @@ import React from 'react';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
 import Autocomplete from '@mui/material/Autocomplete';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
@@ -13,6 +11,7 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import CircularProgress from '@mui/material/CircularProgress';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -51,6 +50,7 @@ import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
 
 import {
   useParams,
+  useNavigate,
   Link as RouterLink,
 } from "react-router-dom";
 
@@ -66,13 +66,15 @@ import {
   getList,
   updateOrCreate,
   deleteOne,
+  getFormOptions,
   convertDDToDMS,
   convertDMSToDD,
   formatDate,
 } from '../Utils';
 
 import {
-  DialogButtonToolbar
+  DialogButtonToolbar,
+  AlertDisplay,
 } from '../SharedComponents';
 
 const DMS_MAP = {
@@ -123,13 +125,75 @@ const reducer = (state, action) => {
   case 'SET_LIST_DATA':
     let tmpList = [...state.data[action.list]];
     tmpList[action.index][action.name] = action.value;
-    return {
-      ...state,
-      data: {
-        ...state.data,
-        [action.list]: tmpList,
+    if (action.list === 'named_areas') {
+      console.log(action, '!!');
+      let tmpHelpers = [...state.helpers.namedAreas];
+      if (action.value === null) {
+        console.log(tmpHelpers);
+      } else {
+        let allParentIds = [];
+        for (let i=1; i < state.data.named_areas.length; i++) {
+          if (i < 4) { // TODO: backend decide
+           // if (tmpHelpers[i].length > 0) {
+              const areaClass = Object.values(state.data.form_options.named_areas).find( x => x.id === tmpHelpers[i][0].area_class_id );
+              if (allParentIds.length === 0) {
+                // changed 的下一層
+                const funnelChoices = areaClass.options.filter( x => x.parent_id === action.value.id );
+                allParentIds = funnelChoices.map( x => x.id );
+                tmpHelpers[i] = funnelChoices;
+              } else { // 下下...一層
+                const funnelChoices = areaClass.options.filter( x => allParentIds.indexOf(x.parent_id) >=0 );
+                allParentIds += funnelChoices.map( x => x.id );
+                tmpHelpers[i] = funnelChoices;
+              }
+            //} else {
+              //
+           // }
+          }
+        }
+        // auto fill upper value
+        let parentMap = [];
+        for (let i=action.index-1; i >= 0; i--) {
+          if ( i < action.index && tmpList[i].value === null) {
+            const areaClass = Object.values(state.data.form_options.named_areas).find( x => x.id === tmpList[i].id);
+            // console.log(areaClass);
+            if (parentMap.length === 0) {
+              const upperValue = areaClass.options.find( x => x.id === action.value.parent_id);
+              if (upperValue && upperValue.parent_id) {
+                parentMap.push(upperValue);
+              }
+              tmpList[i].value = upperValue;
+            } else {
+              const last = parentMap.at(-1);
+              const upperValue = areaClass.options.find( x => x.id === last.parent_id);
+              if (upperValue) {
+                parentMap.push(upperValue);
+                tmpList[i].value = upperValue;
+              }
+            }
+          }
+        }
       }
-    };
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          [action.list]: tmpList,
+        },
+        helpers: {
+          ...state.helpers,
+          namedAreas: tmpHelpers,
+        }
+      };
+    } else {
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          [action.list]: tmpList,
+        },
+      };
+    }
   case 'SET_UNIT_MOF':
     let tmpUnits = [...state.data.units];
     tmpUnits[state.helpers.unitsIndex].measurement_or_facts[action.index].value = action.value;
@@ -182,9 +246,9 @@ const reducer = (state, action) => {
       ...state,
       alert: {
         ...alert,
-        text: action.text,
-        time: (action.time) ? action.time : undefined,
-        isDisplay: action.isDisplay,
+        content: action.content,
+        isOpen: action.isOpen,
+        display: action.display
       }
     }
   case 'SET_DIALOG_NEW':
@@ -378,16 +442,31 @@ const reducer = (state, action) => {
   }
 }
 
+const getNamedAreaChoices = ((namedAreas) => {
+  const choices = [];
+  // TODO: backend decided
+  choices.push(namedAreas.country.options);
+  choices.push(namedAreas.stateProvince.options);
+  choices.push(namedAreas.county.options);
+  choices.push(namedAreas.municipality.options);
+  choices.push(namedAreas.national_park.options);
+  choices.push(namedAreas.locality.options);
+  return choices;
+});
+
 const CollectionForm = () => {
   let params = useParams();
   let location = useLocation();
+  let navigate = useNavigate();
 
   const initialArg = {
     loading: true,
     alert: {
-      isDisplay: false,
-      text: '',
-      time: null,
+      display: '',
+      isOpen: false,
+      content: '',
+      onCancel: null,
+      onOk: null,
     },
     error: '',
     data: {},
@@ -407,24 +486,31 @@ const CollectionForm = () => {
 
   const init = () => {
     if (!params.collectionId) {
-      const initialHelpers = {
-        collectorSelect: {
-          input: '',
-          options: [],
-        },
-        identificationsIndex: -1,
-        identifications: [],
-        idSequenceOptions: [0],
-        unitsIndex: -1,
-        deleteConfirmStatus: 'init',
-      }
-      const initData = {
-        named_areas: [],
-        identifications: [],
-        units: [],
-        biotopes: [],
-      }
-      dispatch({type: 'GET_ONE_SUCCESS', data: initData, helpers: initialHelpers});
+      getFormOptions('collections')
+        .then(({json}) => {
+          console.log(json);
+
+          const initialHelpers = {
+            collectorSelect: {
+              input: '',
+              options: [],
+            },
+            identificationsIndex: -1,
+            identifications: [],
+            idSequenceOptions: [0],
+            unitsIndex: -1,
+            deleteConfirmStatus: 'init',
+            namedAreas: getNamedAreaChoices(json.form_options.named_areas),
+          }
+          const initData = {
+            named_areas: [],
+            identifications: [],
+            units: [],
+            biotopes: [],
+          }
+          console.log('🐣 init');
+          dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: initialHelpers});
+        });
     } else {
       getOne('collections', params.collectionId)
         .then(({ json }) => {
@@ -468,8 +554,7 @@ const CollectionForm = () => {
             idSequenceOptions: idSequenceOptions,
             unitsIndex: -1,
             deleteConfirmStatus: 'init',
-            // units: units,
-            /*...namedAreas,*/
+            namedAreas: getNamedAreaChoices(json.form_options.named_areas),
           }
           console.log('🐣 init');
           dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: initialHelpers});
@@ -490,11 +575,13 @@ const CollectionForm = () => {
 
   const handleSubmitCont = (event) => {
     doSubmit();
-    dispatch({type: 'SET_ALERT', text:'已儲存', time: new Date(), isDisplay: true});
+    dispatch({type: 'SET_ALERT', content:`已儲存 - ${new Date()}`, isOpen: true, 'display': 'flash'});
+    // navigate(`/collections/${params.collectionId}`);
   }
 
   const handleSubmit = (event) => {
     doSubmit();
+    navigate('/collections', { replace: true });
   };
 
   const doSubmit = () => {
@@ -546,9 +633,12 @@ const CollectionForm = () => {
       });
   }
 
+  const handleDelete = () => {
+    dispatch({type: 'SET_ALERT', content: '確定刪除 ?', isOpen: true, 'display': 'dialog'});
+  }
 
   console.log((state.loading===true) ? '🥚': '🐔' + ' state', state);
-
+  console.log('mush',state.helpers.namedAreas);
   const {data, helpers} = state;
 
   const intValue = (value) => {
@@ -558,7 +648,6 @@ const CollectionForm = () => {
       return '';
     }
   }
-
   return (
     <>
       {state.loading === true ? 'Loading...'
@@ -827,10 +916,18 @@ const CollectionForm = () => {
               </Link>
               <Typography color="text.primary">採集號: {data.field_number}</Typography>
             </Breadcrumbs>
-            {state.alert.isDisplay ?
-             <Alert variant="outlined" severity="success" onClose={()=>{dispatch({type: 'SET_ALERT', isDisplay: false})}}>
-               {`${state.alert.text} - ${state.alert.time}`}
-             </Alert> : null}
+            <AlertDisplay
+              data={state.alert}
+              onCancel={() => {
+                dispatch({type: 'SET_ALERT', isOpen: false});
+              }}
+              onOk={() => {
+                dispatch({type: 'SET_ALERT', isOpen: false});
+                deleteOne('collections', params.collectionId);
+                //navigate('/collections', { replace: true });
+                navigate('/collections');
+              }}
+            />
             {location.state?.filterList.length > 0 ?
              <Button
                variant="outlined"
@@ -883,7 +980,7 @@ const CollectionForm = () => {
                         variant="standard"
                         label="採集號"
                         fullWidth
-                        value={data.field_number}
+                        value={data.field_number || ''}
                         onChange={handleChangeByID}
                       />
                     </Grid>
@@ -933,106 +1030,82 @@ const CollectionForm = () => {
                       />
                     </Grid>
                     <Grid item xs={12}><Typography variant="h6">地點</Typography></Grid>
-                    {data.named_areas.map((named_area, i)=> {
-                      return (
-                        <Grid item xs={6} key={i}>
-                          <Autocomplete
-                            isOptionEqualToValue={(option, value) => option.id === value.id}
-                            getOptionLabel={(option) => option.display_name || ''}
-                            filterOptions={(options, {inputValue}) => {
-                              if (i > 0 &&
-                                  data.named_areas[i-1].value &&
-                                  data.named_areas[i].parent_id >= 0) {
-                                const parentId = data.named_areas[i-1].value.id;
-                                return options.filter((x) => (x.parent_id === parentId) && (x.display_name.toLowerCase().indexOf(inputValue.toLowerCase()) >=0) );
-                              } else {
-                                return options;
-                              }
-                            }}
-                            /*options={helpers[`${areaName}__Select`].options}*/
-                            options={data.form_options.named_areas[named_area.name].options}
-                            value={data.named_areas[i].value || null}
-                            onChange={(e, v, reason) => {
-                              //console.log('ON CHANGE', reason, v);
-                              //dispatch({type: 'SET_DATA', name: `named_areas__${i}`, value: v });
-                              dispatch({type: 'SET_LIST_DATA', list: 'named_areas', index: i, name: 'value', value: v});
-                            }}
-                            /*onInputChange={(e, v, reason) => {
-                              // console.log('ON INPUT', reason, v);
-                              let area_class_id = undefined;
-                              console.log(data.named_areas[i].id, 'xx');
-                              const params = {
-                                filter: {
-                                  q: v,
-                                  area_class_id: data.named_areas[i].id,
-                                }
-                              }
-                              getList('named_areas', params)
-                                .then(({json}) => {
-                                  const value = data.named_areas[i].value;
-                                  if (value && (json.data.find((x) => x.id === value.id)) === undefined) {
-                                    json.data.push(value);
-                                  }
-                                  dispatch({type: 'SET_SELECT', name: `${areaName}__Select`, options: json.data, input: v});
-                                });
-                            }}
-                            inputValue={helpers[`${areaName}__Select`].input}*/
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label={`${named_area.label}`}
-                                variant="standard"
-                              />)}
-                          />
+                    <Grid item xs={12}>
+                      <Paper>
+                        <Grid container rowSpacing={2}>
+                          {data.named_areas.map((named_area, i)=> {
+                            return (
+                              <Grid item xs={12} key={i}>
+                                <Autocomplete
+                                  id={`named_area__${named_area.name}`}
+                                  disablePortal
+                                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                                  getOptionLabel={(option) => option.display_name || ''}
+                                  options={helpers.namedAreas[i]}
+                                  value={data.named_areas[i].value || null}
+                                  onChange={(e, v, reason) => {
+                                    //console.log('ON CHANGE', reason, v);
+                                    //dispatch({type: 'SET_DATA', name: `named_areas__${i}`, value: v });
+                                    dispatch({type: 'SET_LIST_DATA', list: 'named_areas', index: i, name: 'value', value: v});
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      label={`${named_area.label}`}
+                                      variant="standard"
+                                    />)}
+                                />
+                              </Grid>
+                            )
+                          }) }
                         </Grid>
-                      )
-                    }) }
-                    <Grid item xs={10}>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12}>
                       <TextField
                         id="locality_text"
                         variant="standard"
                         label="地點描述"
                         multiline
                         fullWidth
-                        rows={3}
+                        rows={2}
                         value={data.locality_text || ''}
                         onChange={handleChangeByID}
                       />
                     </Grid>
+                    <Grid item xs={12} container columnSpacing={2}>
                     <Grid item xs={2}>
-                      <Grid container>
-                        <Grid item>
-                          <TextField
-                            id="altitude"
-                            variant="standard"
-                            label="海拔(低)"
-                            fullWidth
-                            value={data.altitude || ''}
-                            onChange={handleChangeByID}
-                            InputProps={{
-                              endAdornment: <InputAdornment position="end">m</InputAdornment>,
-                            }}
-                          />
-                        </Grid>
-                        <Grid item>
-                          <TextField
-                            id="altitude2"
-                            label="海拔(高)"
-                            value={data.altitude2 || ''}
-                            onChange={handleChangeByID}
-                            InputProps={{
-                              endAdornment: <InputAdornment position="end">m</InputAdornment>,
-                            }}
-                            variant="standard"
-                          />
-                        </Grid>
-                      </Grid>
-                    </Grid>
-                    <Grid item xs={3}>
                       <TextField
-                        id="longitude_decimal"
+                        id="altitude"
                         variant="standard"
-                        label="經度(十進位)"
+                        label="海拔(低)"
+                        fullWidth
+                        value={data.altitude || ''}
+                        onChange={handleChangeByID}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">m</InputAdornment>,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <TextField
+                        id="altitude2"
+                        label="海拔(高)"
+                        value={data.altitude2 || ''}
+                        onChange={handleChangeByID}
+                        fullWidth
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">m</InputAdornment>,
+                        }}
+                        variant="standard"
+                      />
+                    </Grid>
+                    </Grid>
+                  <Grid item xs={3}>
+                    <TextField
+                      id="longitude_decimal"
+                      variant="standard"
+                      label="經度(十進位)"
                         fullWidth
                         value={data.longitude_decimal || ''}
                         onChange={(e) => {
@@ -1309,6 +1382,9 @@ const CollectionForm = () => {
                     </Accordion>
                   </Grid>
                   <Grid container justifyContent="flex-end" sx={{pt:2}} spacing={1}>
+                    <Grid item>
+                      <Button variant="contained" onClick={handleDelete} endIcon={<DeleteIcon />} color="error">刪除</Button>
+                    </Grid>
                     <Grid item>
                       <Button variant="contained" onClick={handleSubmitCont} endIcon={<CachedIcon />}>儲存並繼續編輯</Button>
                     </Grid>

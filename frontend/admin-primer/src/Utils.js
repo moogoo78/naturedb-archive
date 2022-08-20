@@ -318,3 +318,25 @@ export {
   YMDToDate,
   formatDate,
 }
+
+/*
+const Placeholder = ({label, height, width}) => (
+  <Box
+    width={width}
+    height={height}
+    borderWidth="1px"
+    borderStyle="solid"
+    borderColor="border.default"
+    borderRadius={2}
+    p={2}
+    height={(height) ? `${height}px` : null}
+    width={(width) ? `${width}px` : null}
+    sx={{
+      bg: ['neutral.subtle', 'accent.subtle', 'success.subtle', 'attention.subtle', 'danger.subtle']
+    }}
+  >
+    {label}
+  </Box>
+);
+//          <Placeholder label="aoeu" width="200" />
+*/

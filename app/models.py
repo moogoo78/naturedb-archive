@@ -752,11 +752,15 @@ class Unit(Base):
 
     def get_image(self, thumbnail='_s'):
         if self.accession_number:
-            accession_number_int = int(self.accession_number)
-            instance_id = f'{accession_number_int:06}'
-            first_3 = instance_id[0:3]
-            img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
-            return img_url
+            try:
+                # TODO: int error exception
+                accession_number_int = int(self.accession_number)
+                instance_id = f'{accession_number_int:06}'
+                first_3 = instance_id[0:3]
+                img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
+                return img_url
+            except:
+                return None
         else:
             return None
 

@@ -1,6 +1,13 @@
 import React from 'react';
 
+import Alert from '@mui/material/Alert';
+// import AlertTitle from '@mui/material/AlertTitle';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
@@ -25,7 +32,43 @@ const DialogButtonToolbar = ({status, hasId, onDelete, onDeleteYes, onDeleteNo, 
       throw new Error('Unknown');
   }
 }
+const AlertDisplay = ({ data, onCancel, onOk }) => {
+  if ( data.isOpen ) {
+    switch (data.display) {
+    case 'flash':
+      return (
+        <Alert variant="outlined" severity="success" onClose={onCancel}>
+          { data.content}
+        </Alert>
+      );
+    case 'dialog':
+      return (
+        <Dialog open={data.isOpen} onClose={data.onCancel}>
+          <DialogTitle>確定刪除?</DialogTitle>
+          {/*
+          <DialogContent>
+            <DialogContentText>
+              sure?
+            </DialogContentText>
+          </DialogContent>
+           */}
+          <DialogActions>
+            <Button onClick={ onCancel }>取消</Button>
+            <Button onClick={ onOk } autoFocus>
+              刪除
+            </Button>
+          </DialogActions>
+        </Dialog>
+      );
+    default:
+      throw new Error('Unknown type');
+    }
+  } else {
+    return null;
+  }
+}
 
 export {
-  DialogButtonToolbar
+  DialogButtonToolbar,
+  AlertDisplay,
 }

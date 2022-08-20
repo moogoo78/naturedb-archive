@@ -35,6 +35,7 @@ from app.models import (
     MeasurementOrFact,
     collection_named_area,
     #CollectionNamedArea,
+    get_structed_list,
 )
 from app.taxon.models import (
     Taxon,
@@ -74,6 +75,22 @@ def auth():
             #data.update({'err_msg': 'aoeus'})
             return abort(401)
 
+
+@api.route('/<resource>/form')
+def form_options(resource):
+    c = Collection()
+    biotopes = get_structed_list(MeasurementOrFact.BIOTOPE_OPTIONS, {})
+    data = {
+        'named_areas': c.get_named_area_list(),
+        'identifications': [],
+        'units': [],
+        'biotopes': biotopes,
+        'form_options': c.get_form_options(),
+    }
+
+    resp = jsonify(data)
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    return resp
 
 class AdminQuery(object):
 
@@ -668,12 +685,18 @@ def collection_mapping(row):
     units = []
     for k, v in enumerate(row[1]):
         unit = {'id': v}
-        if x:= row[2][k]:
-            unit['accession_number'] = x
+        image_url = ''
+        # TODO
+        try:
             accession_number_int = int(x)
             instance_id = f'{accession_number_int:06}'
             first_3 = instance_id[0:3]
             image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+        except:
+            pass
+
+        if x:= row[2][k]:
+            unit['accession_number'] = x
             unit['image_url'] = image_url
         units.append(unit)
 
@@ -738,7 +761,10 @@ class CollectionMethodView(MethodView):
         obj = session.get(self.model, item_id)
         session.delete(obj)
         session.commit()
-        return ra_item_response(self.RESOURCE_NAME, obj)
+
+        resp = jsonify({})
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        return resp
 
     def put(self, item_id):
         # update
