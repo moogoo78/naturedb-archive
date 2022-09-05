@@ -152,11 +152,7 @@ class MeasurementOrFact(Base):
     #applies_to
 
     def get_value(self):
-        return (
-            self.option.id if self.option else None,
-            self.value if self.value else '',
-            self.value_en if self.value_en else '',
-        )
+        return self.value_en or '' # TODO
 
     def to_dict(self):
         #item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
@@ -169,7 +165,17 @@ class MeasurementOrFact(Base):
             'value_en': self.value_en,
             #'collection_id': self.collection_id,
         }
-
+    def to_dict(self):
+        #item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
+        return {
+            'id': self.id,
+            'option_id': self.option_id if self.option_id else None,
+            #'label': item[1],
+            #'parameter': self.parameter.to_dict(),
+            'value': self.value,
+            'value_en': self.value_en,
+            #'collection_id': self.collection_id,
+        }
 
 class Annotation(Base):
 
@@ -257,6 +263,9 @@ class NamedArea(Base):
             return name
         return ''
 
+    def get_value(self):
+        return {'id': self.id, 'text': self.display_name()}
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -339,19 +348,25 @@ class Identification(Base):
     source_data = Column(JSONB)
 
     def to_dict(self):
-        return {
+
+        data = {
             'id': self.id,
             #'identification_id': self.id,
             #'collection_id': self.collection_id,
-            'identifier_id': self.identifier_id,
-            'identifier': self.identifier.to_dict() if self.identifier else None,
+            #'identifier_id': self.identifier_id or '',
             'taxon_id': self.taxon_id,
-            'taxon': self.taxon.to_dict() if self.taxon else None,
             'date': self.date.strftime('%Y-%m-%d') if self.date else '',
             'date_text': self.date_text,
             'verification_level': self.verification_level,
             'sequence': self.sequence,
         }
+        if self.taxon:
+            data['taxon'] =  {'id': self.taxon_id, 'text': self.taxon.display_name()}
+        if self.identifier:
+            data['identifier'] = self.identifier.get_value() # self.identifier.to_dict()
+
+        return data
+
 #class UnitSpecimenMark(Base):
 #    __tablename__ = 'unit_specimen_mark'
 #    id = Column(Integer, primary_key=True)
@@ -492,28 +507,31 @@ class Collection(Base):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
         taxon = Taxon.query.filter(Taxon.id==self.last_taxon_id).first()
         # named_area_map = self.get_named_area_map()
-        named_area_list = self.get_named_area_list()
+        # named_area_list = self.get_named_area_list()
+        named_areas = {f'{x.area_class.name}': x.get_value() for x in self.named_areas}
         biotope_map = {f'{x.parameter.name}': x.to_dict() for x in self.biotope_measurement_or_facts}
         biotopes = get_structed_list(MeasurementOrFact.BIOTOPE_OPTIONS, biotope_map)
+        biotope_values = {f'{x.parameter.name}': x.get_value() for x in self.biotope_measurement_or_facts}
 
         data = {
             'id': self.id,
             'key': self.key,
             'collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
-            'collector_id': self.collector_id,
-            'collector': self.collector.to_dict() if self.collector else '',
+            # 'collector_id': self.collector_id,
+            'collector': self.collector.get_value() if self.collector else '',
             'companion_text': self.companion_text,
             'companion_text_en': self.companion_text_en,
             #'named_area_list': na_list,
-            'named_areas': named_area_list,
+            'named_areas': named_areas,
             'altitude': self.altitude,
             'altitude2':self.altitude2,
             'longitude_decimal': self.longitude_decimal,
             'latitude_decimal': self.latitude_decimal,
             'locality_text': self.locality_text,
             #'biotope_measurement_or_facts': {x.parameter.name: x.to_dict() for x in self.biotope_measurement_or_facts},
-            'biotopes': biotopes,
+            #'biotopes': biotopes,
+            'biotopes': biotope_values,
             #'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
             #'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
             #'field_number_list': [x.todict() for x in self.field_numbers],
@@ -527,10 +545,6 @@ class Collection(Base):
         }
         #for i,v in named_area_map.items():
         #    data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None
-
-        #for x in self.biotope_measurement_or_facts:
-        #    data[f'biotope__{x.parameter.name}'] = x.get_value()
-
         return data
 
     def display_altitude(self):
@@ -581,7 +595,9 @@ class Collection(Base):
         for x in AreaClass.DEFAULT_OPTIONS:
             named_areas[x['name']] = {'id': x['id'], 'label': x['label'], 'options': []}
             for na in NamedArea.query.filter(NamedArea.area_class_id==x['id']).order_by('id').all():
-                named_areas[x['name']]['options'].append(na.to_dict())
+                # named_areas[x['name']]['options'].append(na.to_dict())
+                #named_areas[x['name']]['options'].append(na.get_value())
+                pass
 
         biotopes = {}
         for param in MeasurementOrFact.BIOTOPE_OPTIONS:
@@ -595,12 +611,62 @@ class Collection(Base):
             for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
                 mofs[param['name']]['options'].append(row.to_dict())
 
+        collectors = []
+        #for p in Person.query.all():
+        #    collectors.append({'id': p.id, 'text': p.display_name()})
+        if self.collector:
+            collectors.append({'id': self.collector_id, 'text': self.collector.display_name()})
         data = {
             'named_areas': named_areas,
             'biotopes': biotopes,
             'measurement_or_facts': mofs,
+            'collectors': collectors,
         }
         return data
+
+    def get_form_layout(self):
+        named_areas = []
+        for x in AreaClass.DEFAULT_OPTIONS:
+            data = {
+                'id': x['id'],
+                'label': x['label'],
+                'name': x['name'],
+                'options': [],
+            }
+            for na in NamedArea.query.filter(NamedArea.area_class_id==x['id']).order_by('id').all():
+                data['options'].append(na.to_dict())
+
+            named_areas.append(data)
+
+        biotopes = []
+        for param in MeasurementOrFact.BIOTOPE_OPTIONS:
+            data = {
+                'id': param['id'],
+                'label': param['label'],
+                'name':  param['name'],
+                'options': []
+            }
+            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
+                data['options'].append(row.to_dict())
+            biotopes.append(data)
+
+        unit_mofs = []
+        for param in MeasurementOrFact.UNIT_OPTIONS:
+            data = {
+                'id': param['id'],
+                'label': param['label'],
+                'name':  param['name'],
+                'options': []
+            }
+            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
+                data['options'].append(row.to_dict())
+            unit_mofs.append(data)
+
+        return {
+            'biotopes': biotopes,
+            'unit_measurement_or_facts': unit_mofs,
+            'named_areas': named_areas,
+        }
 
     def get_first_id_taxon(self):
         if len(self.identifications.all()) > 0:
@@ -708,8 +774,8 @@ class Unit(Base):
     # unit.to_dict
     def to_dict(self, mode='with-collection'):
         mof_map = {f'{x.parameter.name}': x.to_dict() for x in self.measurement_or_facts}
-        mofs = get_structed_list(MeasurementOrFact.UNIT_OPTIONS, mof_map)
-
+        # mofs = get_structed_list(MeasurementOrFact.UNIT_OPTIONS, mof_map)
+        mof_values = {f'{x.parameter.name}': x.get_value() for x in self.measurement_or_facts}
         data = {
             'id': self.id,
             'key': self.key,
@@ -718,7 +784,7 @@ class Unit(Base):
             #'collection_id': self.collection_id,
             'preparation_type': self.preparation_type,
             'preparation_date': self.preparation_date.strftime('%Y-%m-%d') if self.preparation_date else '',
-            'measurement_or_facts': mofs,
+            'measurement_or_facts': mof_values,
             'image_url': self.get_image(),
             'transactions': [x.to_dict() for x in self.transactions],
             #'dataset': self.dataset.to_dict(), # too many
@@ -812,6 +878,9 @@ class Person(Base):
             return name
 
         return name or ''
+
+    def get_value(self):
+        return {'id': self.id, 'text': self.display_name()}
 
     def to_dict(self):
         data = {

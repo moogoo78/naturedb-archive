@@ -3,28 +3,36 @@ import React from 'react';
 import {
   Autocomplete,
   Box,
+  Button,
+  Details,
+  Dialog,
   Heading,
+  IconButton,
+  Label,
   FormControl,
+  Select,
   Spinner,
   Pagehead,
   Text,
   TextInput,
   TextInputWithTokens,
   Textarea,
+  useDetails,
 } from '@primer/react';
+import {
+  PlusIcon,
+  XIcon,
+} from '@primer/octicons-react'
 import {
   useParams,
   useNavigate,
   Link as RouterLink,
 } from "react-router-dom";
 import {
-  useFormikContext,
-  useFormik,
-  Formik,
-  Form,
-  Field,
-  ErrorMessage,
-} from 'formik';
+  useForm,
+  useFieldArray,
+  Controller,
+} from "react-hook-form";
 import {
   getOne,
   getList,
@@ -36,190 +44,497 @@ import {
   formatDate,
 } from 'Utils';
 
+import { reducer, initialArg } from 'CollectionReducer';
+import {
+  Confirm,
+} from 'Helpers';
 
-const NatureHeading = ({text, size}) => {
+
+const PhokHeading = ({text, size}) => {
   return (
-    <Box display="flex">
-      <Heading sx={{fontSize: size, color:"#a1a1a1"}}>{ text }</Heading>
+    <Box display="flex" borderWidth="0 0 0 4px" borderStyle="solid" borderColor="#cfcfcf">
+      <Heading sx={{fontSize: size, color: "#637153", pl: 2}}>{ text }</Heading>
     </Box>
   );
 };
 
-const Fieldset = ({ name, label, ...rest }) => (
+const PhokControl = ({ name, label, as=TextInput, asProps, control, errors, ...rest }) => {
+  // console.log(name, label, control);
+  let isDirty = false;
+  const n = name.split('.');
+  if (n.length == 1) {
+    if (name in rest.dirtyFields) {
+      isDirty = true;
+    }
+  } else if (n.length == 2) {
+    if (n[0] in rest.dirtyFields && n[1] in rest.dirtyFields[n[0]]) {
+      isDirty = true;
+    }
+  } else if (n.length == 3) {
+    if (n[0] in rest.dirtyFields && n[1] in rest.dirtyFields[n[0]] && n[2] in rest.dirtyFields[n[0]][n[1]]) {
+      isDirty = true;
+    }
+  }
+  const As = as;
+  return(
   <FormControl>
     <FormControl.Label>{label}</FormControl.Label>
-    <Field id={name} name={name} {...rest} />
-    <ErrorMessage name={name} />
+    <Controller
+      name={name}
+      control={control}
+      render={({
+        field,
+        fieldState,
+        formState,
+      }) => {
+        return <As name={name} setValue={rest.setValue} {...asProps} {...field} />;
+      }}
+    />
+    {isDirty && <FormControl.Validation variant="warning">修改過</FormControl.Validation>}
+    {/*errors[name] && <span>Err: {errors[name]}</span>*/}
+    {/*<FormControl.Caption>helpers</FormControl.Caption>*/}
   </FormControl>
-);
-
-const NatureItem = ({label, component, grow, ...props}) => {
-  return (
-    <Box flexGrow={ grow || 1 } {...props}>
-     <FormControl>
-        <FormControl.Label>{label}</FormControl.Label>
-        {component}
-        </FormControl>
-    </Box>
   );
 }
 
-const reducer = (state, action) => {
-  switch (action.type) {
-  case 'GET_ONE_SUCCESS':
-    return {
-      ...state,
-      loading: false,
-      data: action.data,
-      helpers: action.helpers,
-      error: ''
-    }
-  case 'GET_ONE_ERROR':
-    return {
-      ...state,
-      loading: false,
-      error: action.error,
-    }
-  case 'SET_DATA':
-    // console.log('set data', action);
-    return {
-      ...state,
-      data: {
-        ...state.data,
-        [action.name]: action.value
+const DMSConverter = ({setValue, longitudeDMS, latitudeDMS}) => {
+
+  const [lonlat, setLonLat] = React.useState({
+    'longitude': longitudeDMS,
+    'latitude': latitudeDMS,
+  });
+
+  const handleChange = (event, ll, index) => {
+    const v = (event.target.value === '') ? 0 : parseInt(event.target.value);
+    let isValid = false;
+
+    if (index === 0 && (v === 1 || v === -1)) {
+      isValid = true;
+    } else if (index === 1) {
+      if (ll === 'longitude') {
+        if (v >= 0 && v <= 180) {
+          isValid = true;
+        }
+      } else if ( ll === 'latitude') {
+        if (v >= 0 && v <= 90) {
+          isValid = true;
+        }
+      }
+    } else if (index === 2 || index === 3) {
+      if (v >=0 && v <= 60) {
+        isValid = true;
       }
     }
-  default:
-    throw new Error();
-  }
-}
-
-export default function CollectionForm() {
-
-  const params = useParams();
-  const initialArg = {
-    loading: true,
-    alert: {
-      display: '',
-      isOpen: false,
-      content: '',
-      onCancel: null,
-      onOk: null,
-    },
-    error: '',
-    data: {},
-    helpers: {
-      collectorSelect: {
-        input: null,
-        choices: [],
-      },
+    if (isValid) {
+      // console.log('lonlat', ll, index, v);
+      let tmp = {...lonlat};
+      tmp[ll][index] = v
+      setLonLat(tmp);
+      setValue(`${ll}_decimal`, convertDMSToDD(tmp[ll]), {shouldDirty: true});
     }
   };
-  const [state, dispatch] = React.useReducer(reducer, initialArg);
 
+  return (
+    <Box bg="papayawhip" borderRadius={2} p={2}>
+      <Box pb={1}><Text color="palevioletred">度分秒轉換工具</Text></Box>
+      <Box display="flex">
+        <Box pr={2}>
+          <Select sx={{width: 70}} onChange={(e)=>handleChange(e, 'longitude', 0) } value={(lonlat.longitude.length > 0) ? lonlat.longitude[0] : ''}>
+            <Select.Option value="">--</Select.Option>
+            <Select.Option value="1">東經</Select.Option>
+            <Select.Option value="-1">西經</Select.Option>
+          </Select>
+        </Box>
+        <Box pr={2}>
+          <TextInput label="度" value={lonlat.longitude[1]} onChange={(e)=>handleChange(e, 'longitude', 1)} trailingVisual="°" sx={{width: 50}} />
+        </Box>
+        <Box pr={2}>
+          <TextInput label="分" value={lonlat.longitude[2]} onChange={(e)=>handleChange(e, 'longitude',2)} trailingVisual="'"  sx={{width: 50}}/>
+        </Box>
+        <Box>
+          <TextInput label="秒" value={lonlat.longitude[3]} onChange={(e)=>handleChange(e, 'longitude', 3)} trailingVisual="&quot;"  sx={{width: 80}}/>
+        </Box>
+      </Box>
+      <Box display="flex" pt={2}>
+        <Box pr={2}>
+          <Select sx={{width: 70}} onChange={(e)=>handleChange(e, 'latitude', 0) } value={(lonlat.latitude.length > 0) ? lonlat.latitude[0] : ''}>
+            <Select.Option value="">--</Select.Option>
+            <Select.Option value="1">北緯</Select.Option>
+            <Select.Option value="-1">南緯</Select.Option>
+          </Select>
+        </Box>
+        <Box pr={2}>
+          <TextInput label="度" value={lonlat.latitude[1] } onChange={(e)=>handleChange(e, 'latitude', 1)} trailingVisual="°" sx={{width: 50}} />
+        </Box>
+        <Box pr={2}>
+          <TextInput label="分" value={lonlat.latitude[2] } onChange={(e)=>handleChange(e, 'latitude', 2)} trailingVisual="'"  sx={{width: 50}}/>
+        </Box>
+        <Box>
+          <TextInput label="秒" value={lonlat.latitude[3] } onChange={(e)=>handleChange(e, 'latitude', 3)} trailingVisual="&quot;"  sx={{width: 80}}/>
+        </Box>
+      </Box>
+    </Box>
+  )
+}
+
+const AutocompleteQuery = React.forwardRef((props, ref) => {
+  const [loading, setLoading] = React.useState(false);
+  const [items, setItems] = React.useState((props.value) ? [props.value] : []);
+  const [selected, setSelected] = React.useState((props.value) ? props.value : null);
+  //console.log(props, selected, items);
+  return (
+      <Autocomplete>
+        <Autocomplete.Input
+          block
+          loading={loading}
+          name={props.name}
+          ref={ref}
+          onChange={(e) => {
+            setLoading(true);
+            const filter = { q: e.target.value, ...props.queryFilter };
+            getList(props.fetchResourceName, {filter: filter})
+              .then(({json}) => {
+                const items = json.data.map( x => ({id: x.id, text: x.display_name}));
+                setItems(items);
+                setLoading(false);
+              });
+          }}
+          trailingAction={
+            <TextInput.Action
+              onClick={() => {
+                setSelected(null);
+                props.setValue(null, {shouldDirty: true});
+              }}
+              icon={XIcon}
+              aria-label="Clear input"
+              sx={{color: 'fg.subtle'}}
+            />
+          }
+          value={selected?.text}
+        />
+        <Autocomplete.Overlay width="xxlarge">
+          <Autocomplete.Menu
+            items={items}
+            selectedItemIds={(selected) ? [selected.id]: []}
+            selectionVariant="single"
+            onSelectedChange={(values)=>{
+              //console.log(values);
+              setSelected(values[0]);
+              //if (props.afterSelect) {
+              //    props.afterSelect(values[0].id);
+              //  }
+              props.setValue(props.name, values[0], {shouldDirty: true});
+            }}
+            filterFn={(x) => x} // filter occurred in backend server
+          />
+        </Autocomplete.Overlay>
+      </Autocomplete>
+  );
+});
+
+/**
+   text as value, not selected item,
+   not query & fetch, give all items
+*/
+const AutocompleteFreeText = React.forwardRef((props, ref) => {
+  const [loading, setLoading] = React.useState(false);
+  const [items, setItems] = React.useState(props.items);
+  const [selectedText, setSelectedText] = React.useState((props.value) ? props.value : '');
+  // console.log(props, selected, items);
+  return (
+      <Autocomplete>
+        <Autocomplete.Input
+          block
+          loading={loading}
+          name={props.name}
+          ref={ref}
+          onChange={(e) => {
+            //props.setValue(props.name, values[0].text, {shouldDirty: true});
+          }}
+          trailingAction={
+            <TextInput.Action
+              onClick={() => {
+                setSelectedText('');
+                props.setValue('', {shouldDirty: true});
+              }}
+              icon={XIcon}
+              aria-label="Clear input"
+              sx={{color: 'fg.subtle'}}
+            />
+          }
+          value={selectedText}
+        />
+        <Autocomplete.Overlay width="xxlarge">
+          <Autocomplete.Menu
+            items={items}
+            selectedItemIds={[]}
+            selectionVariant="single"
+            onSelectedChange={(values)=>{
+              console.log(values);
+              setSelectedText(values[0].text);
+              //if (props.afterSelect) {
+              //    props.afterSelect(values[0].id);
+              //  }
+              props.setValue(props.name, values[0].text, {shouldDirty: true});
+            }}
+          />
+        </Autocomplete.Overlay>
+      </Autocomplete>
+  );
+});
+
+
+export default function CollectionForm() {
+  const params = useParams();
+  const [state, dispatch] = React.useReducer(reducer, initialArg);
   React.useEffect(() => {
     getOne('collections', params.collectionId)
       .then(({ json }) => {
-        if (json.collector) {
-          json.collector = {
-            id: json.collector.id,
-            text: json.collector.display_name,
+        // console.log(json.collector);
+        console.log('🐣 fetch', json);
+
+        // helper
+        let helpers = {};
+        if (json.data.longitude_decimal) {
+          helpers.longitude_dms = convertDDToDMS(json.data.longitude_decimal);
+          helpers.latitude_dms = convertDDToDMS(json.data.latitude_decimal);
+        }
+        for( const i in json.form.biotopes) {
+          const biotope = json.form.biotopes[i];
+          helpers[`biotopes__${biotope.name}`] = {
+            choices: biotope.options.map( x => ({id: x.id, text: `${x.value_en} (${x.value})`}))
           }
         }
-        json.collectorx = [{text: 'radio-input-component', id: 4}];
-        console.log('🐣 init', json);
-        dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: {}});
+        for( const i in json.form.unit_measurement_or_facts) {
+          const mof = json.form.unit_measurement_or_facts[i];
+          helpers[`unit_measurement_or_facts__${mof.name}`] = {
+            choices: mof.options.map( x => ({id: x.id, text: `${x.value_en} (${x.value})`}))
+          }
+        }
+        const namedAreas = json.form.named_areas.map(x => `named_areas__${x.name}`);
+        const helperNames = ['collector', 'taxon'].concat(namedAreas);
+        for (const name of helperNames) {
+          helpers[name] = {
+            choices: [],
+            loading: false,
+            //disabled: false,
+          };
+        }
+        dispatch({type: 'GET_ONE_SUCCESS', data: json.data, helpers: helpers, form: json.form});
       })
       .catch(error => {
-        //dispatch({type: 'GET_ONE_ERROR', error: error});
+        dispatch({type: 'GET_ONE_ERROR', error: error});
       });
   }, []);
 
-  const CollectorField = ({ setFieldValue, items, tokens, ...rest}) => {
-    //console.log(items, value);
-    console.log(rest, tokens);
-    let sel = [];
-    for (let x in tokens) {
-      console.log(x);
-    }
-    return (
-      <FormControl>
-        <FormControl.Label id="collector-label">採集者</FormControl.Label>
-        <Autocomplete>
-          <Autocomplete.Input block as={TextInputWithTokens} tokens={tokens}/>
-          <Autocomplete.Overlay anchorSide="inside-bottom">
-            <Autocomplete.Menu
-              items={[
-              {text: 'main', id: 0},
-              {text: 'autocomplete-tests', id: 1},
-              {text: 'a11y-improvements', id: 2},
-              {text: 'button-bug-fixes', id: 3},
-              {text: 'radio-input-component', id: 4},
-              {text: 'release-1.0.0', id: 5},
-              {text: 'text-input-implementation', id: 6},
-              {text: 'visual-design-tweaks', id: 7}
-              ]}
-              selectedItemIds={sel}
-              onSelectedChange={(values)=>{
-                setFieldValue('collectorx', values);
-                console.log(values);s
-              }}
-              aria-labelledby="collector-label"
-              selectionVariant="single"
-            />
-          </Autocomplete.Overlay>
-        </Autocomplete>
-      </FormControl>
-    )
-  }
-  console.log(state);
-  const renderForm = () => {
-    return (
-      <Formik
-        initialValues={state.data}
-        onSubmit={(values, actions) => {
-          setTimeout(() => {
-            alert(JSON.stringify(values, null, 2));
-            actions.setSubmitting(false);
-          }, 1000);
-        }}
-      >
-        {props => {
-          console.log(props);
-          return (
-            <form onSubmit={props.handleSubmit}>
-              {/*
-              <input
-                type="text"
-                onChange={props.handleChange}
-                onBlur={props.handleBlur}
-                value={props.values.name}
-                name="name"
-              />
-              {props.errors.name && <div id="feedback">{props.errors.name}</div>}
-               */}
-              <NatureHeading text="採集事件" size={3} />
-              <Box display="flex">
-                <Box flexGrow={3} pr={3}>
-                  {/*<Fieldset name="collector" label="採集者" as={CollectorField} setFieldValue={props.setFieldValue} items={[{id:1, text:'foo'}, {id: 2, text:'bar'}]}j />*/}
-                  {/*<Fieldset name="collector" label="採集者" as={CollectorField} items={[{id:1, text:'foo'}, {id: 2, text:'bar'}]} setFieldValue={props.setFieldValue}j/>*/}
-                  <CollectorField setFieldValue={props.setFieldValue} tokens={props.values.collectorx} />
-                </Box>
-                <Box flexGrow={1} pr={3}>
-                  <Fieldset name="field_number" label="採集號" as={TextInput} block />
-                </Box>
-                <Box flexGrow={1}>
-                  <Fieldset name="collect_date" label="採集日期" as={TextInput} type="date" block />
-                </Box>
-              </Box>
-              <button type="submit">Submit</button>
-            </form>
-          )
-        }}
-      </Formik>
-    );
-  }
+  console.log('state', state);
+  // const mem = React.memo(AutocompleteQueryField);
 
+
+  const CollectionHookForm = ({defaultValues, formWidgets}) => {
+    const { register, handleSubmit, watch, control, setValue, formState: { errors, dirtyFields } } = useForm({
+      defaultValues: defaultValues,
+    });
+
+    const {
+      fields: unitFields,
+      append: unitAppend,
+      remove: unitRemove
+    } = useFieldArray({ control, name: "units" });
+    const {
+      fields: idFields,
+      append: idAppend,
+      remove: idRemove
+    } = useFieldArray({ control, name: "identifications" });
+
+    const doSubmit = data => {
+      console.log('submit', data);
+      console.log('dirty', dirtyFields);
+    }
+
+    const rest = {
+      control: control,
+      errors: errors,
+      setValue: setValue,
+      dirtyFields: dirtyFields,
+    }
+
+    //console.log(watch("field_number"));
+    //console.log(dirtyFields);
+    return (
+      <form onSubmit={handleSubmit(doSubmit)}>
+        <Box
+          borderWidth="0px"
+          borderStyle="solid"
+          borderColor="border.default"
+          borderRadius={0}
+          display="grid"
+          gridGap={3}
+          sx={{maxWidth: 960}}
+        >
+          <PhokHeading text="採集事件" size={3} />
+          <Box display="flex">
+            <Box flexGrow={3} pr={3}>
+              <PhokControl name="collector" label="採集者" as={AutocompleteQuery} asProps={{block: true, fetchResourceName: 'people'}} {...rest} />
+            </Box>
+            <Box flexGrow={1} pr={3}>
+              <PhokControl name="field_number" label="採集號" asProps={{block: true}} {...rest} />
+            </Box>
+            <Box flexGrow={1} pr={3}>
+              <PhokControl name="collect_date" label="採集日期" asProps={{block: true, type: 'date'}} {...rest} />
+            </Box>
+          </Box>
+          <Box display="flex">
+            <Box flexGrow={1} pr={3}>
+              <PhokControl name="companion_text" label="隨同人員" as={Textarea} asProps={{block: true, rows: 2}} {...rest} />
+            </Box>
+            <Box flexGrow={1}>
+              <PhokControl name="companion_text_en" label="隨同人員(英文)" as={Textarea} asProps={{block: true, rows: 2}} {...rest} />
+            </Box>
+          </Box>
+          <PhokHeading text="地點" size={2} />
+          <Box
+            display="grid"
+            gridTemplateColumns="1fr"
+            gridRowGap={3}
+          >
+            {formWidgets.named_areas.map((na, index) => {
+              return (
+                <Box
+                  borderWidth="0px"
+                  borderStyle="solid"
+                  borderColor="border.default"
+                  borderRadius={2}
+                  key={index}>
+                  <PhokControl name={`named_areas.${na.name}`} label={na.label} as={AutocompleteQuery} asProps={{ block: true, fetchResourceName: 'named_areas', queryFilter: {area_class_id: na.id}}} {...rest}/>
+
+                </Box>
+              )
+            })}
+          </Box>
+          <Box display="flex">
+            <Box flexGrow={1}>
+              <PhokControl name="locality_text" label="地點描述" as={Textarea} asProps={{ block: true, rows: 2}} {...rest} />
+            </Box>
+          </Box>
+          <Box display="flex">
+            <Box flexGrow={1} pr={3}>
+      <PhokControl name="altitude" label="海拔 (公尺)" as={TextInput} asProps={{block: true}} {...rest} />
+            </Box>
+            <Box flexGrow={1}>
+              <PhokControl name="latitude2" label="海拔2 (公尺)" as={TextInput} asProps={{block: true}} {...rest}/>
+            </Box>
+          </Box>
+          <Box display="flex">
+            <Box flexGrow={1} pr={3}>
+              <PhokControl name="longitude_decimal" label="經度 (十進位)" as={TextInput} asProps={{block: true}} {...rest} />
+              <PhokControl name="latitude_decimal" label="緯度 (十進位)" as={TextInput} asProps={{block: true}} {...rest}/>
+            </Box>
+            <Box flexGrow={1} pr={3}>
+              <PhokControl name="longitude_text" label="經度 (verbatim)" as={TextInput} asProps={{block: true}} {...rest}/>
+              <PhokControl name="latitude_text" label="緯度 (verbatim)" as={TextInput} asProps={{block: true}} {...rest}/>
+            </Box>
+            <Box flexGrow={1}>
+              <DMSConverter longitudeDMS={state.helpers.longitude_dms} latitudeDMS={state.helpers.latitude_dms} setValue={rest.setValue} />
+            </Box>
+          </Box>
+
+          <PhokHeading text="環境" size={3} />
+          <Box
+            display="grid"
+            gridTemplateColumns="1fr"
+            gridRowGap={3}
+          >
+            {formWidgets.biotopes.map((biotope, index) => {
+              return (
+                <Box
+                  borderWidth="0px"
+                  borderStyle="solid"
+                  borderColor="border.default"
+                  borderRadius={2}
+                  key={index}>
+                  <PhokControl name={`biotopes.${biotope.name}`} label={biotope.label} as={AutocompleteFreeText} asProps={{ block: true, items: state.helpers[`biotopes__${biotope.name}`].choices }} {...rest} />
+                </Box>
+              )
+            })}
+          </Box>
+          <PhokHeading text="鑑定" size={3} />
+          <Box width="100px">
+            <Button leadingIcon={PlusIcon} type="button" onClick={() => {idAppend({sequence: idFields.length});}}>新增鑑定</Button>
+          </Box>
+          <Box
+            display="grid"
+            gridTemplateColumns="1fr 1fr"
+            gridGap={3}
+          >
+            {idFields.map((identification, index) => {
+              // console.log(x);
+              return (
+                <Box
+                  borderWidth="1px"
+                  borderStyle="solid"
+                  borderColor="border.default"
+                  borderRadius={2}
+                  p={2}
+                  key={index}>
+                  <PhokControl name={`identifications.${index}.sequence`} label="編號" {...rest} />
+                  <PhokControl name={`identifications.${index}.taxon`} label="學名" as={AutocompleteQuery} asProps={{ block: true, fetchResourceName: 'taxa' }} {...rest} />
+                  <PhokControl name={`identifications.${index}.identifier`} label="鑑定者" as={AutocompleteQuery} asProps={{ block: true, fetchResourceName: 'people'}} {...rest} />
+                  <PhokControl name={`identifications.${index}.date`} label="鑑定日期" asProps={{type: 'date'}} {...rest} />
+                  <Box width="35px" pt={3}>
+                    <Confirm onOk={() => {idRemove(index);}} />
+                  </Box>
+                </Box>
+              )})}
+          </Box>
+          <PhokHeading text="標本" size={3} />
+          <Box width="100px">
+            <Button leadingIcon={PlusIcon} type="button" onClick={() => {unitAppend();}}>新增標本</Button>
+          </Box>
+          <Box
+            display="grid"
+            gridTemplateColumns="1fr 1fr"
+            gridGap={3}
+          >
+            {unitFields.map((unit, index) => {
+              // console.log(x);
+              return (
+                <Box
+                  borderWidth="1px"
+                  borderStyle="solid"
+                  borderColor="border.default"
+                  borderRadius={2}
+                  p={2}
+                  key={index}>
+                  <img src={unit.image_url} />
+                  <PhokControl name={`units.${index}.accession_number`} label="館號" {...rest} />
+                  {formWidgets.unit_measurement_or_facts.map((mof, mof_index) => {
+                    return (
+                      <Box
+                        borderWidth="0px"
+                        borderStyle="solid"
+                        borderColor="border.default"
+                        borderRadius={2}
+                        key={mof_index}>
+                        <PhokControl name={`units.${index}.measurement_or_facts.${mof.name}`} label={mof.label} as={AutocompleteFreeText} asProps={{ block: true, items: state.helpers[`unit_measurement_or_facts__${mof.name}`].choices }} {...rest} />
+                      </Box>
+                    );
+                  })}
+                  <Box width="35px" pt={3}>
+                    <Confirm onOk={() => {unitRemove(index);}} />
+                  </Box>
+                </Box>
+              )})}
+          </Box>
+
+        </Box>
+        <Box mt={3}>
+          <Button type="submit" variant="outline" size="medium">儲存</Button>
+          {/* <Button type="button" variant="default" size="medium">儲存並且離開</Button> */}
+        </Box>
+      </form>
+    );
+  };
   return (
     <>
       <Pagehead>Collection</Pagehead>
@@ -240,183 +555,13 @@ export default function CollectionForm() {
           } else if (state.error) {
             return <Text color="danger.fg">{state.error}</Text>;
           } else {
-            return renderForm();
+            return <CollectionHookForm
+                     defaultValues={state.data}
+                     formWidgets={state.form}
+                   />
           }
         })()}
       </Box>
     </>
   );
-};
-
-function CollectitonForrm () {
-  const params = useParams();
-  //console.log(params.collectionId)
-  const initialArg = {
-    loading: true,
-    alert: {
-      display: '',
-      isOpen: false,
-      content: '',
-      onCancel: null,
-      onOk: null,
-    },
-    error: '',
-    data: {},
-    helpers: {
-      collectorSelect: {
-        input: null,
-        choices: [],
-      },
-    }
-  };
-
-  const [state, dispatch] = React.useReducer(reducer, initialArg);
-  const [value, setValue] = React.useState('');
-
-  React.useEffect(() => {
-    getOne('collections', params.collectionId)
-      .then(({ json }) => {
-        console.log('🐣 init');
-        dispatch({type: 'GET_ONE_SUCCESS', data: json, helpers: {}});
-      })
-      .catch(error => {
-        //dispatch({type: 'GET_ONE_ERROR', error: error});
-      });
-  }, []);
-
-  const FormHeading = ({text, size}) => {
-    return (
-      <Box display="flex">
-        <Heading sx={{fontSize: size, color:"#a1a1a1"}}>{ text }</Heading>
-      </Box>
-    )
-  }
-
-  const renderFormItem = ({label, component, grow, ...props}) => {
-    return (
-      <Box flexGrow={ grow || 1 } {...props}>
-        <FormControl>
-          <FormControl.Label>{label}</FormControl.Label>
-          {component}
-        </FormControl>
-      </Box>
-    );
-j  }
-  const NatureText = ({name, type, ...other}) => {
-
-    if (type === 'textarea') {
-      return <Textarea block name={name} onChange={handleChange} />
-    } else {
-      return (
-        <TextInput block name={name} type={type || 'text'} onChange={handleChange} />
-      )
-    }
-  }
-
-  const handleChange = (event)  => {
-    /*
-    dispatch({
-      type: 'SET_DATA',
-      name: event.target.name,
-      value: event.target.value
-    })
-    */
-    setValue(event.target.value);
-  }
-
-  const renderForm = () => {
-
-    const formik = useFormik({
-      initialValues: {
-        field_number: '',
-        lastName: '',
-       email: '',
-      },
-      onSubmit: values => {
-        alert(JSON.stringify(values, null, 2));
-      },
-    });
-
-    return (
-      <form onSubmit={formik.handleSubmit}>
-        <FormHeading text="採集事件" size={3} />
-        <Box display="flex">
-          {renderFormItem({label:"採集者", grow:3, pr:2,component:
-            <Autocomplete>
-              <Autocomplete.Input block/>
-              <Autocomplete.Overlay anchorSide="inside-bottom">
-                <Autocomplete.Menu
-                  items={[
-                    {text: 'css', id: 0},
-                    {text: 'css-in-js', id: 1},
-                    {text: 'styled-system', id: 2},
-                    {text: 'javascript', id: 3},
-                    {text: 'typescript', id: 4},
-                    {text: 'react', id: 5},
-                    {text: 'design-systems', id: 6}
-                  ]}
-                  selectedItemIds={[]}
-                />
-              </Autocomplete.Overlay>
-            </Autocomplete>
-                          })}
-        </Box>
-      </form>
-    )
-  }
-
-  console.log((state.loading===true) ? '🥚': '🐔' + ' state', state, value);
-
-  let Content = null;
-  if (state.loading === true) {
-    Content = <Spinner />;
-  } else if (state.error !== '') {
-    Content = <Text color="danger.fg">{state.error}</Text>;
-  } else {
-    //Content = renderForm();
-    Content = SignupForm();
-  }
-  return (
-    <>
-      <Pagehead>Collection</Pagehead>
-      <Box
-        borderWidth="0px"
-        borderStyle="solid"
-        borderColor="border.default"
-        borderRadius={2}
-        p={1}
-        m={1}
-        display="grid"
-        gridGap={3}
-        sx={{maxWidth: 1200}}
-      >
-        <SignupForm />
-      </Box>
-    </>
-  );
 }
-
-
-/*
-          <FormItem label="採集號" component={<TextInput name="field_number" onChange={handleChange}/>} />
-          <FormItem label="採集日期" pl={2} component={
-            <NatureText name="field_number" type="date" />
-          }/>
-        </Box>
-        <Box display="flex">
-          <FormItem label="隨同人員" sx={{ pr: 2 }} component={
-            <NatureText name="companion" type="textarea" rows={2} />
-          }/>
-          <FormItem label="隨同人員(英文)" component={
-            <NatureText name="companion" type="textarea" rows={2} />
-          }/>
-        </Box>
-        <FormHeading text="地點" size={2} />
-        <Box display="flex">
-          <FormItem label="地點描述" grow={2} component={
-            <NatureText name="locality" type="textarea" rows={2} />
-          }/>
-        </Box>
-        <Box display="flex">
-        </Box>
-*/

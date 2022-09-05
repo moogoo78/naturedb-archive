@@ -744,9 +744,11 @@ class CollectionMethodView(MethodView):
             # single item
             obj = session.get(self.model, item_id)
             data = obj.to_dict()
-            # default options
-            data['form_options'] = obj.get_form_options()
-            resp = jsonify(data)
+
+            resp = jsonify({
+                'data': data,
+                'form': obj.get_form_layout()
+            })
             resp.headers.add('Access-Control-Allow-Origin', '*')
             return resp
 

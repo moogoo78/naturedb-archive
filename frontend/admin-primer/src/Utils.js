@@ -1,4 +1,3 @@
-
 // via: react-admin/packages/ra-core/src/dataProvider/fetch.ts
 const createHeadersFromOptions = (options) => {
   const requestHeaders = (options.headers ||
