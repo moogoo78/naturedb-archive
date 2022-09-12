@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+import re
 
 from flask import (
     request,
@@ -314,6 +315,15 @@ def print_label():
 def specimen_image(org_and_accession_number):
     keys = org_and_accession_number.split(':')
     # Dataset.query.filter(Dataset.name==keys[0])
-    u = Unit.query.filter(Unit.accession_number==keys[1]).join(Dataset).filter(Dataset.name==keys[0]).one()
+    acc_num = keys[1]
+    # delete leading 0
+    m = re.search(r'(^0+)(.+)', keys[1])
+    if m:
+        acc_num = m.group(2)
 
-    return render_template('specimen-image.html', unit=u)
+    if u := Unit.query.filter(Unit.accession_number==acc_num).join(Dataset).filter(Dataset.name==keys[0]).first():
+        return render_template('specimen-image.html', unit=u)
+    else:
+        first_3 = acc_num[0:3]
+        img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{acc_num}_s.jpg'
+        return render_template('specimen-image.html', image_url=img_url)
