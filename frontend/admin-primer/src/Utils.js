@@ -118,10 +118,11 @@ const getOne = (resource, itemId, options={}) => {
      });
 }
 
-const updateOrCreate = (resource, payload)=> {
-  const itemId = payload.data.id;
+const updateOrCreate = (resource, payload, itemId)=> {
+  // 有無 id 決定 post (create) or put(update)
   const apiUrl = process.env.API_URL;
-  const url = (itemId !== null) ? `${apiUrl}/${resource}/${itemId}` : `${apiUrl}/${resource}`;
+  const url = (itemId) ? `${apiUrl}/${resource}/${itemId}` : `${apiUrl}/${resource}`;
+
   const options = {
     body: JSON.stringify(payload), // must match 'Content-Type' header
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached

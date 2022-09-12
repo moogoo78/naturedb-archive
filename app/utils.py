@@ -5,7 +5,7 @@ from sqlalchemy import (
     inspect,
 )
 
-class SAModelChange(object):
+class SAModelLog(object):
     '''
     via: https://stackoverflow.com/a/56351576/644070
     '''
@@ -13,8 +13,8 @@ class SAModelChange(object):
     state = None
     changes = {}
     def __init__(self, model):
-        #self.model = model
         self.state = inspect(model)
+        # print(model, flush=True)
 
     def check(self):
         for attr in self.state.attrs:

@@ -13,7 +13,7 @@ const initialArg = {
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case 'GET_ONE_SUCCESS':
+    case 'INIT_SUCCESS':
       return {
         ...state,
         loading: false,
@@ -29,7 +29,6 @@ const reducer = (state, action) => {
         error: action.error,
       }
     case 'SHOW_FLASH':
-      console.log(action.isError, 'eueueu');
       return {
         ...state,
         flash: {

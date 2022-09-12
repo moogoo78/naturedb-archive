@@ -24,7 +24,13 @@ from app.utils import (
     get_time,
     dd2dms,
 )
-from app.database import Base
+from app.utils import (
+     SAModelLog,
+ )
+from app.database import (
+    Base,
+    session,
+)
 from app.taxon.models import Taxon
 
 
@@ -547,9 +553,117 @@ class Collection(Base):
         data['units'] = [x.to_dict() for x in self.units]
         return data
 
+    def update_from_json(self, data):
+        changes = {}
+        collection_log = SAModelLog(self)
+        for name, value in data.items():
+            # print('--', name, value, flush=True)
+            if name == 'biotopes':
+                biotope_list = []
+                changes['biotopes'] = {}
+                for k, v in value.items():
+                    # find origin
+                    origin = ''
+                    for x in self.biotope_measurement_or_facts:
+                        if x.parameter.name == k:
+                            origin = x.value
+                    changes['biotopes'][k] = f'{origin}=>{v}'
+                    biotope = MeasurementOrFact(collection_id=self.id, value=v)
+                    if p := MeasurementOrFactParameter.query.filter(MeasurementOrFactParameter.name==k).first():
+                        biotope.parameter_id = p.id
+                    #if o := MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameter.name==v).first():
+                    # 不管 option 了
+                    biotope_list.append(biotope)
+
+                self.biotope_measurement_or_facts = biotope_list
+
+            elif name == 'identifications':
+                changes['identifications'] = []
+                # 全部檢查 (dirtyFields 看不出是那一個 index 改的?)
+                for id_ in value:
+                    id_obj = None
+                    if iid := id_.get('id'):
+                        id_obj = session.get(Identification, iid)
+                    else:
+                        id_obj = Identification(collection_id=self.id)
+                        session.add(id_obj)
+                        session.commit()
+
+                    id_log = SAModelLog(id_obj)
+
+                    id_obj.date = id_['date'] if id_.get('date') else None
+                    id_obj.date_text = id_.get('date_text', '')
+                    id_obj.sequence = id_.get('sequence', '')
+                    if x := id_.get('taxon'):
+                        id_obj.taxon_id = x['id']
+                    if x := id_.get('identifier'):
+                        id_obj.identifier_id = x['id']
+
+                    changes['identifications'].append(id_log.check())
+
+            elif name == 'units':
+                changes['units'] = []
+                # 全部檢查 (dirtyFields 看不出是那一個 index 改的?)
+                units = []
+                for unit in value:
+                    if unit_id := unit.get('id'):
+                        unit_obj = session.get(Unit, unit_id)
+                    else:
+                        # TODO: dataset hard-code to HAST
+                        unit_obj = Unit(collection_id=self.id, dataset_id=1) 
+                        session.add(unit_obj)
+                        session.commit()
+
+                    unit_log = SAModelLog(unit_obj)
+                    unit_obj.accession_number = unit.get('accession_number')
+                    unit_obj.preparation_date = unit['preparation_date'] if unit.get('preparation_date') else None
+
+                    mof_list = []
+                    # 用 SAModelLog 就可以了
+                    for k, v in unit['measurement_or_facts'].items():
+                        mof = MeasurementOrFact(unit_id=unit_obj.id, value=v)
+                        #mof_log = SAModelChange(mof)
+                        if p := MeasurementOrFactParameter.query.filter(MeasurementOrFactParameter.name==k).first():
+                            mof.parameter_id = p.id
+                        #if o := MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameter.name==v).first():
+                        # 不管 option 了
+                        mof_list.append(mof)
+
+                    unit_obj.measurement_or_facts = mof_list
+                    units.append(unit_obj)
+
+                    unit_changes = unit_log.check()
+                    #unit_changes['measurement_or_facts'] = 
+                    changes['units'].append(unit_changes)
+
+            else:
+                if name in ['field_number', 'collect_date', 'altitude', 'altitude2', 'longitude_decimal', 'latitude_decimal', 'longitude_text', 'latitude_text', 'locality_text', 'companion_text', 'companion_text_en']:
+                    origin = getattr(self, name, '')
+                    changes[name] = f'{origin}=>{value}'
+                    setattr(self, name, value)
+                elif name == 'collector':
+                    if value and value.get('id'):
+                        self.collector_id = value['id']
+                    else:
+                        self.collector_id = None
+
+                    origin = getattr(self, name, '')
+                    changes[name] = f'{origin}=>{value}'
+
+        #print('log_entries', log_entries, flush=True)
+        # collection_changes = collection_log.check() # 不好用, units, identifications... 會混成同一層
+        #changes.update(collection_changes)
+        # print('col', collection_changes, flush=True)
+        # print('cus', changes, flush=True)
+        session.commit()
+
+        return changes
+
     # collection.to_dict
     def to_dict(self, include_units=True):
-        ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
+        ids = []
+        if self.identifications.count() > 0:
+            ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
         taxon = Taxon.query.filter(Taxon.id==self.proxy_taxon_id).first()
         # named_area_map = self.get_named_area_map()
         # named_area_list = self.get_named_area_list()
@@ -574,6 +688,8 @@ class Collection(Base):
             'altitude2':self.altitude2 or '',
             'longitude_decimal': self.longitude_decimal or '',
             'latitude_decimal': self.latitude_decimal or '',
+            'longitude_text': self.longitude_text or '',
+            'latitude_text': self.latitude_text or '',
             'locality_text': self.locality_text or '',
             #'biotope_measurement_or_facts': {x.parameter.name: x.to_dict() for x in self.biotope_measurement_or_facts},
             #'biotopes': biotopes,
@@ -636,41 +752,6 @@ class Collection(Base):
     def get_named_area_list(self):
         named_area_map = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
         return get_structed_list(AreaClass.DEFAULT_OPTIONS, named_area_map)
-
-    # DEPRECATED
-    def get_form_options(self):
-        named_areas = {}
-        for x in AreaClass.DEFAULT_OPTIONS:
-            named_areas[x['name']] = {'id': x['id'], 'label': x['label'], 'options': []}
-            for na in NamedArea.query.filter(NamedArea.area_class_id==x['id']).order_by('id').all():
-                # named_areas[x['name']]['options'].append(na.to_dict())
-                #named_areas[x['name']]['options'].append(na.get_value())
-                pass
-
-        biotopes = {}
-        for param in MeasurementOrFact.BIOTOPE_OPTIONS:
-            biotopes[param['name']] = {'id': param['id'], 'label': param['label'], 'options': []}
-            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
-                biotopes[param['name']]['options'].append(row.to_dict())
-
-        mofs = {}
-        for param in MeasurementOrFact.UNIT_OPTIONS:
-            mofs[param['name']] = {'id': param['id'], 'label': param['label'], 'options': []}
-            for row in MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameterOption.parameter_id==param['id']).all():
-                mofs[param['name']]['options'].append(row.to_dict())
-
-        collectors = []
-        #for p in Person.query.all():
-        #    collectors.append({'id': p.id, 'text': p.display_name()})
-        if self.collector:
-            collectors.append({'id': self.collector_id, 'text': self.collector.display_name()})
-        data = {
-            'named_areas': named_areas,
-            'biotopes': biotopes,
-            'measurement_or_facts': mofs,
-            'collectors': collectors,
-        }
-        return data
 
     def get_form_layout(self):
         named_areas = []

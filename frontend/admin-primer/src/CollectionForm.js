@@ -400,60 +400,70 @@ export default function CollectionForm() {
   const params = useParams();
   const navigate = useNavigate();
   const [state, dispatch] = React.useReducer(reducer, initialArg);
+
+  const initHelpers = (form) => {
+    let helpers = {}
+    for( const i in form.biotopes) {
+      const biotope = form.biotopes[i];
+      helpers[`biotopes__${biotope.name}`] = {
+        choices: biotope.options.map( x => ({id: x.id, text: `${x.value} / ${x.description}`}))
+      }
+    }
+    for( const i in form.unit_measurement_or_facts) {
+      const mof = form.unit_measurement_or_facts[i];
+      helpers[`unit_measurement_or_facts__${mof.name}`] = {
+        choices: mof.options.map( x => ({id: x.id, text: `${x.value} / ${x.description}`}))
+      }
+    }
+    const namedAreas = form.named_areas.map(x => `named_areas__${x.name}`);
+    const helperNames = ['collector', 'taxon'].concat(namedAreas);
+    for (const name of helperNames) {
+      helpers[name] = {
+        choices: [],
+        loading: false,
+        //disabled: false,
+      };
+    }
+    return helpers;
+  }
+
   React.useEffect(() => {
-    getOne('collections', params.collectionId)
-      .then(({ json }) => {
-        // console.log(json.collector);
-        console.log('🐣 fetch', json);
+    let resp = null;
+    if (!params.collectionId) {
+      resp = getFormOptions('collections');
+    } else {
+      resp = getOne('collections', params.collectionId);
+    }
+    resp.then(({ json }) => {
+      // console.log(json.collector);
+      console.log('🐣 fetch', json);
 
-        // helper
-        let helpers = {};
-        if (json.data.longitude_decimal) {
-          helpers.longitude_dms = convertDDToDMS(json.data.longitude_decimal);
-        }
-        if (json.data.latitude_decimal) {
-          helpers.latitude_dms = convertDDToDMS(json.data.latitude_decimal);
-        }
-        for( const i in json.form.biotopes) {
-          const biotope = json.form.biotopes[i];
-          helpers[`biotopes__${biotope.name}`] = {
-            choices: biotope.options.map( x => ({id: x.id, text: `${x.value} / ${x.description}`}))
-          }
-        }
-        for( const i in json.form.unit_measurement_or_facts) {
-          const mof = json.form.unit_measurement_or_facts[i];
-          helpers[`unit_measurement_or_facts__${mof.name}`] = {
-            choices: mof.options.map( x => ({id: x.id, text: `${x.value} / ${x.description}`}))
-          }
-        }
-        const namedAreas = json.form.named_areas.map(x => `named_areas__${x.name}`);
-        const helperNames = ['collector', 'taxon'].concat(namedAreas);
-        for (const name of helperNames) {
-          helpers[name] = {
-            choices: [],
-            loading: false,
-            //disabled: false,
-          };
-        }
+      // helper
+      let helpers = initHelpers(json.form);
+      if (json.data.longitude_decimal) {
+        helpers.longitude_dms = convertDDToDMS(json.data.longitude_decimal);
+      }
+      if (json.data.latitude_decimal) {
+        helpers.latitude_dms = convertDDToDMS(json.data.latitude_decimal);
+      }
 
-        // for useFieldArray auto added id override original id
-        json.data.units.forEach(function (part, index) {
-          this[index].unit_id = part.id;
-        },json.data.units);
-        json.data.identifications.forEach(function (part, index) {
-          this[index].identification_id = part.id;
-        },json.data.identifications);
+      // for useFieldArray auto added id override original id
+      json.data.units.forEach(function (part, index) {
+        this[index].unit_id = part.id;
+      },json.data.units);
+      json.data.identifications.forEach(function (part, index) {
+        this[index].identification_id = part.id;
+      },json.data.identifications);
 
-        dispatch({type: 'GET_ONE_SUCCESS', data: json.data, helpers: helpers, form: json.form});
-      })
+      dispatch({type: 'INIT_SUCCESS', data: json.data, helpers: helpers, form: json.form});
+    })
       .catch(error => {
         dispatch({type: 'GET_ONE_ERROR', error: error});
       });
+
   }, []);
 
   console.log('state', state);
-  // const mem = React.memo(AutocompleteQueryField);
-
 
   const CollectionHookForm = ({defaultValues, formWidgets}) => {
     const { register, handleSubmit, watch, control, setValue, formState: { errors, dirtyFields } } = useForm({
@@ -474,19 +484,19 @@ export default function CollectionForm() {
     const doSubmit = data => {
       console.log('submit', data);
       console.log('dirty', dirtyFields);
-      let dirty = {};
-      const payload = {
-        data: data,
-        dirty: dirtyFields,
+      let payload = {};
+      for (const name in dirtyFields) {
+        payload[name] = data[name];
       }
-
-      updateOrCreate('collections', payload, data.collection)
+      // console.log(payload, data);
+      updateOrCreate('collections', payload, data.id || null)
         .then((json) => {
           // console.log('return ', json);
-          dispatch({type: 'SHOW_FLASH', text: `儲存成功 - ${new Date()}`});
-          //if (isReload === true) {
-          //  window.location.reload();
-          //}
+          const label = (data.id) ? '儲存': '新增';
+          dispatch({type: 'SHOW_FLASH', text: `${label}成功 - ${new Date()}`});
+          if (!data.id) {
+            navigate(`/collections`, {replace: true});
+          }
         })
         .catch(error => {
           dispatch({type: 'SHOW_FLASH', text: `${error}`, isError: true });
@@ -654,7 +664,7 @@ export default function CollectionForm() {
                         .then(x=>{
                           // console.log(x, 'ok');
                           // navigate(`/collections/${params.collectionId}`, replace=true)
-                          location.reload();
+                          window.location.reload();
                         });
                     }} appendText="，修改過的資料要要先儲存！" />
                   </Box>
@@ -663,7 +673,7 @@ export default function CollectionForm() {
           </Box>
           <PhokHeading text="標本" size={3} />
           <Box width="100px">
-            <Button leadingIcon={PlusIcon} type="button" onClick={() => {unitAppend({accession_number: ''});}}>新增標本</Button>
+            <Button leadingIcon={PlusIcon} type="button" onClick={() => {unitAppend({accession_number: '', preparation_date: ''});}}>新增標本</Button>
           </Box>
           <Box
             display="grid"
@@ -727,7 +737,7 @@ export default function CollectionForm() {
                         .then(x=>{
                           // console.log(x, 'ok');
                           // navigate(`/collections/${params.collectionId}`, replace=true)
-                          location.reload();
+                          window.location.reload();
                         });
                     }} appendText="，修改過的資料要要先儲存！"/>
                   </Box>
@@ -736,7 +746,7 @@ export default function CollectionForm() {
           </Box>
         </Box>
         <Box mt={3}>
-          <Button type="submit" variant="outline" size="medium">儲存</Button>
+      <Button type="submit" variant="outline" size="medium">{(params.collectionId) ? '儲存' : '新增'}</Button>
           {/* <Button type="button" variant="default" size="medium">儲存並且離開</Button> */}
         </Box>
       </form>

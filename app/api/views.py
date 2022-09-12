@@ -7,6 +7,7 @@ from flask import (
     request,
     current_app,
     abort,
+    make_response,
 )
 from sqlalchemy import (
     select,
@@ -52,10 +53,18 @@ from .helpers_react_admin import (
     get_list_payload,
     ReactAdminProvider,
 )
-from app.utils import (
-     SAModelChange,
- )
 
+def allow_cors_preflight():
+    response = make_response()
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add('Access-Control-Allow-Headers', "*")
+    response.headers.add('Access-Control-Allow-Methods', "*")
+    return response
+
+def allow_cors(data):
+    resp = jsonify(data)
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    return resp
 
 @api.route('/auth', methods=['POST', 'OPTIONS'])
 def auth():
@@ -79,20 +88,15 @@ def auth():
 
 
 @api.route('/<resource>/form')
-def form_options(resource):
+def form_layout(resource):
     c = Collection()
-    biotopes = get_structed_list(MeasurementOrFact.BIOTOPE_OPTIONS, {})
-    data = {
-        'named_areas': c.get_named_area_list(),
-        'identifications': [],
-        'units': [],
-        'biotopes': biotopes,
-        'form_options': c.get_form_options(),
-    }
-
-    resp = jsonify(data)
+    resp = jsonify({
+        'data': c.to_dict(),
+        'form': c.get_form_layout(),
+    })
     resp.headers.add('Access-Control-Allow-Origin', '*')
     return resp
+
 
 class AdminQuery(object):
 
@@ -216,6 +220,80 @@ class AdminQuery(object):
         resp.headers.add('Access-Control-Allow-Origin', '*')
         resp.headers.add('Access-Control-Allow-Methods', '*')
         return resp
+
+@api.route('/collections/<int:collection_id>', methods=['GET', 'PUT', 'DELETE', 'OPTIONS'])
+def collection_item(collection_id):
+    obj = session.get(Collection, collection_id)
+    if not obj:
+        return abort(404)
+
+    if request.method == 'GET':
+        data = obj.to_dict()
+        return allow_cors({
+            'data': data,
+            'form': obj.get_form_layout()
+        })
+
+    elif request.method == 'OPTIONS':
+        return allow_cors_preflight()
+
+    elif request.method == 'PUT':
+        changes = obj.update_from_json(request.json)
+        log = LogEntry(
+            model='Collection',
+            item_id=collection_id,
+            action='update',
+            changes=changes)
+        session.add(log)
+        session.commit()
+
+        return allow_cors(obj.to_dict())
+    elif request.method == 'DELETE':
+        session.delete(obj)
+        session.commit()
+        log = LogEntry(
+            model='Collection',
+            item_id=item.id,
+            action='delete')
+        session.add(log)
+        session.commit()
+        return allow_cors({})
+
+
+@api.route('/collections', methods=['GET', 'POST', 'OPTIONS'])
+def collection():
+    if request.method == 'GET':
+        # item_list
+        stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection, full=True).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
+        # TODO: full outer join cause slow
+        #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Collection).join(Unit).group_by(Collection.id)
+
+        total = None
+        if t := request.args.get('total'):
+            total = int(t)
+            admin_query = AdminQuery(request, stmt, collection_mapping, total=total)
+            #admin_query = AdminQuery(request, stmt, lambda x: x[0].to_dict())
+            # print(stmt, flush=True)
+        return admin_query.get_result()
+
+    elif request.method == 'OPTIONS':
+        return allow_cors_preflight()
+
+    elif request.method == 'POST':
+        collection = Collection()
+        changes = collection.update_from_json(request.json)
+        session.add(collection)
+        session.commit()
+        log = LogEntry(
+            model='Collection',
+            item_id=collection.id,
+            action='insert',
+            changes=changes)
+        session.add(log)
+        session.commit()
+
+        return allow_cors(collection.to_dict())
+
 
 def make_specimen_list_response(req):
     payload = {
@@ -753,368 +831,56 @@ class CollectionMethodView(MethodView):
             resp.headers.add('Access-Control-Allow-Origin', '*')
             return resp
 
-    def post(self, item_id):
+    def post(self):
         # create
-        #obj = Collection()
-        #obj = self._update_or_create(obj, request.json)
-        #return ra_item_response(self.RESOURCE_NAME, obj)
-        return jsonify({})
+        collection = Collection()
+        changes = collection.update_from_json(request.json)
+        log = LogEntry(
+            model='Collection',
+            item_id=collection.id,
+            action='insert',
+            changes=changes)
+        session.add(log)
+        session.commit()
+
+        resp = jsonify(collection.to_dict())
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        return resp
 
     def delete(self, item_id):
         # delete a single user
-        obj = session.get(self.model, item_id)
-        session.delete(obj)
-        session.commit()
+        if obj := session.get(self.model, item_id):
+            session.delete(obj)
+            session.commit()
+            log = LogEntry(
+                model='Collection',
+                item_id=item.id,
+                action='delete')
+            session.add(log)
+            session.commit()
 
-        resp = jsonify({})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp
+            resp = jsonify({})
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            return resp
 
     def put(self, item_id):
         # update
         if obj := session.get(self.model, item_id):
-            obj = self._insert_or_update(obj, request.json)
-            return ra_item_response(self.RESOURCE_NAME, obj)
+            changes = obj.update_from_json(request.json)
+            log = LogEntry(
+                model='Collection',
+                item_id=item_id,
+                action='update',
+                changes=changes)
+            session.add(log)
+            session.commit()
+
+            resp = jsonify(obj.to_dict())
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            return resp
 
     def options(self, item_id):
         return make_cors_preflight_response()
-
-    def _insert_or_update(self, obj, payload):
-        ret = {}
-        # print(params, obj, obj.id, flush=True)
-        data = payload['data']
-        dirty_fields = payload['dirty']
-
-        log_entries = {}
-        collection_change = SAModelChange(obj)
-        for name, dirty in dirty_fields.items():
-            value = data[name]
-            # print('--', name, value, flush=True)
-
-            if name == 'biotopes':
-                biotope_list = []
-                log_entries['biotopes'] = {}
-                for k, v in value.items():
-                    #origin = getattr(obj, k)
-                    origin = ''
-                    for x in obj.biotope_measurement_or_facts:
-                        if x.parameter.name == k:
-                            origin = x.value
-                    log_entries['biotopes'][k] = f'{origin}=>{v}'
-                    biotope = MeasurementOrFact(collection_id=obj.id, value=v)
-                    if p := MeasurementOrFactParameter.query.filter(MeasurementOrFactParameter.name==k).first():
-                        biotope.parameter_id = p.id
-                    #if o := MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameter.name==v).first():
-                    # 不管 option 了
-                    biotope_list.append(biotope)
-
-                obj.biotope_measurement_or_facts = biotope_list
-
-            elif name == 'identifications':
-                log_entries['identifications'] = []
-                # 全部檢查 (dirtyFields 看不出是那一個 index 改的?)
-                for id_ in value:
-                    id_obj = None
-                    if iid := id_.get('id'):
-                        id_obj = session.get(Identification, iid)
-                    else:
-                        id_obj = Identification(collection_id=obj.id)
-                        session.add(id_obj)
-                        session.commit()
-
-                    mod_change= SAModelChange(id_obj)
-
-                    id_obj.date = id_['date'] if id_.get('date') else None
-                    id_obj.date_text = id_.get('date_text', '')
-                    id_obj.sequence = id_.get('sequence', '')
-                    if x := id_.get('taxon'):
-                        id_obj.taxon_id = x['id']
-                    if x := id_.get('identifier'):
-                        id_obj.identifier_id = x['id']
-
-                    changes = mod_change.check()
-                    log_entries['identifications'].append(changes)
-
-            elif name == 'units':
-                log_entries['units'] = []
-                # 全部檢查 (dirtyFields 看不出是那一個 index 改的?)
-                units = []
-                for unit in value:
-                    if unit_id := unit.get('id'):
-                        unit_obj = session.get(Unit, unit_id)
-                    else:
-                        unit_obj = Unit(collection_id=obj.id, dataset_id=1) # TODO: default HAST
-                        session.add(unit_obj)
-                        session.commit()
-
-                    unit_change = SAModelChange(unit_obj)
-                    unit_obj.accession_number = unit.get('accession_number')
-                    unit_obj.preparation_date = unit['preparation_date'] if unit.get('preparation_date') else None
-
-                    mof_list = []
-                    # 用 SAModelChange 就可以了
-                    for k, v in unit['measurement_or_facts'].items():
-                        mof = MeasurementOrFact(unit_id=obj.id, value=v)
-                        mof_change= SAModelChange(mof)
-                        if p := MeasurementOrFactParameter.query.filter(MeasurementOrFactParameter.name==k).first():
-                            mof.parameter_id = p.id
-                        #if o := MeasurementOrFactParameterOption.query.filter(MeasurementOrFactParameter.name==v).first():
-                        # 不管 option 了
-                        mof_list.append(mof)
-
-                    unit_obj.measurement_or_facts = mof_list
-                    changes = unit_change.check()
-                    log_entries['units'].append(changes)
-                    units.append(unit_obj)
-
-            else:
-                if name in ['field_number', 'collect_date', 'altitude', 'altitude2', 'longitude_decimal', 'latitude_decimal', 'longitude_text', 'latitude_text', 'locality_text', 'companion_text', 'companion_text_en']:
-                    origin = getattr(obj, name, '')
-                    log_entries[name] = f'{origin}=>{value}'
-                    setattr(obj, name, value)
-                elif name == 'collector':
-                    if value and value.get('id'):
-                        obj.collector_id = value['id']
-                    else:
-                        obj.collector_id = None
-
-                    origin = getattr(obj, name, '')
-                    #log_entries[name] = f'{origin}=>{value}'
-
-        #print('log_entries', log_entries, flush=True)
-        collection_log_entries = collection_change.check()
-        #print(collection_log_entries, log_entries, flush=True)
-        log_entries.update(collection_log_entries)
-        # print(log_entries, flush=True)
-
-        log = LogEntry(
-            model='Collection',
-            item_id=obj.id,
-            action='update',
-            changes=log_entries)
-        session.add(log)
-
-        session.commit()
-        '''
-        if not obj.id:
-            session.add(obj)
-            session.commit()
-
-        for key, dirty in dirty_fields.items():
-            if key == 'named_areas':
-                # refresh named_data
-                new_named_area_ids = [na['id'] for _, na in data['named_areas'].items()]
-                obj.named_areas = NamedArea.query.filter(NamedArea.id.in_(new_named_area_ids)).all()
-            elif key == 'biotopes':
-                mof_list = []
-                # TOOD
-                for k, v in data['biotopes'].items():
-                    mof = MeasurementOrFact(collection_id=obj.id, value=v)
-                    mof_list.append(mof)
-                obj.biotope_measurement_or_facts = mof_list
-            elif key == 'identifications':
-                ids = []
-                for id_idx, id_value in enumerate(data['identifications']):
-                    id_obj = None
-                    if iid := id_value.get('id_identification'):
-                        id_obj = session.get(Identification, iid)
-                    else:
-                        id_obj = Identification(collection_id=obj.id)
-                        session.add(id_obj)
-
-                    if dirty[id_idx].get('identifier'):
-                        id_obj.identifier_id = id_value['identifier']['id']
-                    if dirty[id_idx].get('date'):
-                        if x := id_value.get('date'):
-                            id_obj.date = x
-                    #id_obj.date_text = id_.get('date_text')
-                    #id_obj.sequence = id_.get('sequence')
-                    #if taxon := id_.get('taxon'):
-                    #    id_obj.taxon_id = taxon.get('id')
-
-            elif key == 'units':
-                units = []
-                proxy_an_list = []
-                for unit in data['units']:
-                    if unit_id := unit.get('unit_id'):
-                        unit_obj = session.get(Unit, unit_id)
-                    else:
-                        unit_obj = Unit(collection_id=obj.id, dataset_id=1) # TODO: default HAST
-                        session.add(unit_obj)
-                        session.commit()
-
-                    if an:= unit.get('accession_number'):
-                        unit_obj.accession_number = an
-                        proxy_an_list.append(an)
-
-                    if x := unit.get('preparation_date'):
-                        unit_obj.preparation_date = x
-
-                    mofs = []
-                    for parameter_id, values in unit['measurement_or_facts']:
-                        if values and len(values) > 0:
-                            if mof_id := values[0]:
-                                mof = session.get(MeasurementOrFact, mof_id)
-                            else:
-                                mof = MeasurementOrFact(
-                                    unit_id=unit_obj.id,
-                                )
-                                session.add(mof)
-
-                            mof.option_id = values[2]
-                            mof.value_en = values[1]
-                            mof.parameter_id = parameter_id
-
-                            if mof.value_en != '':
-                                mofs.append(mof)
-
-                    unit_obj.measurement_or_facts = mofs
-                    units.append(unit_obj)
-                obj.proxy_accession_numbers = '|'.join(proxy_an_list)
-                obj.units = units
-
-            elif key in ['field_number', 'collect_date', 'companion', 'companion_en', 'locality', 'altitude', 'altitude2', 'longitude_decimal', 'latitude_decimal', 'longitude_verbatim', 'latitude_verbatim']:
-                setattr(obj, key, data[key])
-        for k, v in params.items():
-            elif k == 'biotopes':
-                biotopes = []
-                obj.biotopes = []
-                #for x in v:
-                #    print(x, flush=True)
-                    mof = None
-                    if values and len(values) > 0:
-                        if mof_id := values[0]:
-                            mof = session.get(MeasurementOrFact, mof_id)
-                        else:
-                            mof = MeasurementOrFact(
-                                collection_id=obj.id,
-                            )
-                            session.add(mof)
-
-                        mof.option_id = values[2]
-                        mof.value_en = values[1]
-                        mof.parameter_id = parameter_id
-
-                        if mof.value_en != '':
-                            biotopes.append(mof)
-                # update by relations
-                obj.biotope_measurement_or_facts = biotopes
-
-            elif k == 'units':
-                units = []
-                for unit in v:
-                    if unit_id := unit.get('id'):
-                        unit_obj = session.get(Unit, unit_id)
-                    else:
-                        unit_obj = Unit(collection_id=obj.id, dataset_id=1) # TODO: default HAST
-                        session.add(unit_obj)
-                        session.commit()
-
-                    unit_obj.accession_number = unit.get('accession_number')
-                    unit_obj.preparation_date = unit.get('preparation_date')
-
-                    mofs = []
-                    for parameter_id, values in unit['measurement_or_facts']:
-                        if values and len(values) > 0:
-                            if mof_id := values[0]:
-                                mof = session.get(MeasurementOrFact, mof_id)
-                            else:
-                                mof = MeasurementOrFact(
-                                    unit_id=unit_obj.id,
-                                )
-                                session.add(mof)
-
-                            mof.option_id = values[2]
-                            mof.value_en = values[1]
-                            mof.parameter_id = parameter_id
-
-                            if mof.value_en != '':
-                                mofs.append(mof)
-
-                    unit_obj.measurement_or_facts = mofs
-                    units.append(unit_obj)
-
-                obj.units = units
-
-            elif k == 'identifications':
-                ids = []
-                for id_ in v:
-                    id_obj = None
-                    if iid := id_.get('id'):
-                        id_obj = session.get(Identification, iid)
-                    else:
-                        id_obj = Identification(collection_id=obj.id)
-                        session.add(id_obj)
-
-                    id_obj.identifier_id = id_.get('identifier_id')
-                    id_obj.date = id_.get('date')
-                    id_obj.date_text = id_.get('date_text')
-                    id_obj.sequence = id_.get('sequence')
-                    id_obj.taxon_id = id_.get('taxon_id')
-
-            elif k == 'collect_date':
-                # 手動判斷是不是同一天
-                if collect_date := obj.collect_date:
-                    ymd = collect_date.strftime('%Y-%m-%d')
-                    if ymd != v:
-                        obj.collect_date = v
-            else:
-                print('--', k, v, flush=True)
-                #setattr(obj, k, v)
-        '''
-
-        '''
-        # Identifications
-        id_map = {x['id']: x for x in data['identifications'] if x.get('id')}
-        orig_obj_map = {x.id: x for x in obj.identifications.order_by(Identification.sequence).all()}
-
-        for value in data['identifications'] :
-            is_new_id = True
-            id_obj = None
-            if iid := value.get('id'):
-                if orig_obj_map[iid]:
-                    id_obj = orig_obj_map[iid]
-                    is_new_id = False
-
-            if not id_obj:
-                id_obj = Identification(collection_id=obj.id)
-
-            print(value, id_obj, is_new_id, flush=True)
-            if identifier := value.get('identifier', ''):
-                if id_obj.identifier_id != identifier['id']:
-                    id_obj.identifier_id = identifier['id']
-            else:
-                id_obj.identifier_id = None
-
-            if taxon := value.get('taxon', ''):
-                if id_obj.taxon_id != taxon['id']:
-                    id_obj.taxon_id = taxon['id']
-            else:
-                id_obj.taxon_id = None
-
-            if date := value.get('date', ''):
-                if id_obj.date != date:
-                    id_obj.date = date
-                else:
-                    id_obj.date = None
-
-            if date_text := value.get('date_text', ''):
-                if id_obj.date_text != date_text:
-                    id_obj.date_text = date_text
-                else:
-                    id_obj.date_text = ''
-
-            if sequence := value.get('sequence', ''):
-                if id_obj.sequence != sequence:
-                    id_obj.sequence = sequence
-                else:
-                    id_obj.sequence = ''
-
-            if is_new_id is True:
-                session.add(id_obj)
-                print(is_new_id,id_obj, '-----', flush=True)
-        '''
-        return obj
 
 
 class PersonMethodView(MethodView):
