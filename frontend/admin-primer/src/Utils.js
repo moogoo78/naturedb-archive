@@ -118,11 +118,12 @@ const getOne = (resource, itemId, options={}) => {
      });
 }
 
-const updateOrCreate = (resource, data, itemId)=> {
+const updateOrCreate = (resource, payload)=> {
+  const itemId = payload.data.id;
   const apiUrl = process.env.API_URL;
   const url = (itemId !== null) ? `${apiUrl}/${resource}/${itemId}` : `${apiUrl}/${resource}`;
   const options = {
-    body: JSON.stringify(data), // must match 'Content-Type' header
+    body: JSON.stringify(payload), // must match 'Content-Type' header
     cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
     // credentials: 'same-origin', // include, same-origin, *omit
     method: (itemId !== null) ? 'PUT': 'POST',
@@ -161,10 +162,11 @@ const updateOrCreate = (resource, data, itemId)=> {
       }
       return Promise.resolve({ status, headers, body, json });
       return json;
-    }).
-     catch((error) => {
-       console.log('getOne error', error);
-     });
+    })
+  .catch((error) => {
+    console.log('update or create error', error);
+    return Promise.reject(error);
+  });
 }
 const deleteOne = (resource, itemId, data)=> {
   const apiUrl = process.env.API_URL;

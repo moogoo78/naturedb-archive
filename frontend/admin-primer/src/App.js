@@ -71,7 +71,7 @@ const AdminSidebar = () => (
       <NavItem to="/">Dashboard</NavItem>
       <NavItem to="/collections">Collections</NavItem>
       <NavItem to="/taxa">Taxa</NavItem>
-      <NavItem to="/loc">Locations</NavItem>
+      <NavItem to="/loc">Locality</NavItem>
     </NavList>
   </Box>
 );

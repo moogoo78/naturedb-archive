@@ -10,10 +10,13 @@ from sqlalchemy import (
     ForeignKey,
     desc,
     Table,
+    update,
+    insert,
 )
 from sqlalchemy.orm import (
     relationship,
-    backref
+    backref,
+    validates,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -59,6 +62,17 @@ def get_structed_map(options, value_dict={}):
 #    unit_id = Column(Integer, ForeignKey('unit.id', ondelete='SET NULL'), nullable=True, primary_key=True)
 #    annotation_id =  Column(Integer, ForeignKey('annotation.id', ondelete='SET NULL'), nullable=True, primary_key=True)
 
+class LogEntry(Base):
+    __tablename__ = 'log_entry'
+    id = Column(Integer, primary_key=True)
+    # user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    model = Column(String(500))
+    item_id = Column(String(500))
+    action = Column(String(500))
+    changes = Column(JSONB)
+    created = Column(DateTime, default=get_time)
+    remarks = Column(String(500))
+
 class MeasurementOrFactParameter(Base):
     __tablename__ = 'measurement_or_fact_parameter'
     id = Column(Integer, primary_key=True)
@@ -66,6 +80,8 @@ class MeasurementOrFactParameter(Base):
     name = Column(String(500))
     label = Column(String(500))
 
+    def __repr__(self):
+        return '<MeasurementOrFactParameter name="{}" label="{}">'.format(self.name, self.label)
     def to_dict(self):
         return {
             'id': self.id,
@@ -86,7 +102,7 @@ class MeasurementOrFactParameterOption(Base):
     parameter_id = Column(ForeignKey('measurement_or_fact_parameter.id', ondelete='SET NULL'))
     group_id = Column(ForeignKey('measurement_or_fact_parameter_option_group.id', ondelete='SET NULL'), nullable=True)
     value = Column(String(500))
-    value_en = Column(String(500))
+    description = Column(String(500))
     parameter = relationship('MeasurementOrFactParameter')
     group = relationship('MeasurementOrFactParameterOptionGroup')
 
@@ -94,7 +110,7 @@ class MeasurementOrFactParameterOption(Base):
         return {
             'id': self.id,
             'value': self.value,
-            'value_en': self.value_en,
+            'description': self.description,
         }
 
 
@@ -143,7 +159,7 @@ class MeasurementOrFact(Base):
     #parameter = Column(String(500))
     #text = Column(String(500))
     value = Column(String(500)) # TODO: rename to description
-    value_en = Column(String(500)) # TODO real value
+    # value_en = Column(String(500)) # TODO real value
     #lower_value
     #upper_value
     #accuracy
@@ -151,8 +167,10 @@ class MeasurementOrFact(Base):
     #unit_of_measurement
     #applies_to
 
-    def get_value(self):
-        return self.value_en or '' # TODO
+    def __repr__(self):
+        if self.parameter:
+            return '<MeasurementOrFact parameter="{}" value="{}">'.format(self.parameter, self.value)
+        return '<MeasurementOrFact value="{}">'.format(self.value)
 
     def to_dict(self):
         #item = [x for x in self.PARAMETER_CHOICES if x[0] == self.parameter][0]
@@ -162,7 +180,6 @@ class MeasurementOrFact(Base):
             #'label': item[1],
             #'parameter': self.parameter.to_dict(),
             'value': self.value,
-            'value_en': self.value_en,
             #'collection_id': self.collection_id,
         }
     def to_dict(self):
@@ -173,7 +190,7 @@ class MeasurementOrFact(Base):
             #'label': item[1],
             #'parameter': self.parameter.to_dict(),
             'value': self.value,
-            'value_en': self.value_en,
+            # 'value_en': self.value_en,
             #'collection_id': self.collection_id,
         }
 
@@ -347,6 +364,17 @@ class Identification(Base):
     note = Column(Text)
     source_data = Column(JSONB)
 
+    def __repr__(self):
+        if self.taxon:
+            return '<Identification id="{}" taxon="{}">'.format(self.id, self.taxon.display_name())
+        return '<Identification id="{}">'.format(self.id)
+
+    @validates('date')
+    def validate_date(self, key, date):
+        if date == '':
+            raise ValueError('date is empty str')
+        return date
+
     def to_dict(self):
 
         data = {
@@ -354,11 +382,11 @@ class Identification(Base):
             #'identification_id': self.id,
             #'collection_id': self.collection_id,
             #'identifier_id': self.identifier_id or '',
-            'taxon_id': self.taxon_id,
+            'taxon_id': self.taxon_id or '',
             'date': self.date.strftime('%Y-%m-%d') if self.date else '',
-            'date_text': self.date_text,
-            'verification_level': self.verification_level,
-            'sequence': self.sequence,
+            'date_text': self.date_text or '',
+            'verification_level': self.verification_level or '',
+            'sequence': self.sequence or '',
         }
         if self.taxon:
             data['taxon'] =  {'id': self.taxon_id, 'text': self.taxon.display_name()}
@@ -397,10 +425,8 @@ class CollectionPerson(Base):
 class Collection(Base):
     __tablename__ = 'collection'
 
-    #NAMED_AREA_LIST = ['country', 'province', 'hsien', 'town', 'national_park', 'locality']
-
-    # HALT
-    EDITABLE_COLUMNS = [
+    # DEPRICATED
+    validations = [
         ('collect_date', 'datetime'),
         ('collector_id', 'fk'),
         ('field_number', 'str'),
@@ -412,9 +438,8 @@ class Collection(Base):
         ('identifications.identifier', 'fk', 'Person'),
         ('units', 'o2m', 'Unit')
     ]
-    id = Column(Integer, primary_key=True)
-    #method
 
+    id = Column(Integer, primary_key=True)
     collect_date = Column(DateTime) # abcd: Date
     collect_date_text = Column(String(500)) # DEPRECATED
     # abcd: GatheringAgent, DiversityCollectinoModel: CollectionAgent
@@ -452,14 +477,34 @@ class Collection(Base):
     field_note_en = Column(Text)
     other_field_numbers = relationship('FieldNumber')
     identifications = relationship('Identification', back_populates='collection', lazy='dynamic')
-    last_taxon_text = Column(Text)
-    last_taxon_id = Column(Integer, ForeignKey('taxon.id'))
+    proxy_taxon_text = Column(Text)
+    proxy_taxon_id = Column(Integer, ForeignKey('taxon.id'))
     proxy_unit_accession_numbers = Column(String(1000))
-    proxy_units = Column(JSONB)
+    # proxy_units = Column(JSONB)
     units = relationship('Unit')
     created = Column(DateTime, default=get_time)
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
     project_id = Column(Integer, ForeignKey('project.id'))
+    project = relationship('Project')
+    '''
+    @validates('altitude')
+    def validate_altitude(self, key, value):
+        try:
+            value_int = int(value)
+        except ValueError:
+            return None
+
+        return value_int
+
+    @validates('altitude2')
+    def validate_altitude2(self, key, value):
+        try:
+            value_int = int(value)
+        except ValueError:
+            return None
+
+        return value_int
+    '''
 
     @property
     def key(self):
@@ -505,13 +550,14 @@ class Collection(Base):
     # collection.to_dict
     def to_dict(self, include_units=True):
         ids = [x.to_dict() for x in self.identifications.order_by(Identification.sequence).all()]
-        taxon = Taxon.query.filter(Taxon.id==self.last_taxon_id).first()
+        taxon = Taxon.query.filter(Taxon.id==self.proxy_taxon_id).first()
         # named_area_map = self.get_named_area_map()
         # named_area_list = self.get_named_area_list()
         named_areas = {f'{x.area_class.name}': x.get_value() for x in self.named_areas}
+
         biotope_map = {f'{x.parameter.name}': x.to_dict() for x in self.biotope_measurement_or_facts}
         biotopes = get_structed_list(MeasurementOrFact.BIOTOPE_OPTIONS, biotope_map)
-        biotope_values = {f'{x.parameter.name}': x.get_value() for x in self.biotope_measurement_or_facts}
+        biotope_values = {f'{x.parameter.name}': x.value for x in self.biotope_measurement_or_facts}
 
         data = {
             'id': self.id,
@@ -520,31 +566,32 @@ class Collection(Base):
             'display_collect_date': self.collect_date.strftime('%Y-%m-%d') if self.collect_date else '',
             # 'collector_id': self.collector_id,
             'collector': self.collector.get_value() if self.collector else '',
-            'companion_text': self.companion_text,
-            'companion_text_en': self.companion_text_en,
+            'companion_text': self.companion_text or '',
+            'companion_text_en': self.companion_text_en or '',
             #'named_area_list': na_list,
             'named_areas': named_areas,
-            'altitude': self.altitude,
-            'altitude2':self.altitude2,
-            'longitude_decimal': self.longitude_decimal,
-            'latitude_decimal': self.latitude_decimal,
-            'locality_text': self.locality_text,
+            'altitude': self.altitude or '',
+            'altitude2':self.altitude2 or '',
+            'longitude_decimal': self.longitude_decimal or '',
+            'latitude_decimal': self.latitude_decimal or '',
+            'locality_text': self.locality_text or '',
             #'biotope_measurement_or_facts': {x.parameter.name: x.to_dict() for x in self.biotope_measurement_or_facts},
             #'biotopes': biotopes,
             'biotopes': biotope_values,
             #'measurement_or_facts': get_hast_parameters(self.biotope_measurement_or_facts),
             #'params': get_structed_list(MeasurementOrFact.PARAMETER_FOR_COLLECTION),
             #'field_number_list': [x.todict() for x in self.field_numbers],
-            'field_number': self.field_number,
+            'field_number': self.field_number or '',
             'identifications': ids,
-            #'identification_last': ids[-1] if len(ids) else None, # React-Admin cannot read identifications[-1]
-            'last_taxon_text': self.last_taxon_text,
-            'last_taxon_id': self.last_taxon_id,
-            'last_taxon': taxon.to_dict() if taxon else None,
+            'proxy_unit_accession_numbers': self.proxy_unit_accession_numbers,
+            'proxytaxon_text': self.proxy_taxon_text,
+            'proxy_taxon_id': self.proxy_taxon_id,
+            'proxy_taxon': taxon.to_dict() if taxon else None,
             'units': [x.to_dict() for x in self.units],
         }
-        #for i,v in named_area_map.items():
-        #    data[f'named_area__{i}_id'] = v['value']['id'] if v['value'] else None
+        if self.project_id:
+            data['project'] = self.project.to_dict()
+
         return data
 
     def display_altitude(self):
@@ -590,6 +637,7 @@ class Collection(Base):
         named_area_map = {f'{x.area_class.name}': x.to_dict() for x in self.named_areas}
         return get_structed_list(AreaClass.DEFAULT_OPTIONS, named_area_map)
 
+    # DEPRECATED
     def get_form_options(self):
         named_areas = {}
         for x in AreaClass.DEFAULT_OPTIONS:
@@ -662,10 +710,13 @@ class Collection(Base):
                 data['options'].append(row.to_dict())
             unit_mofs.append(data)
 
+        projects = [x.to_dict() for x in Project.query.all()]
+
         return {
             'biotopes': biotopes,
             'unit_measurement_or_facts': unit_mofs,
             'named_areas': named_areas,
+            'projects': projects,
         }
 
     def get_first_id_taxon(self):
@@ -673,6 +724,7 @@ class Collection(Base):
             self.identifications[0].taxon
         else:
             return None
+
 
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'
@@ -775,19 +827,20 @@ class Unit(Base):
     def to_dict(self, mode='with-collection'):
         mof_map = {f'{x.parameter.name}': x.to_dict() for x in self.measurement_or_facts}
         # mofs = get_structed_list(MeasurementOrFact.UNIT_OPTIONS, mof_map)
-        mof_values = {f'{x.parameter.name}': x.get_value() for x in self.measurement_or_facts}
+        mof_values = {f'{x.parameter.name}': x.value for x in self.measurement_or_facts}
         data = {
             'id': self.id,
             'key': self.key,
-            'accession_number': self.accession_number,
-            'duplication_number': self.duplication_number,
+            'accession_number': self.accession_number or '',
+            'duplication_number': self.duplication_number or '',
             #'collection_id': self.collection_id,
-            'preparation_type': self.preparation_type,
+            'kind_of_unit': self.kind_of_unit or '',
+            'preparation_type': self.preparation_type or '',
             'preparation_date': self.preparation_date.strftime('%Y-%m-%d') if self.preparation_date else '',
             'measurement_or_facts': mof_values,
             'image_url': self.get_image(),
             'transactions': [x.to_dict() for x in self.transactions],
-            #'dataset': self.dataset.to_dict(), # too many
+            #'dataset': self.dataset.to_dict(), # too man
         }
         #if mode == 'with-collection':
         #    data['collection'] = self.collection.to_dict(include_units=False)
@@ -826,9 +879,9 @@ class Unit(Base):
                 img_url = f'http://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}{thumbnail}.jpg'
                 return img_url
             except:
-                return None
+                return ''
         else:
-            return None
+            return ''
 
     def __str__(self):
         collector = ''
@@ -858,6 +911,9 @@ class Person(Base):
     source_data = Column(JSONB)
     organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
     organization = Column(String(500))
+
+    def __repr__(self):
+        return '<Person(id="{}", display_name="{}")>'.format(self.id, self.display_name())
 
     @property
     def english_name(self):
@@ -960,3 +1016,9 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+        }

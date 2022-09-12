@@ -148,7 +148,6 @@ PARAM_MAP = {'abundance': '1', 'habitat': '2', 'humidity': '3', 'light-intensity
 PARAM_OPT_GROUP_MAP = ['一般型','人工/干擾環境', '闊葉林', '針葉林/混交林', '混合型', '海岸環境', '針闊葉混合林','高山植群', '混合林']
 
 def make_mof_option(con):
-    '''
     for i, k in enumerate(PARAM_OPT_GROUP_MAP):
         pog = MeasurementOrFactParameterOptionGroup(name=k)
         session.add(pog)
@@ -161,7 +160,7 @@ def make_mof_option(con):
         if row[2] == 'veget':
             group_name = row[4].get('typeC')
         #print (pid, group_name, flush=True)
-        opt = MeasurementOrFactParameterOption(parameter_id=pid, value_en=row[1], value=row[3])
+        opt = MeasurementOrFactParameterOption(parameter_id=pid, value=row[1], description=row[3])
         session.add(opt)
         if group_name:
             opt.group_id = PARAM_OPT_GROUP_MAP.index(group_name) + 1
@@ -173,14 +172,15 @@ def make_mof_option(con):
         if i.option_id:
             i.value = i.option.value
     session.commit()
+    '''
     return {}
 
 def make_collection(con):
     '''
     collection_id = r[0] (hast_21.specimen_specimen.id)
     '''
-    #LIMIT = ' LIMIT 500'
-    LIMIT = ''
+    LIMIT = ' LIMIT 50'
+    #LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
         #print(r)
@@ -219,25 +219,28 @@ def make_collection(con):
         #session.add(fn)
 
         # NamedArea
-        '''TODO
         na_list = [r[33], r[37], r[34], r[38], r[36], r[35]]
         for na in na_list:
+            #print(na, flush=True)
             if na:
-                col_na = CollectionNamedArea(
-                    collection_id=cid,
-                    named_area_id=na,
-                )
-                session.add(col_na)
-        session.commit()
-        '''
+                naObj = NamedArea.query.get(na)
+                if naObj:
+                    col.named_areas.append(naObj)
+                else:
+                    print(na, 'not found', flush=True)
+
         # Identification
         rows2 = con.execute(f"SELECT i.*, t.full_scientific_name FROM specimen_identification AS i LEFT JOIN taxon_taxon AS t ON t.id = i.taxon_id  WHERE specimen_id ={r[0]} ORDER BY verification_level")
 
         id_list = [x for x in rows2]
         if len(id_list) > 0:
             last_id = id_list[-1]
-            col.last_taxon_text = last_id[10]
-            col.last_taxon_id = last_id[7]
+            common_name = ''
+            if tx := Taxon.query.get(last_id[7]):
+                if cname := tx.common_name:
+                    common_name = cname
+            col.proxy_taxon_text = f'{last_id[10]}|{common_name}'
+            col.proxy_taxon_id = last_id[7]
 
         for r2 in id_list:
             iden = Identification(
@@ -264,11 +267,12 @@ def make_collection(con):
                     #parameter=param[0],
                     #text=x,
                     parameter_id=PARAM_MAP[param[0]],
-                    value_en=x,
+                    value=x,
                 )
                 session.add(mof)
         session.commit()
 
+        an_list = []
         rows3 = con.execute(f"SELECT * FROM specimen_accession WHERE specimen_id ={r[0]}  ORDER BY id")
         for r3 in rows3:
             acc_num = ''
@@ -278,6 +282,7 @@ def make_collection(con):
             if an2 := r3[2]:
                 acc_num2 = an2
 
+            an_list.append(acc_num)
             # Unit
             u = Unit(
                 collection_id=cid,
@@ -302,7 +307,7 @@ def make_collection(con):
                         unit_id=u.id,
                         #parameter=param[0],
                         parameter_id=PARAM_MAP[param[0]],
-                        value_en=x,
+                        value=x,
                     )
                     session.add(mof)
             # MeasurementOrFact2a
@@ -312,7 +317,7 @@ def make_collection(con):
                         unit_id=u.id,
                         #parameter=param[0],
                         parameter_id=PARAM_MAP[param[0]],
-                        value_en=x,
+                        value=x,
                     )
                     session.add(mof)
 
@@ -373,6 +378,7 @@ def make_collection(con):
                 )
                 session.add(tr)
 
+        col.proxy_unit_accession_numbers = '|'.join(an_list)
         # save unit
         session.commit()
 
@@ -455,7 +461,7 @@ def make_param(con):
 
 
 def conv_hast21(key):
-    engine2 = create_engine('postgresql+psycopg2://postgres:example@postgres:5432/hast21', convert_unicode=True)
+    engine2 = create_engine('postgresql+psycopg2://postgres:example@postgres:5432/hast21a', convert_unicode=True)
     with engine2.connect() as con:
 
         if key == 'person':
@@ -475,5 +481,5 @@ def conv_hast21(key):
             make_collection(con)
         elif key == 'mof_option':
             make_mof_option(con)
-        elif key == 'make-proj':
+        elif key == 'make_proj':
             make_proj(con)
