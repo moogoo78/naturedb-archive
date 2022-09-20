@@ -262,6 +262,30 @@ def collection_item(collection_id):
 
 
 
+@api.route('/search', methods=['GET'])
+def get_search():
+    q = request.args.get('q')
+    data = []
+    if q.isdigit():
+        rows = Collection.query.filter(Collection.field_number.ilike(f'{q}%')).limit(10).all()
+        for r in rows:
+            collector = r.collector.display_name if r.collector and r.collector.display_name else ''
+            data.append({'id': r.id, 'text': f'field_number:{r.collector.display_name()}{r.field_number}', 'category': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': r.collector.display_name() if r.collector and r.collector.display_name() else ''})
+        rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(10).all()
+        for r in rows:
+            data.append({'id': r.id, 'text': f'accession_number:{r.accession_number}', 'category': 'accession_number'})
+    else:
+        rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{q}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{q}%')).all()
+        for r in rows:
+            data.append({'id': r.id, 'text': f'collector:{r.display_name()}', 'category': 'collector'})
+
+    resp = jsonify({
+        'data': data,
+    })
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    resp.headers.add('Access-Control-Allow-Methods', '*')
+    return resp
+
 @api.route('/explore', methods=['GET'])
 def get_explore():
     # group by collection

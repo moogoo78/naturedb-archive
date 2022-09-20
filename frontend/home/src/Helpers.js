@@ -22,7 +22,7 @@ import {
 
 //const FetchControllerMulti = React.forwardRef((props, ref) => {
 const FetchControllerMulti = (props) => {
-  console.log(props);
+  // console.log(props);
   const scrollContainerRef = React.useRef(null);
   const [tokens, setTokens] = React.useState(props.value || []);
   const selectedTokenIds = tokens.map(token => token.id);
@@ -137,11 +137,11 @@ const FetchControllerMulti = (props) => {
             items={items}
             selectedItemIds={selectedItemIds}
             onSelectedChange={onSelectedChange}
-            onOpenChange={(isOpen)=>{
-              if (isOpen === true && tokens.length === 0) {
+            //onOpenChange={(isOpen)=>{
+            //  if (isOpen === true && tokens.length === 0) {
                 //fetchData(''); // will cause infinite refresh
-              }
-            }}
+            //  }
+            //}}
             selectionVariant={selectionVariant}
             aria-labelledby="autocompleteLabel-customInput"
             customScrollContainerRef={scrollContainerRef}

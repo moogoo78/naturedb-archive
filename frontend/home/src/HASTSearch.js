@@ -162,7 +162,7 @@ const QueryForm = ({state, dispatch, filter}) => {
 
     //fetchData({filterWithId});
     const filterIds = getFilterWithId(data);
-    console.log(filterIds);
+    console.log(filterIds, data);
     const params = new URLSearchParams(filterIds);
     const qsList = [];
     params.forEach((value, key) => {
@@ -170,6 +170,7 @@ const QueryForm = ({state, dispatch, filter}) => {
     });
 
     const queryString = (qsList.length > 0) ? '?q=' + qsList.join(',') : '/';
+    console.log(queryString, filterIds, filter);
     window.location.replace(queryString);
   }
 
@@ -195,13 +196,32 @@ const QueryForm = ({state, dispatch, filter}) => {
     <form onSubmit={handleSubmit(onSubmit)}>
       <Box display="flex">
         <Box flexGrow={12} pr={1}>
-          <SearchBar tokens={tokens} onTokenRemove={(tokenId)=>{
-            const deleteKey = tokens[tokenId].text.split(':')[0];
-            let newFilter = {...filter};
-            delete newFilter[deleteKey];
-            setValue(deleteKey, '');
-            dispatch({type:'SET_FILTER', filter: newFilter });
-          }} />
+          <SearchBar
+            tokens={tokens}
+            onTokenRemove={(tokenId) => {
+              const deleteKey = tokens[tokenId].text.split(':')[0];
+              let newFilter = {...filter};
+              delete newFilter[deleteKey];
+              setValue(deleteKey, '');
+              dispatch({type:'SET_FILTER', filter: newFilter });
+            }}
+            onSelectedChange={(values)=> {
+              const value = values[values.length-1]; // latest
+              let newFilter = {...filter};
+              //console.log(values, tokens, value);
+              if (value.category === 'field_number') {
+                newFilter['field_number'] = value.field_number;
+                setValue('field_number', value.field_number);
+                newFilter['collector'] = [{id: value.collector_id, text: value.collector}];
+                setValue('collector', [{id: value.collector_id, text: value.collector}]);
+              } else {
+                newFilter[value.category] = value;
+                setValue(value.category, [{id: value.id, text: value.text}]);
+              }
+
+              dispatch({type:'SET_FILTER', filter: newFilter });
+            }}
+          />
         </Box>
         <Box flexGrow={0} mr={1}>
             <IconButton aria-label="Search" icon={SearchIcon} size="large"/>
@@ -566,7 +586,57 @@ const AdvanceSearch = ({form, onSubmit}) => {
   )
 }
 
-const SearchBar = ({tokens, onTokenRemove}) => {
+const SearchBar = ({tokens, onTokenRemove, onSelectedChange}) => {
+//const SearchBar = () => {
+  //const [tokens2, setTokens] = React.useState(tokens)
+  const selectedTokenIds = tokens.map(token => token.id);
+  const [selectedItemIds, setSelectedItemIds] = React.useState(selectedTokenIds);
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const apiUrl = process.env.API_URL;
+
+  /*const onTokenRemove = tokenId => {
+    setTokens(tokens.filter(token => token.id !== tokenId))
+    setSelectedItemIds(selectedItemIds.filter(id => id !== tokenId))
+  }
+  const onSelectedChange = newlySelectedItems => {
+
+    if (!Array.isArray(newlySelectedItems)) {
+      return
+    }
+    console.log(newlySelectedItems, 'xx');
+    if (newlySelectedItems.category === 'field_number') {
+      
+    }
+    const newlySelectedItems2 = [];
+    newlySelectedItems.forEach( x => {
+      console.log(x);
+      if (x.category === 'field_number') {
+        newlySelectedItems2.push({id: x.id, text: `field_number:${x.field_number}`});
+        newlySelectedItems2.push({id: x.collector_id, text: `collector:${x.collector_id}`});
+      } else {
+        newlySelectedItems2.push({id: x.id, text: x.text});
+      }
+    });
+
+    setSelectedItemIds(newlySelectedItems2.map(item => item.id))
+
+    if (newlySelectedItems2.length < selectedItemIds.length) {
+      const newlySelectedItemIds = newlySelectedItems2.map(({id}) => id)
+      const removedItemIds = selectedTokenIds.filter(id => !newlySelectedItemIds.includes(id))
+
+      for (const removedItemId of removedItemIds) {
+        onTokenRemove(removedItemId)
+      }
+
+      return
+    }
+
+    setTokens(newlySelectedItems2.map(({id, text}) => ({id, text})))
+  }
+    */
+  
+  /*
   return (
     <TextInputWithTokens
       block
@@ -574,6 +644,39 @@ const SearchBar = ({tokens, onTokenRemove}) => {
       onTokenRemove={onTokenRemove}
     />
   );
+  */
+  return (
+    <Autocomplete>
+      <Autocomplete.Input
+        block
+        loading={loading}
+        as={TextInputWithTokens}
+        tokens={tokens}
+        onTokenRemove={onTokenRemove}
+        onChange={(e)=>{
+          setLoading(true);
+          fetch(`${apiUrl}/search?q=${e.target.value}`)
+            .then((resp) => { return resp.text() })
+            .then((body) => { return JSON.parse(body) })
+            .then((json) => {
+              //const items = json.data.map( x => ({id: x.id, text: x.display_name}));
+              setItems(json.data);
+              setLoading(false);
+      });
+        }}
+      />
+      <Autocomplete.Overlay width="xxlarge">
+        <Autocomplete.Menu
+          items={items}
+          selectedItemIds={selectedItemIds}
+          onSelectedChange={onSelectedChange}
+          selectionVariant="multiple"
+          aria-labelledby="autocompleteLabel-searchbar"
+          filterFn={ x => x }
+        />
+      </Autocomplete.Overlay>
+    </Autocomplete>
+  )
 };
 
 const getFilterWithId = (data) => {
