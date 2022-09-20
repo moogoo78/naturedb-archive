@@ -532,7 +532,7 @@ export default function CollectionForm() {
             <Box flexGrow={1} pr={3}>
               <PhokControl name="field_number" label="採集號" asProps={{block: true}} {...rest} />
             </Box>
-            <Box flexGrow={1} pr={3}>
+            <Box flexGrow={1}>
               <PhokControl name="collect_date" label="採集日期" asProps={{block: true, type: 'date'}} {...rest} />
             </Box>
           </Box>

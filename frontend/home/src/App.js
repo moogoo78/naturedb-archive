@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import QueryForm from './QueryForm';
 import { ResultView } from './ResultView';
+import  HASTSearch from './HASTSearch';
 
 import 'musubii/dist/musubii.min.css';
 import 'query-specimen.css';
@@ -124,6 +125,16 @@ const App = () => {
   return (
     <>
       <AppContext.Provider value={initialContext}>
+        <HASTSearch />
+
+      </AppContext.Provider>
+    </>
+  )
+}
+
+export { App, AppContext }
+
+/*
         <a className="button is-plain is-info is-0 is-angle-right is-angle-down" type="button" href="#" onClick={(e)=> {
           if (state.isHideFilters === true) {
             dispatch({type:'SET_FILTERS_DISPLAY', value: true});
@@ -134,9 +145,4 @@ const App = () => {
         {(state.isHideFilters !== true) ? <QueryForm state={state} dispatch={dispatch} fetchData={fetchData} /> : null}
         {(state.isLoading) ? <h1 style={{ width: '150px', margin: 'auto', fontSize:'22px'}}>loading...</h1> : null}
         {(state.result !== null) ? <ResultView state={state} dispatch={dispatch} fetchData={fetchData} /> : null}
-      </AppContext.Provider>
-    </>
-  )
-}
-
-export { App, AppContext }
+*/

@@ -42,6 +42,7 @@ from app.models import (
 )
 from app.taxon.models import (
     Taxon,
+    TaxonRelation,
 )
 from app.api import api
 from .helpers_react_admin import (
@@ -260,21 +261,445 @@ def collection_item(collection_id):
         return allow_cors({})
 
 
+
+@api.route('/explore', methods=['GET'])
+def get_explore():
+    # group by collection
+    #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection, full=True).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
+    # TODO: full outer join cause slow
+    #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Collection).join(Unit).group_by(Collection.id)
+
+    stmt = select(Unit.id, Unit.accession_number, Collection ).join(Collection)
+
+    total = request.args.get('total', None)
+
+    payload = {
+        'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
+        'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
+        'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
+    }
+
+    filtr = payload['filter']
+    if accession_number := filtr.get('accession_number'):
+        an_list = [accession_number]
+
+        if accession_number2 := filtr.get('accession_number2'):
+            # TODO validate
+            an_int1 = int(accession_number)
+            an_int2 = int(accession_number2)
+            an_list = [str(x) for x in range(an_int1, an_int2+1)]
+            if len(an_list) > 1000:
+                an_list = [] # TODO flash
+
+        stmt = stmt.where(Unit.accession_number.in_(an_list))
+    if value := filtr.get('collector'):
+        stmt = stmt.where(Collection.collector_id==value[0])
+
+    if value := filtr.get('field_number'):
+        if value2 := filtr.get('field_number2'):
+            # TODO validate
+            int1 = int(value)
+            int2 = int(value2)
+            fn_list = [str(x) for x in range(int1, int2+1)]
+            if len(fn_list) > 1000:
+                fn_list = [] # TODO flash
+
+            many_or = or_()
+            for x in fn_list:
+                many_or = or_(many_or, Collection.field_number.ilike(f'{x}%'))
+            stmt = stmt.where(many_or)
+        else:
+            stmt = stmt.where(Collection.field_number.ilike('%{}%'.format(value)))
+    if common_name := filtr.get('common_name'): # TODO variable name
+        if t := session.get(Taxon, common_name[0]):
+            taxa_ids = [x.id for x in t.get_children()]
+            stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+    if taxa := filtr.get('species'):
+        if t := session.get(Taxon, taxa[0]):
+            taxa_ids = [x.id for x in t.get_children()]
+            stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+    elif taxa := filtr.get('genus'):
+        if t := session.get(Taxon, taxa[0]):
+            taxa_ids = [x.id for x in t.get_children()]
+            stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+    elif taxa := filtr.get('family'):
+        if t := session.get(Taxon, taxa[0]):
+            taxa_ids = [x.id for x in t.get_children()]
+            stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+
+    if value := filtr.get('collect_date'):
+        stmt = stmt.where(Collection.collect_date==value)
+
+    base_stmt = stmt
+
+    # limit & offset
+    start = int(payload['range'][0])
+    end = int(payload['range'][1])
+    limit = min((end-start), 1000) # max query range
+    stmt = stmt.limit(limit)
+    if start > 0:
+        stmt = stmt.offset(start)
+
+    # =======
+    # results
+    # =======
+    begin_time = time.time()
+    result = session.execute(stmt)
+    elapsed = time.time() - begin_time
+
+    # -----------
+    # count total
+    # -----------
+    elapsed_count = None
+    if total is None:
+        begin_time = time.time()
+        subquery = base_stmt.subquery()
+        count_stmt = select(func.count()).select_from(subquery)
+        total = session.execute(count_stmt).scalar()
+        elapsed_count = time.time() - begin_time
+
+
+    # --------------
+    # result mapping
+    # --------------
+    data = []
+    begin_time = time.time()
+    elapsed_mapping = None
+    for r in result.all():
+        elapsed_mapping = time.time() - begin_time
+        if c := r[2]:
+            image_url = ''
+            try:
+                accession_number_int = int(r[0])
+                instance_id = f'{accession_number_int:06}'
+                first_3 = instance_id[0:3]
+                image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+            except:
+                pass
+
+            data.append({
+                'unit_id': r[0],
+                'accession_number': r[1],
+                'image_url': image_url,
+                'field_number': c.field_number,
+                'collector': c.collector.to_dict() if c.collector else '',
+                'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
+                'taxon': c.proxy_taxon_text,
+                'named_areas': [x.to_dict() for x in c.named_areas],
+                'units': [],
+            })
+    '''
+
+
+        # ======
+        # filter
+        # ======
+        filtr = payload['filter']
+        if accession_number := filtr.get('accession_number'):
+            an_list = [accession_number]
+            if accession_number2 := filtr.get('accession_number2'):
+                # TODO validate
+                an_int1 = int(accession_number)
+                an_int2 = int(accession_number2)
+                an_list = [str(x) for x in range(an_int1, an_int2+1)]
+                if len(an_list) > 1000:
+                    an_list = [] # TODO flash
+
+            stmt_unit = select(Unit.collection_id) \
+                .where(Unit.accession_number.in_(an_list))
+            units = session.execute(stmt_unit)
+            collection_ids = [x[0] for x in units]
+            stmt = stmt.where(Collection.id.in_(collection_ids))
+        if common_name := filtr.get('common_name'): # TODO variable name
+            if t := session.get(Taxon, common_name[0]):
+                taxa_ids = [x.id for x in t.get_children()]
+                stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+        if taxa := filtr.get('species'):
+            print (taxa, flush=True)
+            if t := session.get(Taxon, taxa[0]):
+                taxa_ids = [x.id for x in t.get_children()]
+                stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+            elif taxa := filtr.get('genus'):
+                if t := session.get(Taxon, taxa[0]):
+                    taxa_ids = [x.id for x in t.get_children()]
+                    stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+            elif taxa := filtr.get('species'):
+                if t := session.get(Taxon, taxa[0]):
+                    taxa_ids = [x.id for x in t.get_children()]
+        if value := filtr.get('collector'):
+            stmt = stmt.where(Collection.collector_id==value[0])
+        if value := filtr.get('field_number'):
+            if value2 := filtr.get('field_number2'):
+                # TODO validate
+                int1 = int(value)
+                int2 = int(value2)
+                fn_list = [str(x) for x in range(int1, int2+1)]
+                if len(fn_list) > 1000:
+                    fn_list = [] # TODO flash
+
+                many_or = or_()
+                for x in fn_list:
+                    many_or = or_(many_or, Collection.field_number.ilike(f'{x}%'))
+                stmt = stmt.where(many_or)
+
+            else:
+                stmt = stmt.where(Collection.field_number.ilike('%{}%'.format(value)))
+        if value := filtr.get('collect_date'):
+            print(value, 'c', flush=True)
+        base_stmt = stmt
+
+        # limit & offset
+        start = int(payload['range'][0])
+        end = int(payload['range'][1])
+        limit = min((end-start), 1000) # max query range
+        stmt = stmt.limit(limit)
+        if start > 0:
+            stmt = stmt.offset(start)
+
+        # =======
+        # results
+        # =======
+        begin_time = time.time()
+        result = session.execute(stmt)
+        elapsed = time.time() - begin_time
+
+        # -----------
+        # count total
+        # -----------
+        elapsed_count = None
+        if total is None:
+            begin_time = time.time()
+            subquery = base_stmt.subquery()
+            count_stmt = select(func.count()).select_from(subquery)
+            total = session.execute(count_stmt).scalar()
+            elapsed_count = time.time() - begin_time
+
+        # --------------
+        # result mapping
+        # --------------
+        data = []
+        begin_time = time.time()
+        elapsed_mapping = None
+        for r in result.all():
+            if c := r[0]: # no collection_id, only unit
+                units = []
+                for u in c.units:
+                    unit = {
+                        'id': u.id,
+                        'accession_number': u.accession_number,
+                    }
+                    image_url = ''
+                    # TODO
+                    try:
+                        accession_number_int = int(u.accession_number)
+                        instance_id = f'{accession_number_int:06}'
+                        first_3 = instance_id[0:3]
+                        image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+                    except:
+                        pass
+
+                    if image_url:
+                        unit['image_url'] = image_url
+
+                    units.append(unit)
+
+                data.append({
+                    'id': c.id,
+                    'field_number': c.field_number,
+                    'collector': c.collector.to_dict() if c.collector else '',
+                    'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
+                    'taxon': c.proxy_taxon_text,
+                    'units': units,
+                    'named_areas': [x.to_dict() for x in c.named_areas],
+                })
+            else:
+                print(r, flush=True)
+        elapsed_mapping = time.time() - begin_time
+
+        resp = jsonify({
+            'data': data,
+            'total': total,
+            'elapsed': elapsed,
+            'elapsed_count': elapsed_count,
+            'elapsed_mapping': elapsed_mapping,
+            'debug': {
+                'query': str(stmt),
+                'payload': payload,
+            }
+        })
+    '''
+    resp = jsonify({
+        'data': data,
+        'total': total,
+        'elapsed': elapsed,
+        'elapsed_count': elapsed_count,
+        'elapsed_mapping': elapsed_mapping,
+        'debug': {
+            'query': str(stmt),
+            'payload': payload,
+        }
+    })
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    resp.headers.add('Access-Control-Allow-Methods', '*')
+    return resp
+
+
 @api.route('/collections', methods=['GET', 'POST', 'OPTIONS'])
 def collection():
     if request.method == 'GET':
-        # item_list
-        stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection, full=True).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
+        # group by collection
+        #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection, full=True).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
         # TODO: full outer join cause slow
         #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Collection).join(Unit).group_by(Collection.id)
 
-        total = None
-        if t := request.args.get('total'):
-            total = int(t)
-            admin_query = AdminQuery(request, stmt, collection_mapping, total=total)
-            #admin_query = AdminQuery(request, stmt, lambda x: x[0].to_dict())
-            # print(stmt, flush=True)
-        return admin_query.get_result()
+        stmt = select(Collection)
+
+        total = request.args.get('total', None)
+        payload = {
+            'filter': json.loads(request.args.get('filter')) if request.args.get('filter') else {},
+            'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
+            'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
+        }
+
+        # ======
+        # filter
+        # ======
+        filtr = payload['filter']
+        if accession_number := filtr.get('accession_number'):
+            an_list = [accession_number]
+            if accession_number2 := filtr.get('accession_number2'):
+                # TODO validate
+                an_int1 = int(accession_number)
+                an_int2 = int(accession_number2)
+                an_list = [str(x) for x in range(an_int1, an_int2+1)]
+                if len(an_list) > 1000:
+                    an_list = [] # TODO flash
+
+            stmt_unit = select(Unit.collection_id) \
+                .where(Unit.accession_number.in_(an_list))
+            units = session.execute(stmt_unit)
+            collection_ids = [x[0] for x in units]
+            stmt = stmt.where(Collection.id.in_(collection_ids))
+        if common_name := filtr.get('common_name'): # TODO variable name
+            if t := session.get(Taxon, common_name[0]):
+                taxa_ids = [x.id for x in t.get_children()]
+                stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+        if taxa := filtr.get('species'):
+            print (taxa, flush=True)
+            if t := session.get(Taxon, taxa[0]):
+                taxa_ids = [x.id for x in t.get_children()]
+                stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+            elif taxa := filtr.get('genus'):
+                if t := session.get(Taxon, taxa[0]):
+                    taxa_ids = [x.id for x in t.get_children()]
+                    stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+            elif taxa := filtr.get('species'):
+                if t := session.get(Taxon, taxa[0]):
+                    taxa_ids = [x.id for x in t.get_children()]
+        if value := filtr.get('collector'):
+            stmt = stmt.where(Collection.collector_id==value[0])
+        if value := filtr.get('field_number'):
+            if value2 := filtr.get('field_number2'):
+                # TODO validate
+                int1 = int(value)
+                int2 = int(value2)
+                fn_list = [str(x) for x in range(int1, int2+1)]
+                if len(fn_list) > 1000:
+                    fn_list = [] # TODO flash
+
+                many_or = or_()
+                for x in fn_list:
+                    many_or = or_(many_or, Collection.field_number.ilike(f'{x}%'))
+                stmt = stmt.where(many_or)
+
+            else:
+                stmt = stmt.where(Collection.field_number.ilike('%{}%'.format(value)))
+        if value := filtr.get('collect_date'):
+            print(value, 'c', flush=True)
+        base_stmt = stmt
+
+        # limit & offset
+        start = int(payload['range'][0])
+        end = int(payload['range'][1])
+        limit = min((end-start), 1000) # max query range
+        stmt = stmt.limit(limit)
+        if start > 0:
+            stmt = stmt.offset(start)
+
+        # =======
+        # results
+        # =======
+        begin_time = time.time()
+        result = session.execute(stmt)
+        elapsed = time.time() - begin_time
+
+        # -----------
+        # count total
+        # -----------
+        elapsed_count = None
+        if total is None:
+            begin_time = time.time()
+            subquery = base_stmt.subquery()
+            count_stmt = select(func.count()).select_from(subquery)
+            total = session.execute(count_stmt).scalar()
+            elapsed_count = time.time() - begin_time
+
+        # --------------
+        # result mapping
+        # --------------
+        data = []
+        begin_time = time.time()
+        elapsed_mapping = None
+        for r in result.all():
+            if c := r[0]: # no collection_id, only unit
+                units = []
+                for u in c.units:
+                    unit = {
+                        'id': u.id,
+                        'accession_number': u.accession_number,
+                    }
+                    image_url = ''
+                    # TODO
+                    try:
+                        accession_number_int = int(u.accession_number)
+                        instance_id = f'{accession_number_int:06}'
+                        first_3 = instance_id[0:3]
+                        image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+                    except:
+                        pass
+
+                    if image_url:
+                        unit['image_url'] = image_url
+
+                    units.append(unit)
+
+                data.append({
+                    'id': c.id,
+                    'field_number': c.field_number,
+                    'collector': c.collector.to_dict() if c.collector else '',
+                    'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
+                    'taxon': c.proxy_taxon_text,
+                    'units': units,
+                    'named_areas': [x.to_dict() for x in c.named_areas],
+                })
+            else:
+                print(r, flush=True)
+        elapsed_mapping = time.time() - begin_time
+
+        resp = jsonify({
+            'data': data,
+            'total': total,
+            'elapsed': elapsed,
+            'elapsed_count': elapsed_count,
+            'elapsed_mapping': elapsed_mapping,
+            'debug': {
+                'query': str(stmt),
+                'payload': payload,
+            }
+        })
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        resp.headers.add('Access-Control-Allow-Methods', '*')
+        return resp
 
     elif request.method == 'OPTIONS':
         return allow_cors_preflight()
@@ -339,7 +764,7 @@ def make_specimen_list_response(req):
             if fn2_int - fn1_int > 0:
                 num_list = list(map(str, list(range(fn1_int, fn2_int+1))))
                 has_query_field_number = True
-                query = query.filter(Collection.field_number.in_(num_list))
+                query = query.filter(Collection.field_numberq.in_(num_list))
     elif x:= payload['filter'].get('field_number'):
         has_query_field_number = True
         query = query.filter(Collection.field_number.ilike(f'%{x}%'))
@@ -553,11 +978,17 @@ class TaxonMethodView(MethodView):
             if filter_str := request.args.get('filter', ''):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
-                    query = query.filter(Taxon.full_scientific_name.ilike(f'%{keyword}%') | Taxon.common_name.ilike(f'%{keyword}%'))
+                    like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+                    query = query.filter(Taxon.full_scientific_name.ilike(like_key) | Taxon.common_name.ilike(like_key))
                 if ids := filter_dict.get('id', ''):
                     query = query.filter(Taxon.id.in_(ids))
                 if rank := filter_dict.get('rank'):
                     query = query.filter(Taxon.rank==rank)
+                if pid := filter_dict.get('parent_id'):
+                    if parent := session.get(Taxon, pid):
+                        depth = Taxon.RANK_HIERARCHY.index(parent.rank)
+                        taxa_ids = [x.id for x in parent.get_children(depth)]
+                        query = query.filter(Taxon.id.in_(taxa_ids))
 
             return ra_get_list_response(self.RESOURCE_NAME, request, query)
         else:
@@ -720,7 +1151,8 @@ class NamedAreaMethodView(MethodView):
             if filter_str := request.args.get('filter', ''):
                 filter_dict = json.loads(filter_str)
                 if keyword := filter_dict.get('q', ''):
-                    query = query.filter(NamedArea.name.ilike(f'%{keyword}%') | NamedArea.name_en.ilike(f'%{keyword}%'))
+                    like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+                    query = query.filter(NamedArea.name.ilike(like_key) | NamedArea.name_en.ilike(like_key))
                 if ids := filter_dict.get('id', ''):
                     query = query.filter(NamedArea.id.in_(ids))
                 if area_class_id := filter_dict.get('area_class_id', ''):
@@ -893,7 +1325,8 @@ class PersonMethodView(MethodView):
                 filter_dict = json.loads(filter_str)
                 collector_id = None
                 if keyword := filter_dict.get('q', ''):
-                    query = query.filter(Person.full_name.ilike(f'%{keyword}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{keyword}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{keyword}%'))
+                    like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+                    query = query.filter(Person.full_name.ilike(like_key) | Person.atomized_name['en']['given_name'].astext.ilike(like_key) | Person.atomized_name['en']['inherited_name'].astext.ilike(like_key))
                 if is_collector := filter_dict.get('is_collector', ''):
                     query = query.filter(Person.is_collector==True)
                 if is_identifier := filter_dict.get('is_identifier', ''):

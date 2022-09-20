@@ -31,6 +31,10 @@ class TaxonRelation(Base):
     parent = relationship('Taxon', foreign_keys='TaxonRelation.parent_id')
     child = relationship('Taxon', foreign_keys='TaxonRelation.child_id')
 
+    def __repr__(self):
+        return f'<TaxonRelation parent={self.parent} child={self.child}>'
+
+
 class Taxon(Base):
     '''abcd: TaxonIdentified
     '''
@@ -63,6 +67,9 @@ class Taxon(Base):
     #Breed
     source_data = Column(JSONB)
 
+    def __repr__(self):
+        return f'<Taxon id="{self.id}" name="{self.full_scientific_name}/{self.common_name}">'
+
     def display_name(self, by=''):
         if by == 'label':
             s = self.full_scientific_name
@@ -79,8 +86,11 @@ class Taxon(Base):
         res = TaxonRelation.query.filter(TaxonRelation.child_id==self.id).order_by(TaxonRelation.depth).all()
         return [x.parent for x in res]
 
-    def get_children(self):
-        res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
+    def get_children(self, depth=0):
+        if depth:
+            res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id, TaxonRelation.depth==depth).all()
+        else:
+            res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
         return [x.child for x in res]
 
     def get_higher_taxon(self, rank=''):
@@ -93,6 +103,14 @@ class Taxon(Base):
             return self.get_parents()
         return None
 
+    @property
+    def parent_id(self):
+        rank_index = self.RANK_HIERARCHY.index(self.rank)
+        #res = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id).order_by(TaxonRelation.depth).all()
+        parent = TaxonRelation.query.filter(TaxonRelation.parent_id==self.id, TaxonRelation.depth==rank_index-1).first()
+        print(self, parent, 'pp',rank_index,flush=True)
+        return []
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -100,4 +118,5 @@ class Taxon(Base):
             'rank': self.rank,
             'common_name': self.common_name,
             'display_name': self.display_name(),
+            #'p': self.parent_id,
         }

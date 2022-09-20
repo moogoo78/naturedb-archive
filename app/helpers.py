@@ -179,8 +179,8 @@ def make_collection(con):
     '''
     collection_id = r[0] (hast_21.specimen_specimen.id)
     '''
-    LIMIT = ' LIMIT 50'
-    #LIMIT = ''
+    #LIMIT = ' LIMIT 50'
+    LIMIT = ''
     rows = con.execute(f'SELECT * FROM specimen_specimen ORDER BY id{LIMIT}')
     for r in rows:
         #print(r)
