@@ -294,7 +294,6 @@ def get_explore():
         stmt = stmt.where(Unit.accession_number.in_(an_list))
     if value := filtr.get('collector'):
         stmt = stmt.where(Collection.collector_id==value[0])
-
     if value := filtr.get('field_number'):
         if value2 := filtr.get('field_number2'):
             # TODO validate
@@ -310,8 +309,15 @@ def get_explore():
             stmt = stmt.where(many_or)
         else:
             stmt = stmt.where(Collection.field_number.ilike('%{}%'.format(value)))
-    if common_name := filtr.get('common_name'): # TODO variable name
-        if t := session.get(Taxon, common_name[0]):
+    if value := filtr.get('collect_date'):
+        if value2 := filtr.get('collect_date2'):
+            stmt = stmt.where(Collection.collect_date>=value, Collection.collect_date<=value2)
+        else:
+            stmt = stmt.where(Collection.collect_date==value)
+    if value := filtr.get('collect_month'):
+        stmt = stmt.where(extract('month', Collection.collect_date) == value)
+    if scientific_name := filtr.get('scientific_name'): # TODO variable name
+        if t := session.get(Taxon, scientific_name[0]):
             taxa_ids = [x.id for x in t.get_children()]
             stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
     if taxa := filtr.get('species'):
@@ -327,8 +333,35 @@ def get_explore():
             taxa_ids = [x.id for x in t.get_children()]
             stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
 
-    if value := filtr.get('collect_date'):
-        stmt = stmt.where(Collection.collect_date==value)
+    if value := filtr.get('locality_text'):
+        stmt = stmt.where(Collection.locality_text.ilike(f'%{value}%'))
+    if value := filtr.get('municipality'):
+        stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+    if value := filtr.get('country'):
+        stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+    if value := filtr.get('state_province'):
+        stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+    if value := filtr.get('county'):
+        stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+    if value := filtr.get('locality'):
+        stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+    if value := filtr.get('national_park'):
+        stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+    if value := filtr.get('locality_text'):
+        stmt = stmt.where(Collection.locality_text.ilike(f'%{value}%'))
+    if value := filtr.get('altitude'):
+        value2 = filtr.get('altitude2')
+        if cond := filtr.get('altitude_condiction'):
+            if cond == 'eq':
+                stmt = stmt.where(Collection.altitude==value)
+            elif cond == 'gte':
+                stmt = stmt.where(Collection.altitude>=value)
+            elif cond == 'lte':
+                stmt = stmt.where(Collection.altitude<=value)
+            elif cond == 'between' and value2:
+                stmt = stmt.where(Collection.altitude>=value, Collection.altitude2<=value2)
+        else:
+            stmt = stmt.where(Collection.altitude==value)
 
     base_stmt = stmt
 
@@ -386,148 +419,13 @@ def get_explore():
                 'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
                 'taxon': c.proxy_taxon_text,
                 'named_areas': [x.to_dict() for x in c.named_areas],
-                'units': [],
+                'locality_text': c.locality_text,
+                'altitude': c.altitude,
+                'altitude2': c.altitude2,
+                'longitude_decimal': c.longitude_decimal,
+                'latitude_decimal': c.latitude_decimal,
             })
-    '''
 
-
-        # ======
-        # filter
-        # ======
-        filtr = payload['filter']
-        if accession_number := filtr.get('accession_number'):
-            an_list = [accession_number]
-            if accession_number2 := filtr.get('accession_number2'):
-                # TODO validate
-                an_int1 = int(accession_number)
-                an_int2 = int(accession_number2)
-                an_list = [str(x) for x in range(an_int1, an_int2+1)]
-                if len(an_list) > 1000:
-                    an_list = [] # TODO flash
-
-            stmt_unit = select(Unit.collection_id) \
-                .where(Unit.accession_number.in_(an_list))
-            units = session.execute(stmt_unit)
-            collection_ids = [x[0] for x in units]
-            stmt = stmt.where(Collection.id.in_(collection_ids))
-        if common_name := filtr.get('common_name'): # TODO variable name
-            if t := session.get(Taxon, common_name[0]):
-                taxa_ids = [x.id for x in t.get_children()]
-                stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
-        if taxa := filtr.get('species'):
-            print (taxa, flush=True)
-            if t := session.get(Taxon, taxa[0]):
-                taxa_ids = [x.id for x in t.get_children()]
-                stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
-            elif taxa := filtr.get('genus'):
-                if t := session.get(Taxon, taxa[0]):
-                    taxa_ids = [x.id for x in t.get_children()]
-                    stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
-            elif taxa := filtr.get('species'):
-                if t := session.get(Taxon, taxa[0]):
-                    taxa_ids = [x.id for x in t.get_children()]
-        if value := filtr.get('collector'):
-            stmt = stmt.where(Collection.collector_id==value[0])
-        if value := filtr.get('field_number'):
-            if value2 := filtr.get('field_number2'):
-                # TODO validate
-                int1 = int(value)
-                int2 = int(value2)
-                fn_list = [str(x) for x in range(int1, int2+1)]
-                if len(fn_list) > 1000:
-                    fn_list = [] # TODO flash
-
-                many_or = or_()
-                for x in fn_list:
-                    many_or = or_(many_or, Collection.field_number.ilike(f'{x}%'))
-                stmt = stmt.where(many_or)
-
-            else:
-                stmt = stmt.where(Collection.field_number.ilike('%{}%'.format(value)))
-        if value := filtr.get('collect_date'):
-            print(value, 'c', flush=True)
-        base_stmt = stmt
-
-        # limit & offset
-        start = int(payload['range'][0])
-        end = int(payload['range'][1])
-        limit = min((end-start), 1000) # max query range
-        stmt = stmt.limit(limit)
-        if start > 0:
-            stmt = stmt.offset(start)
-
-        # =======
-        # results
-        # =======
-        begin_time = time.time()
-        result = session.execute(stmt)
-        elapsed = time.time() - begin_time
-
-        # -----------
-        # count total
-        # -----------
-        elapsed_count = None
-        if total is None:
-            begin_time = time.time()
-            subquery = base_stmt.subquery()
-            count_stmt = select(func.count()).select_from(subquery)
-            total = session.execute(count_stmt).scalar()
-            elapsed_count = time.time() - begin_time
-
-        # --------------
-        # result mapping
-        # --------------
-        data = []
-        begin_time = time.time()
-        elapsed_mapping = None
-        for r in result.all():
-            if c := r[0]: # no collection_id, only unit
-                units = []
-                for u in c.units:
-                    unit = {
-                        'id': u.id,
-                        'accession_number': u.accession_number,
-                    }
-                    image_url = ''
-                    # TODO
-                    try:
-                        accession_number_int = int(u.accession_number)
-                        instance_id = f'{accession_number_int:06}'
-                        first_3 = instance_id[0:3]
-                        image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
-                    except:
-                        pass
-
-                    if image_url:
-                        unit['image_url'] = image_url
-
-                    units.append(unit)
-
-                data.append({
-                    'id': c.id,
-                    'field_number': c.field_number,
-                    'collector': c.collector.to_dict() if c.collector else '',
-                    'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
-                    'taxon': c.proxy_taxon_text,
-                    'units': units,
-                    'named_areas': [x.to_dict() for x in c.named_areas],
-                })
-            else:
-                print(r, flush=True)
-        elapsed_mapping = time.time() - begin_time
-
-        resp = jsonify({
-            'data': data,
-            'total': total,
-            'elapsed': elapsed,
-            'elapsed_count': elapsed_count,
-            'elapsed_mapping': elapsed_mapping,
-            'debug': {
-                'query': str(stmt),
-                'payload': payload,
-            }
-        })
-    '''
     resp = jsonify({
         'data': data,
         'total': total,

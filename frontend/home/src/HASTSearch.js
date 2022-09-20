@@ -98,7 +98,7 @@ const initialArg = {
   isInit: false,
   filter: {
     collector: [],
-    common_name: '',
+    scientific_name: '',
     family: '',
     genus: '',
     species: '',
@@ -157,20 +157,21 @@ const QueryForm = ({state, dispatch, filter}) => {
     defaultValues: filter,
   });
 
-  // console.log(filter, 'form init filter', getValues());
   const onSubmit = data => {
     console.log('submit', data)
 
     //fetchData({filterWithId});
     const filterIds = getFilterWithId(data);
+    console.log(filterIds);
     const params = new URLSearchParams(filterIds);
     const qsList = [];
     params.forEach((value, key) => {
       qsList.push(`${key}:${value}`);
     });
-    const queryString = qsList.join(',');
-    window.location.replace(`?q=${queryString}`);
-  };
+
+    const queryString = (qsList.length > 0) ? '?q=' + qsList.join(',') : '/';
+    window.location.replace(queryString);
+  }
 
   // set search bar tokens
   const tokens = [];
@@ -245,7 +246,6 @@ const AdvanceSearch = ({form, onSubmit}) => {
           /*   </> */
         /* } */
           footerButtons={[{content: '搜尋', onClick: ()=>{
-            //dispatch({type:'SET_DATA', name:'common_name', value: form.getValues().common_name});
             onSubmit(form.getValues());
             setIsOpen(false);
           }}]}
@@ -271,7 +271,7 @@ const AdvanceSearch = ({form, onSubmit}) => {
                  <FormControl>
                    <FormControl.Label>中文名或學名</FormControl.Label>
                    <Controller
-                     name="common_name"
+                     name="scientific_name"
                      control={control}
                      render={({
                        field,
@@ -443,7 +443,7 @@ const AdvanceSearch = ({form, onSubmit}) => {
              <Box display="flex" pt={3}>
                <Box flexGrow={1}>
                  <FormControl>
-                   <FormControl.Label>地名</FormControl.Label>
+                   <FormControl.Label>詳細地名</FormControl.Label>
                    <Controller
                      name="locality_text"
                      control={control}
@@ -491,7 +491,7 @@ const AdvanceSearch = ({form, onSubmit}) => {
                  <FormControl>
                    <FormControl.Label>條件</FormControl.Label>
                    <Controller
-                     name="condiction"
+                     name="altitude_condiction"
                      control={control}
                      render={({
                        field,
@@ -605,38 +605,46 @@ export default function HASTSearch() {
     // need fetch
     const fetchMap = {
       collector: 'people',
+      scientific_name: 'taxa',
       family: 'taxa',
       genus: 'taxa',
       species: 'taxa',
-      country: 'named_area',
-      state_province: 'named_area',
-      municipality: 'named_area',
-      national_park: 'named_area',
-      locality: 'named_area'
+      country: 'named_areas',
+      state_province: 'named_areas',
+      municipality: 'named_areas',
+      national_park: 'named_areas',
+      locality: 'named_areas'
     };
     const needFetch = [];
-    q.split(',').forEach( x => {
-      const [key, value] = x.split(':');
-      if (fetchMap[key]) {
-        needFetch.push({
-          key: key,
-          resource: fetchMap[key],
-          item_id: value});
-      } else {
-        filter[key] = value;
-      }
-    });
-    Promise.all(needFetch.map( x => getOne(x.resource, x.item_id))).then(
-      (results) => {
-        results.forEach( (v, i) => {
-          filter[needFetch[i].key] = [{id: v.json.id, text: v.json.display_name}];
-        });
+    if (q) {
+      q.split(',').forEach( x => {
+        const [key, value] = x.split(':');
+        if (fetchMap[key]) {
+          needFetch.push({
+            key: key,
+            resource: fetchMap[key],
+            item_id: value});
+        } else {
+          filter[key] = value;
+        }
+      });
 
-        //const filterIds = getFilterWithId(filter);
-        fetchData({filter});
-        dispatch({type: 'SET_FILTER', filter: filter, isInit: true});
-      }
-    );
+      Promise.all(needFetch.map( x => getOne(x.resource, x.item_id))).then(
+        (results) => {
+          results.forEach( (v, i) => {
+            filter[needFetch[i].key] = [{id: v.json.id, text: v.json.display_name}];
+          });
+          fetchData({filter});
+          const defaultFilter = {
+            ...initialArg.filter,
+            ...filter,
+          };
+          dispatch({type: 'SET_FILTER', filter: defaultFilter, isInit: true});
+        }
+      );
+    } else {
+      dispatch({type: 'SET_FILTER', filter: initialArg.filter, isInit: true});
+    }
   }, []);
 
   const fetchData = ({page, filter}) => {
@@ -809,7 +817,12 @@ const ResultView = ({results, pagination}) => {
               <td>{scientificName}<br/>{commonName}</td>
               <td>{ v.collector?.display_name } {v.field_number}</td>
               <td><span className="text is-dark9 font-size-xs">{ v.collect_date }</span></td>
-              <td>{ namedAreas.join('/') }</td>
+              <td>
+                <div>{ namedAreas.join('/') }</div>
+                <div>{v.locality_text}</div>
+                <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div>
+                <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div>
+              </td>
             </tr>);
         })}
       </tbody>
