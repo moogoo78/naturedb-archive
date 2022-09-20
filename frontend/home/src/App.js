@@ -126,7 +126,6 @@ const App = () => {
     <>
       <AppContext.Provider value={initialContext}>
         <HASTSearch />
-
       </AppContext.Provider>
     </>
   )
