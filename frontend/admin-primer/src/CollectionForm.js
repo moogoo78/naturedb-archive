@@ -495,7 +495,11 @@ export default function CollectionForm() {
           const label = (data.id) ? '儲存': '新增';
           dispatch({type: 'SHOW_FLASH', text: `${label}成功 - ${new Date()}`});
           if (!data.id) {
-            navigate(`/collections`, {replace: true});
+            //navigate(`/collections`, {replace: true});
+            window.location.replace('/collections');
+          } else {
+            //navigate(`/collections/${data.id}`);
+            window.location.replace(`/collections/${data.id}`);
           }
         })
         .catch(error => {

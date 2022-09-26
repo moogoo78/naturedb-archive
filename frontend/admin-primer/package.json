@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "webpack-dev-server --mode=development --open --hot --env myenv=dev",
+    "start": "webpack-dev-server --mode=development --open --hot --env myenv=dev --port 8082",
     "build": "webpack --mode=production --env myenv=prod"
   },
   "dependencies": {

@@ -51,6 +51,8 @@ import {
 } from './Utils';
 
 const BASE_URL = process.env.BASE_URL;
+const API_URL = process.env.API_URL;
+const ADMIN_URL = process.env.ADMIN_URL;
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -208,15 +210,20 @@ const QueryForm = ({state, dispatch, filter}) => {
             onSelectedChange={(values)=> {
               const value = values[values.length-1]; // latest
               let newFilter = {...filter};
-              //console.log(values, tokens, value);
+              console.log(values, tokens, value);
+
               if (value.category === 'field_number') {
                 newFilter['field_number'] = value.field_number;
                 setValue('field_number', value.field_number);
                 newFilter['collector'] = [{id: value.collector_id, text: value.collector}];
                 setValue('collector', [{id: value.collector_id, text: value.collector}]);
               } else {
-                newFilter[value.category] = value;
                 setValue(value.category, [{id: value.id, text: value.text}]);
+                if (value.category === 'collector') {
+                  newFilter[value.category] = [{id: value.id, text: value.text}];
+                } else {
+                  newFilter[value.category] = value;
+                }
               }
 
               dispatch({type:'SET_FILTER', filter: newFilter });
@@ -593,7 +600,6 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange}) => {
   const [selectedItemIds, setSelectedItemIds] = React.useState(selectedTokenIds);
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
-  const apiUrl = process.env.API_URL;
 
   /*const onTokenRemove = tokenId => {
     setTokens(tokens.filter(token => token.id !== tokenId))
@@ -655,7 +661,7 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange}) => {
         onTokenRemove={onTokenRemove}
         onChange={(e)=>{
           setLoading(true);
-          fetch(`${apiUrl}/search?q=${e.target.value}`)
+          fetch(`${API_URL}/search?q=${e.target.value}`)
             .then((resp) => { return resp.text() })
             .then((body) => { return JSON.parse(body) })
             .then((json) => {
@@ -913,7 +919,7 @@ const ResultView = ({results, pagination}) => {
                   setChecked(newState);
                 }}/>
               </td>
-              <td>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}</td>
+              <td>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}<div><a href={`${ADMIN_URL}/collections/${v.collection_id}`} target="_blank" className="text is-link is-xs">edit</a></div></td>
               {/*<UnitCells units={v.units}/>*/}
             <td><a href={`/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} style={{height: '75px'}} /></a></td>
               <td><a href={`/specimens/HAST:${v.accession_number}`} className="text is-link"> {v.accession_number || ''}</a></td>

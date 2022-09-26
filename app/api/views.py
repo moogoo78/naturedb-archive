@@ -436,6 +436,7 @@ def get_explore():
 
             data.append({
                 'unit_id': r[0],
+                'collection_id': c.id,
                 'accession_number': r[1],
                 'image_url': image_url,
                 'field_number': c.field_number,
