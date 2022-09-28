@@ -29,6 +29,8 @@ import {
   Label,
   SegmentedControl,
   Checkbox,
+  ActionMenu,
+  ActionList,
 } from '@primer/react';
 import {Dialog} from '@primer/react/drafts';
 
@@ -68,6 +70,11 @@ const reducer = (state, action) => {
         ...state,
         filter: action.filter,
       }
+    }
+  case 'SET_SORT':
+    return {
+      ...state,
+      sort: action.sort,
     }
   case 'SET_LOADING':
     return {
@@ -121,6 +128,7 @@ const initialArg = {
     accession_number: '',
     accession_number2: '',
   },
+  sort: '',
   pagination: {
     currentPage: 1,
     pageCount: 1,
@@ -756,10 +764,12 @@ export default function HASTSearch() {
     }
   }, []);
 
-  const fetchData = ({page, filter}) => {
+  const fetchData = ({page, filter, sort}) => {
     dispatch({type:'SET_LOADING'});
+
     const params = {};
     const currentFilter = filter || state.filter;
+    const currentSort = sort || state.sort;
 
     if (page) {
       params['range'] = [(page-1) * state.pagination.pageSize, page * state.pagination.pageSize];
@@ -768,6 +778,11 @@ export default function HASTSearch() {
     }
 
     params['filter'] = getFilterWithId(currentFilter);
+
+    if (currentSort) {
+      params['sort'] = {[currentSort]: ''}; // desc or asc
+    }
+    console.log('sort', sort, currentSort, params);
     //console.log('params: ', params);
     getList('explore', params)
       .then(({ json }) => {
@@ -783,6 +798,10 @@ export default function HASTSearch() {
     fetchData({page});
   };
 
+  const onSortChange = (sort) => {
+    dispatch({type:'SET_SORT', sort: sort })
+    fetchData({sort: sort});
+  }
   console.log('hastsearch', state);
 
   return (
@@ -810,7 +829,7 @@ export default function HASTSearch() {
          </SegmentedControl>
           */}
          <Box my={4}>
-           <ResultView results={state.results} pagination={state.pagination}/>
+           <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} />
          </Box>
          <Pagination pageCount={state.pagination.pageCount} currentPage={state.pagination.currentPage} onPageChange={onPageChange} />
        </Box>}
@@ -861,13 +880,19 @@ const UnitCells = ({units}) => {
 };
 */
 
-const ResultView = ({results, pagination}) => {
+const ResultView = ({results, pagination, onSortChange, sort}) => {
   const [checked, setChecked] = React.useState(Array(20).fill(false));
 
+  const sortMap = {
+    created: '新增日期',
+    taxon: '學名',
+    collect_number: '採集號',
+    collect_date: '採集日期',
+  }
   return (
     <>
     <Box my={2}>
-      <Text>{results.total.toLocaleString()} 筆 - 查詢時間: {results.elapsed.toFixed(2)} seconds (total: {results.elapsed_count.toFixed(2)}, mapping: {results.elapsed_mapping})</Text>
+      <Text>{results.total.toLocaleString()} 筆 - 查詢時間: {results.elapsed.toFixed(2)} seconds (total: {results.elapsed_count.toFixed(2)}, mapping: {results.elapsed_mapping.toFixed(2)})</Text>
     </Box>
       {/*
       <Box my={2}>
@@ -878,23 +903,42 @@ const ResultView = ({results, pagination}) => {
         <Label outline>採集者</Label>
     </LabelGroup>
     </Box>*/}
+      <Box display="flex" justifyContent="space-between" py={2}>
+        <Box>
+          <Button onClick={(e)=> {
+            const unitIds = [];
+            checked.forEach( (v, i) => {
+              if (v === true) {
+                unitIds.push(results.data[i].unit_id);
+              }
+            });
+            const ids = unitIds.join(',');
+            window.open(`${BASE_URL}/print-label?ids=${ids}`, '_blank');
+          }}>列印標籤</Button>
+        </Box>
+        <Box>
+          <ActionMenu>
+            <ActionMenu.Button>排序: {(sort ==='') ? '採集號' : sortMap[sort]}</ActionMenu.Button>
+            <ActionMenu.Overlay>
+              <ActionList selectionVariant="single">
+                <ActionList.Item selected={(sort === 'collect_number' || sort === '') ? true : false} onSelect={e => onSortChange('collect_number')}>採集者/號</ActionList.Item>
+                <ActionList.Item selected={(sort === 'collect_date') ? true : false} onSelect={e => onSortChange('collect_date')}>採集日期</ActionList.Item>
+                <ActionList.Item selected={(sort === 'taxon') ? true : false} onSelect={e => onSortChange('taxon')}>學名</ActionList.Item>
+                <ActionList.Item selected={(sort === 'created') ? true : false} onSelect={e => onSortChange('created')}>新增日期</ActionList.Item>
+                {/*
+                   <ActionList.Divider />
+                   <ActionList.Item variant="danger">Delete file</ActionList.Item>
+                */}
+              </ActionList>
 
-      <Box>
-        <Button onClick={(e)=> {
-          const unitIds = [];
-          checked.forEach( (v, i) => {
-            if (v === true) {
-              unitIds.push(results.data[i].unit_id);
-            }
-          });
-          const ids = unitIds.join(',');
-          window.open(`${BASE_URL}/print-label?ids=${ids}`, '_blank');
-        }}>列印標籤</Button>
+            </ActionMenu.Overlay>
+          </ActionMenu>
+        </Box>
       </Box>
       <table className="table is-border is-stripe">
-      <thead>
-        <tr className="box is-paint"><th><Checkbox id="checkbox-all" onChange={(e)=>{
-          setChecked(Array(20).fill(e.target.checked)); // TODO: default page size
+        <thead>
+          <tr className="box is-paint"><th><Checkbox id="checkbox-all" onChange={(e)=>{
+            setChecked(Array(20).fill(e.target.checked)); // TODO: default page size
         }}/></th><th>#</th><th>標本照</th><th>館號</th><th>物種</th><th>採集號</th><th>採集日期</th><th>採集地點</th></tr>
       </thead>
       <tbody>

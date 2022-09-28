@@ -17,9 +17,11 @@ from sqlalchemy import (
     cast,
     between,
     Integer,
+    LargeBinary,
     extract,
     or_,
     inspect,
+    join,
 )
 
 from flask.views import MethodView
@@ -293,7 +295,14 @@ def get_explore():
     # TODO: full outer join cause slow
     #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Collection).join(Unit).group_by(Collection.id)
 
-    stmt = select(Unit.id, Unit.accession_number, Collection ).join(Collection)
+    # cast(func.nullif(Collection.field_number, 0), Integer)
+    unit_collection_join = join(Unit, Collection, Unit.collection_id==Collection.id)
+    collection_person_join = join(Collection, Person, Collection.collector_id==Person.id)
+    stmt = select(Unit.id, Unit.accession_number, Collection, Person.full_name).join(Collection, Collection.id==Unit.collection_id).join(Person, Collection.collector_id==Person.id)
+
+    #res = session.execute(stmt)
+    #.select_from(cp_join)
+    #print(f'!!default stmt: \n{stmt}\n-----------------', flush=True)
 
     total = request.args.get('total', None)
 
@@ -388,6 +397,22 @@ def get_explore():
             stmt = stmt.where(Collection.altitude==value)
 
     base_stmt = stmt
+
+    if sort := payload['sort']:
+        if 'collect_date' in sort:
+            stmt = stmt.order_by(Collection.collect_date)
+            print('xxxxxxxxxxxxx', flush=True)
+        elif 'collect_num' in sort:
+            stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
+        elif 'taxon' in sort:
+            stmt = stmt.order_by(Collection.proxy_taxon_text)
+        elif 'created' in sort:
+            stmt = stmt.order_by(Collection.created)
+    else:
+        # default order
+        stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
+
+    #print(stmt, flush=True)
 
     # limit & offset
     start = int(payload['range'][0])
