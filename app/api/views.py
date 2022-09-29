@@ -266,20 +266,33 @@ def collection_item(collection_id):
 
 @api.route('/search', methods=['GET'])
 def get_search():
+    '''for searchbar
+    '''
     q = request.args.get('q')
     data = []
     if q.isdigit():
         rows = Collection.query.filter(Collection.field_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            collector = r.collector.display_name if r.collector and r.collector.display_name else ''
-            data.append({'id': r.id, 'text': f'field_number:{r.collector.display_name()}{r.field_number}', 'category': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': r.collector.display_name() if r.collector and r.collector.display_name() else ''})
+            collector = ''
+            if r.collector and r.collector.display_name():
+                collector = r.collector.display_name()
+
+            data.append({'id': r.id, 'text': f'field_number:{collector} {r.field_number}', 'category': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': collector})
         rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
             data.append({'id': r.id, 'text': f'accession_number:{r.accession_number}', 'category': 'accession_number'})
     else:
-        rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{q}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{q}%')).all()
+        rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{q}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
             data.append({'id': r.id, 'text': f'collector:{r.display_name()}', 'category': 'collector'})
+
+        rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%')).limit(10).all()
+        for r in rows:
+            data.append({'id': r.id, 'text': f'taxon:{r.display_name()}', 'category': 'taxon'})
+        rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
+        for r in rows:
+            tag = r.area_class.name
+            data.append({'id': r.id, 'text': f'{tag}:{r.display_name()}', 'category': tag})
 
     resp = jsonify({
         'data': data,
@@ -401,7 +414,6 @@ def get_explore():
     if sort := payload['sort']:
         if 'collect_date' in sort:
             stmt = stmt.order_by(Collection.collect_date)
-            print('xxxxxxxxxxxxx', flush=True)
         elif 'collect_num' in sort:
             stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
         elif 'taxon' in sort:

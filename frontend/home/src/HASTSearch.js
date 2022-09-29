@@ -180,7 +180,7 @@ const QueryForm = ({state, dispatch, filter}) => {
     });
 
     const queryString = (qsList.length > 0) ? '?q=' + qsList.join(',') : '/';
-    console.log(queryString, filterIds, filter);
+    //console.log(queryString, filterIds, filter);
     window.location.replace(queryString);
   }
 
@@ -218,22 +218,24 @@ const QueryForm = ({state, dispatch, filter}) => {
             onSelectedChange={(values)=> {
               const value = values[values.length-1]; // latest
               let newFilter = {...filter};
-              console.log(values, tokens, value);
-
-              if (value.category === 'field_number') {
-                newFilter['field_number'] = value.field_number;
+              console.log('search bar select: ' ,tokens, value);
+              switch (value.catogory) {
+              case 'field_number':
                 setValue('field_number', value.field_number);
+                newFilter['field_number'] = value.field_number;
                 newFilter['collector'] = [{id: value.collector_id, text: value.collector}];
                 setValue('collector', [{id: value.collector_id, text: value.collector}]);
-              } else {
+              case 'collector':
                 setValue(value.category, [{id: value.id, text: value.text}]);
-                if (value.category === 'collector') {
-                  newFilter[value.category] = [{id: value.id, text: value.text}];
-                } else {
-                  newFilter[value.category] = value;
-                }
+                newFilter[value.category] = [{id: value.id, text: value.text}];
+              case 'accession_number':
+                const [k1, v1] = value.text.split(':');
+                setValue(value.category, v1);
+                newFilter[value.category] = v1;
+              default:
+                setValue(value.category, [value]);
+                newFilter[value.category] = [value];
               }
-
               dispatch({type:'SET_FILTER', filter: newFilter });
             }}
           />
@@ -668,20 +670,27 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange}) => {
         tokens={tokens}
         onTokenRemove={onTokenRemove}
         onChange={(e)=>{
-          setLoading(true);
-          fetch(`${API_URL}/search?q=${e.target.value}`)
-            .then((resp) => { return resp.text() })
-            .then((body) => { return JSON.parse(body) })
-            .then((json) => {
-              //const items = json.data.map( x => ({id: x.id, text: x.display_name}));
-              setItems(json.data);
-              setLoading(false);
-      });
+          // console.log(e.target.value, 'input');
+          if (e.target.value) {
+            setLoading(true);
+            fetch(`${API_URL}/search?q=${e.target.value}`)
+              .then((resp) => { return resp.text() })
+              .then((body) => { return JSON.parse(body) })
+              .then((json) => {
+                //const items = json.data.map( x => ({id: x.id, text: x.display_name}));
+                setItems(json.data);
+                setLoading(false);
+              });
+
+          } else {
+            setItems([]);
+          }
         }}
       />
       <Autocomplete.Overlay width="xxlarge">
         <Autocomplete.Menu
           items={items}
+
           selectedItemIds={selectedItemIds}
           onSelectedChange={onSelectedChange}
           selectionVariant="multiple"
