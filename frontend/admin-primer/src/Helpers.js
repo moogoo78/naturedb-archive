@@ -9,6 +9,8 @@ import {
   StyledOcticon,
   Label,
   useDetails,
+  Spinner,
+  Pagehead,
 } from '@primer/react';
 
 import {
@@ -45,7 +47,17 @@ const Confirm = ({onOk, appendText=''}) => {
           setOpen(false);
         }}>取消</Button>
       </Details>
-    )
-}
+    );
+};
 
-export { Confirm, PhokFlash}
+
+
+
+export { Confirm, PhokFlash }
+
+/*
+<CollectionHookForm
+                     defaultValues={state.data}
+                     formWidgets={state.form}
+                   />
+*/

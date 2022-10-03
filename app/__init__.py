@@ -40,6 +40,7 @@ def register_blueprint_api(app):
         PersonMethodView,
         NamedAreaMethodView,
         TaxonMethodView,
+        ArticleMethodView,
     )
 
     # person
@@ -69,9 +70,18 @@ def register_blueprint_api(app):
         view_func=api_named_area_view,
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
+
+    # article
+    api_article_view = ArticleMethodView.as_view('api-article')
     api_bp.add_url_rule(
-        '/named_areas/<int:item_id>',
-        view_func=api_named_area_view,
+        '/articles',
+        defaults={'item_id': None},
+        view_func=api_article_view,
+        methods=['GET', 'POST', 'OPTIONS']
+    )
+    api_bp.add_url_rule(
+        '/articles/<int:item_id>',
+        view_func=api_article_view,
         methods=['GET', 'PUT', 'DELETE', 'OPTIONS']
     )
 

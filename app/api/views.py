@@ -28,6 +28,7 @@ from flask.views import MethodView
 
 from app.database import session
 from app.models import (
+    Article,
     Collection,
     Person,
     NamedArea,
@@ -92,14 +93,20 @@ def auth():
 
 @api.route('/<resource>/form')
 def form_layout(resource):
-    c = Collection()
-    resp = jsonify({
-        'data': c.to_dict(),
-        'form': c.get_form_layout(),
-    })
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp
+    model_map = {
+        'collections': Collection(),
+        'articles': Article(),
+    }
+    if obj := model_map.get(resource):
+        resp = jsonify({
+            'data': obj.to_dict(),
+            'form': obj.get_form_layout(),
+        })
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        return resp
 
+    else:
+        return abort(404)
 
 class AdminQuery(object):
 
@@ -1150,6 +1157,65 @@ class NamedAreaMethodView(MethodView):
 
     def options(self, item_id):
         return make_cors_preflight_response()
+
+
+class ArticleMethodView(MethodView):
+    RESOURCE_NAME = 'article'
+    model = Article
+    def get(self, item_id):
+        if item_id is None:
+            # item_list
+            query = self.model.query
+            if filter_str := request.args.get('filter', ''):
+                filter_dict = json.loads(filter_str)
+                if keyword := filter_dict.get('q', ''):
+                    like_key = f'{keyword}%' if len(keyword) == 1 else f'%{keyword}%'
+                    #query = query.filter(Taxon.full_scientific_name.ilike(like_key) | Taxon.common_name.ilike(like_key))
+            return ra_get_list_response(self.RESOURCE_NAME, request, query)
+        else:
+            # single item
+            obj = session.get(self.model, item_id)
+            resp = jsonify({
+                'data': obj.to_dict(),
+                'form': obj.get_form_layout()
+            })
+            resp.headers.add('Access-Control-Allow-Origin', '*')
+            return resp
+
+    def post(self, item_id):
+        # create
+        obj = self.model()
+        obj = self._modify(obj, request.json)
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def delete(self, item_id):
+        # delete a single user
+        obj = session.get(self.model, item_id)
+        session.delete(obj)
+        session.commit()
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def put(self, item_id):
+        # update
+        obj = session.get(self.model, item_id)
+        obj = self._modify(obj, request.json)
+        return ra_item_response(self.RESOURCE_NAME, obj)
+
+    def options(self, item_id):
+        return make_cors_preflight_response()
+
+    def _modify(self, obj, data):
+        for i, v in data.items():
+            # available types: str, int, NoneType
+            if i != 'id' and isinstance(v, str | int | None) and hasattr(obj, i):
+                setattr(obj, i, v)
+
+        if not obj.id:
+            session.add(obj)
+
+        session.commit()
+        return obj
+
 
 def collection_mapping(row):
     #print(row, row[0].id, flush=True)

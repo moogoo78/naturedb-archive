@@ -18,13 +18,13 @@
         <div class="section is-padding-horizontal-safe">
           <div class="inner is-padding-horizontal-md">
             <section class="section">
-              <h1 class="gh-stats-h1">查詢</h1>
-              <h2 class="gh-stats-header gh-stats-h2">Tags</h2>
-              <input class="input" type="text" name="text" placeholder="Text" />
-              <div class="joint">
-                <span class="badge is-plain">Tags 總數</span>
-                <span class="badge is-plain is-info">1905 盆</span>
-              </div>
+              <h1 class="gh-stats-h1">最新消息</h1>
+              <!-- <h2 class="gh-stats-header gh-stats-h2">Tags</h2> -->
+              <ul class="list is-disc">
+                {% for a in articles %}
+                <li class="item"><a href="./articles/{{a.id}}">{{a.subject}} - {{a.publish_date}}</a></li>
+                {% endfor %}
+              </ul>
             </section>
           </div>
         </div>

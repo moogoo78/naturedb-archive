@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 import {
@@ -28,6 +29,7 @@ import {
 
 import CollectionList from 'CollectionList';
 import CollectionForm from 'CollectionForm';
+import { ArticleList, ArticleForm } from 'Article';
 
 // import 'musubii/dist/musubii.min.css';
 
@@ -70,6 +72,7 @@ const AdminSidebar = () => (
     <NavList>
       <NavItem to="/">Dashboard</NavItem>
       <NavItem to="/collections">Collections</NavItem>
+      <NavItem to="/articles">Articles</NavItem>
       <NavItem to="/taxa">Taxa</NavItem>
       <NavItem to="/loc">Locality</NavItem>
     </NavList>
@@ -82,6 +85,9 @@ const AdminMain = () => (
       <Route path="/collections" element={<CollectionList />} />
       <Route path="/collections/:collectionId" element={<CollectionForm />} />
       <Route path="/collections/create" element={<CollectionForm />} />
+      <Route path="/articles" element={<ArticleList />} />
+      <Route path="/articles/:articleId" element={<ArticleForm />} />
+      <Route path="/articles/create" element={<ArticleForm />} />
     </Routes>
 )
 
@@ -100,17 +106,3 @@ export default function App() {
     </BrowserRouter>
   )
 }
-
-/*
-      <table className="table is-border is-stripe">
-        <thead>
-          <tr><th>標本照/館號</th><th>物種</th><th>採集者/號/日期</th><th>採集地點</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>foo</td><td></td>
-    </tr>
-    </tbody>
-    </table>
-*/
-

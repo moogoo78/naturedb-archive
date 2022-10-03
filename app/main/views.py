@@ -7,12 +7,14 @@ from flask import (
     render_template,
     jsonify,
 )
+import markdown
 
 from app.main import main
 from app.database import session
 #from app.database import session
 #from app.models import Dataset, Collection
 from app.models import (
+    Article,
     Collection,
     Person,
     Unit,
@@ -290,7 +292,14 @@ def bego():
 
 @main.route('/')
 def index():
-    return render_template('index.html')
+    articles = [x.to_dict() for x in Article.query.all()]
+    return render_template('index.html', articles=articles)
+
+@main.route('/articles/<article_id>')
+def article_detail(article_id):
+    article = Article.query.get(article_id)
+    article.content_html = markdown.markdown(article.content)
+    return render_template('article-detail.html', article=article)
 
 @main.route('/specimens/<collection_id>')
 def specimen_detail(collection_id):

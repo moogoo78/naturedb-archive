@@ -1103,3 +1103,45 @@ class Project(Base):
             'id': self.id,
             'name': self.name,
         }
+
+class ArticleCategory(Base):
+    __tablename__ = 'article_category'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(500))
+    label = Column(String(500))
+    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 
+            'name': self.name,
+            'label': self.label,
+        }
+
+class Article(Base):
+    __tablename__ = 'article'
+
+    id = Column(Integer, primary_key=True)
+    subject = Column(String(500))
+    content = Column(Text)
+    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+    category_id = Column(Integer, ForeignKey('article_category.id', ondelete='SET NULL'), nullable=True)
+    category = relationship('ArticleCategory')
+    publish_date = Column(Date)
+    created = Column(DateTime, default=get_time)
+
+    def to_dict(self):
+        return {
+            'id': self.id or '',
+            'subject': self.subject or '',
+            'content': self.content or '',
+            'category_id': self.category_id or '',
+            'publish_date': self.publish_date.strftime('%Y-%m-%d') if self.publish_date else'',
+            'created': self.created or '',
+        }
+
+    def get_form_layout(self):
+        return {
+            'categories': [x.to_dict() for x in ArticleCategory.query.all()]
+        }
