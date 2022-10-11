@@ -285,6 +285,7 @@ def get_search():
     '''
     q = request.args.get('q')
     data = []
+    item_id = 0
     if q.isdigit():
         rows = Collection.query.filter(Collection.field_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
@@ -292,22 +293,29 @@ def get_search():
             if r.collector and r.collector.display_name():
                 collector = r.collector.display_name()
 
-            data.append({'id': r.id, 'text': f'field_number:{collector} {r.field_number}', 'category': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': collector})
+            data.append({'id': item_id, 'text': f'field_number:{collector} {r.field_number}', 'category': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': collector})
+            item_id += 1
+
         rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            data.append({'id': r.id, 'text': f'accession_number:{r.accession_number}', 'category': 'accession_number'})
+            data.append({'id': item_id, 'text': f'accession_number:{r.accession_number}', 'category': 'accession_number'})
+            item_id += 1
     else:
         rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{q}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
-            data.append({'id': r.id, 'text': f'collector:{r.display_name()}', 'category': 'collector'})
+            data.append({'id': item_id, 'text': f'collector:{r.display_name()}', 'category': 'collector'})
+            item_id += 1
 
         rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            data.append({'id': r.id, 'text': f'taxon:{r.display_name()}', 'category': 'taxon'})
+            data.append({'id': item_id, 'text': f'taxon:{r.display_name()}', 'category': 'taxon'})
+            item_id += 1
+
         rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
             tag = r.area_class.name
-            data.append({'id': r.id, 'text': f'{tag}:{r.display_name()}', 'category': tag})
+            data.append({'id': item_id, 'text': f'{tag}:{r.display_name()}', 'category': tag})
+            item_id += 1
 
     resp = jsonify({
         'data': data,
