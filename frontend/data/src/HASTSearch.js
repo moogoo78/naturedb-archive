@@ -1028,7 +1028,7 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
                  <td>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}<div><a href={`${ADMIN_URL}/collections/${v.collection_id}`} target="_blank" className="text is-link is-xs">edit</a></div></td>
                  {/*<UnitCells units={v.units}/>*/}
                  <td><a href={`${BASE_URL}/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} style={{height: '75px'}} /></a></td>
-                 <td><a href={`/specimens/HAST:${v.accession_number}`} className="text is-link"> {v.accession_number || ''}</a></td>
+                 <td><a href={`${BASE_URL}/specimens/HAST:${v.accession_number}`} className="text is-link"> {v.accession_number || ''}</a></td>
                  <td>{scientificName}<br/>{commonName}</td>
                  <td>{ v.collector?.display_name } {v.field_number}<div>{scientificName}</div></td>
                  <td><span className="text is-dark9 font-size-xs">{ v.collect_date }</span></td>
@@ -1058,8 +1058,8 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
              return (
                <div className="column is-3" key={i}>
                  <div>
-                   <a href={`/specimens/HAST:${v.accession_number}`} className="text is-link">
-                     <img src={v.image_url.replace('_s', '_m')} style={{height: '350px'}} />
+                   <a href={`${BASE_URL}/specimens/HAST:${v.accession_number}`} className="text is-link">
+               <img src={v.image_url.replace('_s', '_m')} style={{height: '350px'}} />
                    </a>
                    <div className="is-sm">{scientificName}</div>
                    <div className="is-sm">{ v.collector?.display_name } {v.field_number}</div>
