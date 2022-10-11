@@ -8,7 +8,9 @@ from flask import (
     jsonify,
 )
 import markdown
-
+from sqlalchemy import (
+    desc,
+)
 from app.main import main
 from app.database import session
 #from app.database import session
@@ -292,7 +294,7 @@ def bego():
 
 @main.route('/')
 def index():
-    articles = [x.to_dict() for x in Article.query.all()]
+    articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
     return render_template('index.html', articles=articles)
 
 @main.route('/articles/<article_id>')

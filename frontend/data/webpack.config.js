@@ -8,7 +8,7 @@ module.exports = (env) => {
     output: {
       path: path.resolve(__dirname, 'build'),
       filename: 'bundle.js',
-      publicPath: (env.myenv === 'prod') ? '/home' : '/',
+      publicPath: (env.myenv === 'prod') ? '/data' : '/',
     },
     resolve: {
       modules: [path.join(__dirname, 'src'), 'node_modules'],

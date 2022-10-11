@@ -43,6 +43,9 @@ import {
   Controller,
 } from "react-hook-form";
 
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
 import {
   FreeAutocomplete,
   FetchControllerMulti,
@@ -55,6 +58,36 @@ import {
 const BASE_URL = process.env.BASE_URL;
 const API_URL = process.env.API_URL;
 const ADMIN_URL = process.env.ADMIN_URL;
+
+/**
+via: https://hackmd.io/@c36ICNyhQE6-iTXKxoIocg/BkMEznmXU#%E9%A1%AF%E7%A4%BA%E5%9C%B0%E5%9C%96
+*/
+const LeafletMap = ({data}=[]) => {
+  React.useEffect(() => {
+    // console.log(data);
+    const map = L.map('result-map', {
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).setView([23.181, 121.932], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const customIcon = new L.Icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.2/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.2/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+
+    data.forEach((x)=> {
+      const marker = L.marker([parseFloat(x.latitude_decimal), parseFloat(x.longitude_decimal)], {icon: customIcon}).addTo(map).bindPopup(`<div>館號: ${x.accession_number}</div><div>採集者:${x.collector.display_name}</div><div>採集號: ${x.field_number}</div><div>採集日期: ${x.collect_date}</div><div><a href="/specimens/HAST:${x.accession_number}" target="_blank">查看</a></div>`);
+    });
+
+  }, []);
+  return <div id="result-map" style={{ height: "100vh" }}></div>;
+};
+
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -92,10 +125,17 @@ const reducer = (state, action) => {
       },
       isLoading: false,
     }
-  case 'SET_RESULT_VIEW':
+  case 'SET_MAP_RESULTS':
     return {
       ...state,
-      resultView: action.view,
+      map_results: action.map_results,
+      isLoading: false,
+      view: 'map',
+    }
+  case 'SET_VIEW':
+    return {
+      ...state,
+      view: action.view,
     }
   default:
     throw new Error();
@@ -135,7 +175,8 @@ const initialArg = {
     pageSize: 20,
   },
   results: null,
-  resultView: 'table',
+  map_results: null,
+  view: 'table',
   //collector_options: [],
 };
 const TAB_LABELS = [{
@@ -773,7 +814,7 @@ export default function HASTSearch() {
     }
   }, []);
 
-  const fetchData = ({page, filter, sort}) => {
+  const fetchData = ({page, filter, sort, view=''}) => {
     dispatch({type:'SET_LOADING'});
 
     const params = {};
@@ -791,14 +832,24 @@ export default function HASTSearch() {
     if (currentSort) {
       params['sort'] = {[currentSort]: ''}; // desc or asc
     }
-    console.log('sort', sort, currentSort, params);
+
+    if (view === 'map') {
+      params['view'] = 'map';
+      params['range'] = [0, 500];
+    }
+    // console.log('sort', sort, currentSort, params);
     //console.log('params: ', params);
     getList('explore', params)
       .then(({ json }) => {
         console.log('results', json);
-        const pageCount = Math.ceil(json.total / state.pagination.pageSize) || 1;
-        const currentPage = page || 1;
-        dispatch({type: 'SET_RESULTS', results: json, currentPage: currentPage, pageCount: pageCount});
+
+        if (view === 'map') {
+          dispatch({type: 'SET_MAP_RESULTS', map_results: json });
+        } else {
+          const pageCount = Math.ceil(json.total / state.pagination.pageSize) || 1;
+          const currentPage = page || 1;
+          dispatch({type: 'SET_RESULTS', results: json, currentPage: currentPage, pageCount: pageCount});
+        }
       });
     };
 
@@ -819,26 +870,26 @@ export default function HASTSearch() {
       { state.isInit && <QueryForm state={state} dispatch={dispatch} filter={state.filter}/> }
       {(state.isLoading) ? <Box display="flex" justifyContent="center" m={4}><Spinner /></Box> : null}
       {state.results && state.isLoading === false &&
-       <Box mt={2}>{/*
-         <UnderlineNav aria-label="Main">
-           <UnderlineNav.Link href="#" selected>
-             表格
-           </UnderlineNav.Link>
-           <UnderlineNav.Link href="#">標籤</UnderlineNav.Link>
-           <UnderlineNav.Link href="#">照片</UnderlineNav.Link>
-         </UnderlineNav>
-                    */}
-         {/*
+       <Box mt={2}>
+         {/* <UnderlineNav aria-label="Main"> */}
+         {/*   <UnderlineNav.Link href="#" selected={state.view === 'table'}>表格</UnderlineNav.Link> */}
+         {/*   <UnderlineNav.Link href="#" selected={state.view === 'gallery'}>圖片</UnderlineNav.Link> */}
+         {/*   <UnderlineNav.Link href="#" selected={state.view === 'map'}>地圖</UnderlineNav.Link> */}
+         {/* </UnderlineNav> */}
          <SegmentedControl aria-label="Results view" onChange={ (selectedIndex) => {
-           dispatch({type: 'SET_RESULT_VIEW', view: ['table', 'list', 'gallery'][selectedIndex]});
+           const view = ['table', 'gallery', 'map'][selectedIndex];
+           if (view === 'map') {
+             fetchData({view:'map'});
+           } else {
+             dispatch({type: 'SET_VIEW', view: view});
+           }
          }}>
-           <SegmentedControl.Button selected={state.resultView === 'table'}>表格</SegmentedControl.Button>
-           <SegmentedControl.Button selected={state.resultView === 'list'}>條列</SegmentedControl.Button>
-           <SegmentedControl.Button selected={state.resultView === 'gallery'}>照片</SegmentedControl.Button>
+           <SegmentedControl.Button selected={state.view === 'table'}>表格</SegmentedControl.Button>
+           <SegmentedControl.Button selected={state.view === 'gallery'}>標本照</SegmentedControl.Button>
+           <SegmentedControl.Button selected={state.view === 'map'}>地圖</SegmentedControl.Button>
          </SegmentedControl>
-          */}
          <Box my={4}>
-           <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} />
+           <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} view={state.view} mapResults={state.map_results} />
          </Box>
          <Pagination pageCount={state.pagination.pageCount} currentPage={state.pagination.currentPage} onPageChange={onPageChange} />
        </Box>}
@@ -889,9 +940,8 @@ const UnitCells = ({units}) => {
 };
 */
 
-const ResultView = ({results, pagination, onSortChange, sort}) => {
+const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, foo}) => {
   const [checked, setChecked] = React.useState(Array(20).fill(false));
-
   const sortMap = {
     created: '新增日期',
     taxon: '學名',
@@ -900,23 +950,25 @@ const ResultView = ({results, pagination, onSortChange, sort}) => {
   }
   return (
     <>
-    <Box my={2}>
-      <Text>{results.total.toLocaleString()} 筆 - 查詢時間: {results.elapsed.toFixed(2)} seconds (total: {results.elapsed_count.toFixed(2)}, mapping: {results.elapsed_mapping.toFixed(2)})</Text>
-    </Box>
-      {/*
-      <Box my={2}>
-      Filter by:
-      <LabelGroup>
-        <Label>科名/Family</Label>
-        <Label outline>屬名/Genus</Label>
-        <Label outline>採集者</Label>
-    </LabelGroup>
-    </Box>*/}
-      <Box display="flex" justifyContent="space-between" py={2}>
-        <Box>
-          <Button onClick={(e)=> {
-            const unitIds = [];
-            checked.forEach( (v, i) => {
+      {(view !== 'map') ?
+       <>
+       <Box my={2}>
+         <Text>{results.total.toLocaleString()} 筆 - 查詢時間: {results.elapsed.toFixed(2)} seconds (total: {results.elapsed_count.toFixed(2)}, mapping: {results.elapsed_mapping.toFixed(2)})</Text>
+       </Box>
+       {/*
+          <Box my={2}>
+          Filter by:
+          <LabelGroup>
+          <Label>科名/Family</Label>
+          <Label outline>屬名/Genus</Label>
+          <Label outline>採集者</Label>
+          </LabelGroup>
+          </Box>*/}
+       <Box display="flex" justifyContent="space-between" py={2}>
+      <Box>
+        <Button onClick={(e)=> {
+          const unitIds = [];
+          checked.forEach( (v, i) => {
               if (v === true) {
                 unitIds.push(results.data[i].unit_id);
               }
@@ -939,56 +991,93 @@ const ResultView = ({results, pagination, onSortChange, sort}) => {
                    <ActionList.Item variant="danger">Delete file</ActionList.Item>
                 */}
               </ActionList>
-
             </ActionMenu.Overlay>
           </ActionMenu>
-        </Box>
-      </Box>
-      <table className="table is-border is-stripe">
-        <thead>
-          <tr className="box is-paint"><th><Checkbox id="checkbox-all" onChange={(e)=>{
-            setChecked(Array(20).fill(e.target.checked)); // TODO: default page size
-        }}/></th><th>#</th><th>標本照</th><th>館號</th><th>物種</th><th>採集號</th><th>採集日期</th><th>採集地點</th></tr>
-      </thead>
-      <tbody>
-        {results.data.map((v, i) => {
-          let scientificName = '';
-          let commonName = '';
-          if (v.taxon) {
-            const nameList = v.taxon.split('|');
-            if (nameList.length > 1) {
-              scientificName = nameList[0];
-              commonName = nameList[1];
-            }
-          }
-          const namedAreas = v.named_areas.map(x => x.name);
-          return (
-            <tr key={i}>
-              <td>
-                <Checkbox id={`checkbox-${i}`} checked={checked[i]} onChange={(e) => {
-                  const index = parseInt(e.target.id.split('-')[1], 10);
-                  const newState = [...checked];
-                  newState[index] = true;
-                  setChecked(newState);
-                }}/>
-              </td>
-              <td>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}<div><a href={`${ADMIN_URL}/collections/${v.collection_id}`} target="_blank" className="text is-link is-xs">edit</a></div></td>
-              {/*<UnitCells units={v.units}/>*/}
-            <td><a href={`/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} style={{height: '75px'}} /></a></td>
-              <td><a href={`/specimens/HAST:${v.accession_number}`} className="text is-link"> {v.accession_number || ''}</a></td>
-              <td>{scientificName}<br/>{commonName}</td>
-              <td>{ v.collector?.display_name } {v.field_number}</td>
-              <td><span className="text is-dark9 font-size-xs">{ v.collect_date }</span></td>
-              <td>
-                <div>{ namedAreas.join('/') }</div>
-                <div>{v.locality_text}</div>
-                <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div>
-                <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div>
-              </td>
-            </tr>);
-        })}
-      </tbody>
-          </table>
+       </Box>
+       </Box>
+       </> : null}
+      {(view === 'table') ?
+       <table className="table is-border is-stripe">
+         <thead>
+           <tr className="box is-paint"><th><Checkbox id="checkbox-all" onChange={(e)=>{
+             setChecked(Array(20).fill(e.target.checked)); // TODO: default page size
+           }}/></th><th>#</th><th>標本照</th><th>館號</th><th>物種</th><th>採集號</th><th>採集日期</th><th>採集地點</th></tr>
+         </thead>
+         <tbody>
+           {results.data.map((v, i) => {
+             let scientificName = '';
+             let commonName = '';
+             if (v.taxon) {
+               const nameList = v.taxon.split('|');
+               if (nameList.length > 1) {
+                 scientificName = nameList[0];
+                 commonName = nameList[1];
+               }
+             }
+             const namedAreas = v.named_areas.map(x => x.name);
+             return (
+               <tr key={i}>
+                 <td>
+                   <Checkbox id={`checkbox-${i}`} checked={checked[i]} onChange={(e) => {
+                     const index = parseInt(e.target.id.split('-')[1], 10);
+                     const newState = [...checked];
+                     newState[index] = true;
+                     setChecked(newState);
+                   }}/>
+                 </td>
+                 <td>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}<div><a href={`${ADMIN_URL}/collections/${v.collection_id}`} target="_blank" className="text is-link is-xs">edit</a></div></td>
+                 {/*<UnitCells units={v.units}/>*/}
+                 <td><a href={`${BASE_URL}/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} style={{height: '75px'}} /></a></td>
+                 <td><a href={`/specimens/HAST:${v.accession_number}`} className="text is-link"> {v.accession_number || ''}</a></td>
+                 <td>{scientificName}<br/>{commonName}</td>
+                 <td>{ v.collector?.display_name } {v.field_number}<div>{scientificName}</div></td>
+                 <td><span className="text is-dark9 font-size-xs">{ v.collect_date }</span></td>
+                 <td>
+                   <div>{ namedAreas.join('/') }</div>
+                   <div>{v.locality_text}</div>
+                   <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div>
+                   <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div>
+                 </td>
+               </tr>);
+           })}
+         </tbody>
+       </table>
+       : null}
+      {(view === 'gallery') ?
+       <>
+         <div className="grid is-gap-md">
+           {results.data.map((v, i) => {
+             let scientificName = '';
+             if (v.taxon) {
+               const nameList = v.taxon.split('|');
+               if (nameList.length > 1) {
+                 scientificName = nameList[0];
+               }
+             }
+             const namedAreas = v.named_areas.map(x => x.name);
+             return (
+               <div className="column is-3" key={i}>
+                 <div>
+                   <a href={`/specimens/HAST:${v.accession_number}`} className="text is-link">
+                     <img src={v.image_url.replace('_s', '_m')} style={{height: '350px'}} />
+                   </a>
+                   <div className="is-sm">{scientificName}</div>
+                   <div className="is-sm">{ v.collector?.display_name } {v.field_number}</div>
+                   <div className="is-sm">{(v.collect_date) ? v.collect_date : null}</div>
+                   <div className="is-sm badge is-plain">{v.accession_number}</div>
+                   <div className="is-sm">{ namedAreas.join('/') }</div>
+                 </div>
+               </div>);
+           })}
+         </div>
+       </>
+       : null}
+      {(view === 'map' && mapResults) ?
+       <>
+         {(mapResults.data.length >= 500) ? <Text>(只顯示 500 筆內的點位)</Text> : null}
+         <LeafletMap data={mapResults.data} />
+       </>
+       : null}
     </>
   )
 };

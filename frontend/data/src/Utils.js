@@ -34,6 +34,9 @@ const getList = (resource, params, options={}) => {
     if (params.hasOwnProperty('sort')) {
       payload['sort'] = JSON.stringify(params['sort']);
     }
+    if (params.hasOwnProperty('view')) {
+      payload['view'] = params.view;
+    }
   }
   //const query = {
     // sort: JSON.stringify([field, order]),

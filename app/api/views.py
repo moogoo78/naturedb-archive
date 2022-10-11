@@ -70,6 +70,14 @@ def allow_cors(data):
     resp.headers.add('Access-Control-Allow-Origin', '*')
     return resp
 
+@api.route('/tmp-import')
+def tmp_import():
+    pass
+
+
+    return jsonify({})
+
+
 @api.route('/auth', methods=['POST', 'OPTIONS'])
 def auth():
     if request.method == 'OPTIONS':
@@ -308,6 +316,7 @@ def get_search():
     resp.headers.add('Access-Control-Allow-Methods', '*')
     return resp
 
+
 @api.route('/explore', methods=['GET'])
 def get_explore():
     # group by collection
@@ -323,7 +332,6 @@ def get_explore():
     #res = session.execute(stmt)
     #.select_from(cp_join)
     #print(f'!!default stmt: \n{stmt}\n-----------------', flush=True)
-
     total = request.args.get('total', None)
 
     payload = {
@@ -331,6 +339,7 @@ def get_explore():
         'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
         'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
     }
+    view = request.args.get('view', '')
 
     filtr = payload['filter']
     if accession_number := filtr.get('accession_number'):
@@ -418,25 +427,28 @@ def get_explore():
 
     base_stmt = stmt
 
-    if sort := payload['sort']:
-        if 'collect_date' in sort:
-            stmt = stmt.order_by(Collection.collect_date)
-        elif 'collect_num' in sort:
+    # sort
+    if view != 'map':
+        if sort := payload['sort']:
+            if 'collect_date' in sort:
+                stmt = stmt.order_by(Collection.collect_date)
+            elif 'collect_num' in sort:
+                stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
+            elif 'taxon' in sort:
+                stmt = stmt.order_by(Collection.proxy_taxon_text)
+            elif 'created' in sort:
+                stmt = stmt.order_by(Collection.created)
+        else:
+            # default order
             stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
-        elif 'taxon' in sort:
-            stmt = stmt.order_by(Collection.proxy_taxon_text)
-        elif 'created' in sort:
-            stmt = stmt.order_by(Collection.created)
-    else:
-        # default order
-        stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
 
-    #print(stmt, flush=True)
+        #print(stmt, flush=True)
+
 
     # limit & offset
     start = int(payload['range'][0])
     end = int(payload['range'][1])
-    limit = min((end-start), 1000) # max query range
+    limit = min((end-start), 1000) # TODO: max query range
     stmt = stmt.limit(limit)
     if start > 0:
         stmt = stmt.offset(start)
@@ -467,34 +479,46 @@ def get_explore():
     begin_time = time.time()
     elapsed_mapping = None
     for r in result.all():
-        elapsed_mapping = time.time() - begin_time
         if c := r[2]:
-            image_url = ''
-            try:
-                accession_number_int = int(r[0])
-                instance_id = f'{accession_number_int:06}'
-                first_3 = instance_id[0:3]
-                image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
-            except:
-                pass
+            if view == 'map':
+                if c.longitude_decimal and c.latitude_decimal:
+                    data.append({
+                        'accession_number': r[1],
+                        'collector': c.collector.to_dict() if c.collector else '',
+                        'field_number': c.field_number,
+                        'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
+                        'taxon': c.proxy_taxon_text,
+                        'longitude_decimal': c.longitude_decimal,
+                        'latitude_decimal': c.latitude_decimal,
+                    })
+            else:
+                image_url = ''
+                try:
+                    accession_number_int = int(r[0])
+                    instance_id = f'{accession_number_int:06}'
+                    first_3 = instance_id[0:3]
+                    image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
+                except:
+                    pass
 
-            data.append({
-                'unit_id': r[0],
-                'collection_id': c.id,
-                'accession_number': r[1],
-                'image_url': image_url,
-                'field_number': c.field_number,
-                'collector': c.collector.to_dict() if c.collector else '',
-                'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
-                'taxon': c.proxy_taxon_text,
-                'named_areas': [x.to_dict() for x in c.named_areas],
-                'locality_text': c.locality_text,
-                'altitude': c.altitude,
-                'altitude2': c.altitude2,
-                'longitude_decimal': c.longitude_decimal,
-                'latitude_decimal': c.latitude_decimal,
-            })
+                data.append({
+                    'unit_id': r[0],
+                    'collection_id': c.id,
+                    'accession_number': r[1],
+                    'image_url': image_url,
+                    'field_number': c.field_number,
+                    'collector': c.collector.to_dict() if c.collector else '',
+                    'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
+                    'taxon': c.proxy_taxon_text,
+                    'named_areas': [x.to_dict() for x in c.named_areas],
+                    'locality_text': c.locality_text,
+                    'altitude': c.altitude,
+                    'altitude2': c.altitude2,
+                    'longitude_decimal': c.longitude_decimal,
+                    'latitude_decimal': c.latitude_decimal,
+                })
 
+    elapsed_mapping = time.time() - begin_time
     resp = jsonify({
         'data': data,
         'total': total,

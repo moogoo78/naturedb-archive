@@ -1129,6 +1129,9 @@ class Article(Base):
     category_id = Column(Integer, ForeignKey('article_category.id', ondelete='SET NULL'), nullable=True)
     category = relationship('ArticleCategory')
     publish_date = Column(Date)
+    # published_by = Column(String(500))
+    data = Column(JSONB) # language, url, published_by
+    is_markdown = Column(Boolean, default=True)
     created = Column(DateTime, default=get_time)
 
     def to_dict(self):
