@@ -20,7 +20,7 @@ services:
       - ./docker/nginx:/etc/nginx/conf.d
       - ../naturedb-volumes/static:/naturedb-volumes/static
       - ../naturedb-volumes/admin:/naturedb-volumes/admin
-      - ../naturedb-volumes/home:/naturedb-volumes/home
+      - ../naturedb-volumes/data:/naturedb-volumes/data
       - ../naturedb-volumes/bucket:/bucket
 
   # traefik:
