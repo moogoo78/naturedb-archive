@@ -285,7 +285,6 @@ def get_search():
     '''
     q = request.args.get('q')
     data = []
-    item_id = 0
     if q.isdigit():
         rows = Collection.query.filter(Collection.field_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
@@ -293,29 +292,24 @@ def get_search():
             if r.collector and r.collector.display_name():
                 collector = r.collector.display_name()
 
-            data.append({'id': item_id, 'text': f'field_number:{collector} {r.field_number}', 'category': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': collector})
-            item_id += 1
+            data.append({'object_id': r.id, 'text': f'field_number:{collector} {r.field_number}', 'term': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': collector})
 
         rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            data.append({'id': item_id, 'text': f'accession_number:{r.accession_number}', 'category': 'accession_number'})
-            item_id += 1
+            data.append({'object_id': r.id, 'text': f'accession_number:{r.accession_number}', 'term': 'accession_number'})
     else:
         rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{q}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
-            data.append({'id': item_id, 'text': f'collector:{r.display_name()}', 'category': 'collector'})
-            item_id += 1
+            data.append({'object_id': r.id, 'text': f'collector:{r.display_name()}', 'term': 'collector'})
 
         rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            data.append({'id': item_id, 'text': f'taxon:{r.display_name()}', 'category': 'taxon'})
-            item_id += 1
+            data.append({'object_id': r.id, 'text': f'{r.display_name()}', 'term': 'taxon'})
 
         rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
             tag = r.area_class.name
-            data.append({'id': item_id, 'text': f'{tag}:{r.display_name()}', 'category': tag})
-            item_id += 1
+            data.append({'object_id': r.id, 'text': f'{tag}:{r.display_name()}', 'term': tag})
 
     resp = jsonify({
         'data': data,
@@ -348,6 +342,8 @@ def get_explore():
         'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
     }
     view = request.args.get('view', '')
+
+    # query_key_map = {}
 
     filtr = payload['filter']
     if accession_number := filtr.get('accession_number'):
@@ -386,20 +382,27 @@ def get_explore():
             stmt = stmt.where(Collection.collect_date==value)
     if value := filtr.get('collect_month'):
         stmt = stmt.where(extract('month', Collection.collect_date) == value)
-    if scientific_name := filtr.get('scientific_name'): # TODO variable name
-        if t := session.get(Taxon, scientific_name[0]):
-            taxa_ids = [x.id for x in t.get_children()]
-            stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
-    if taxa := filtr.get('species'):
-        if t := session.get(Taxon, taxa[0]):
-            taxa_ids = [x.id for x in t.get_children()]
-            stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
-    elif taxa := filtr.get('genus'):
-        if t := session.get(Taxon, taxa[0]):
-            taxa_ids = [x.id for x in t.get_children()]
-            stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
-    elif taxa := filtr.get('family'):
-        if t := session.get(Taxon, taxa[0]):
+    # if scientific_name := filtr.get('scientific_name'): # TODO variable name
+    #     if t := session.get(Taxon, scientific_name[0]):
+    #         taxa_ids = [x.id for x in t.get_children()]
+    #         stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+    # if taxa := filtr.get('species'):
+    #     if t := session.get(Taxon, taxa[0]):
+    #         taxa_ids = [x.id for x in t.get_children()]
+    #         stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+    #         query_key_map['taxon'] = t.to_dict()
+    # elif taxa := filtr.get('genus'):
+    #     if t := session.get(Taxon, taxa[0]):
+    #         taxa_ids = [x.id for x in t.get_children()]
+    #         stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+    #         query_key_map['taxon'] = t.to_dict()
+    # elif taxa := filtr.get('family'):
+    #     if t := session.get(Taxon, taxa[0]):
+    #         taxa_ids = [x.id for x in t.get_children()]
+    #         stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
+    #         query_key_map['taxon'] = t.to_dict()
+    elif taxa_ids := filtr.get('taxon'):
+        if t := session.get(Taxon, taxa_ids[0]):
             taxa_ids = [x.id for x in t.get_children()]
             stmt = stmt.where(Collection.proxy_taxon_id.in_(taxa_ids))
 
@@ -529,6 +532,7 @@ def get_explore():
     elapsed_mapping = time.time() - begin_time
     resp = jsonify({
         'data': data,
+        # 'key_map': query_key_map,
         'total': total,
         'elapsed': elapsed,
         'elapsed_count': elapsed_count,

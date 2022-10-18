@@ -31,12 +31,23 @@ import {
   Checkbox,
   ActionMenu,
   ActionList,
+  AnchoredOverlay,
 } from '@primer/react';
 import {Dialog} from '@primer/react/drafts';
 
 import {
   SearchIcon,
   ChevronDownIcon,
+  FeedStarIcon,
+  FeedTagIcon,
+  LocationIcon,
+  FeedPersonIcon,
+  ItalicIcon,
+  ArchiveIcon,
+  GearIcon,
+  FilterIcon,
+  ProjectIcon,
+  NoteIcon,
 } from '@primer/octicons-react'
 import {
   useForm,
@@ -55,10 +66,21 @@ import {
   getOne,
 } from './Utils';
 
+import {
+  SearchBar
+} from './SearchBar';
+
 const BASE_URL = process.env.BASE_URL;
 const API_URL = process.env.API_URL;
 const ADMIN_URL = process.env.ADMIN_URL;
 
+const TERM_ICON_MAP = {
+  'taxon': <ItalicIcon />,
+  'collector': <FeedPersonIcon />,
+  'field_number': <FeedTagIcon />,
+  'country': <LocationIcon />,
+  'accession_number': <ArchiveIcon />,
+};
 /**
 via: https://hackmd.io/@c36ICNyhQE6-iTXKxoIocg/BkMEznmXU#%E9%A1%AF%E7%A4%BA%E5%9C%B0%E5%9C%96
 */
@@ -146,11 +168,8 @@ const initialArg = {
   isLoading: false,
   isInit: false,
   filter: {
-    collector: [],
+    collector: {},
     scientific_name: '',
-    family: '',
-    genus: '',
-    species: '',
     field_number: '',
     field_number2: '',
     collect_date: '',
@@ -167,6 +186,7 @@ const initialArg = {
     locality: '',
     accession_number: '',
     accession_number2: '',
+    taxon: {}
   },
   sort: '',
   pagination: {
@@ -212,8 +232,7 @@ const QueryForm = ({state, dispatch, filter}) => {
     console.log('submit', data)
 
     //fetchData({filterWithId});
-    const filterIds = getFilterWithId(data);
-    console.log(filterIds, data);
+    const filterIds = justIds(data);
     const params = new URLSearchParams(filterIds);
     const qsList = [];
     params.forEach((value, key) => {
@@ -224,30 +243,13 @@ const QueryForm = ({state, dispatch, filter}) => {
     //console.log(queryString, filterIds, filter);
     window.location.replace(queryString);
   }
-
+  const tokens = toTokens(filter);
   // set search bar tokens
-  const tokens = [];
-  let counter = 0;
-  for (const [key, value] of Object.entries(filter)) {
-    if (typeof(value) === 'object') {
-      if (value.length > 0) {
-        value.forEach( x => {
-          tokens.push( {id:counter, text: `${key}:${x.text}`} );
-          counter++;
-        });
-      }
-    }
-    else if (value) {
-      tokens.push( {id:counter, text: `${key}:${value}`} );
-      counter++;
-    }
-  }
-
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <Box display="flex">
         <Box flexGrow={12} pr={1}>
-          <SearchBar
+          <SearchBarx
             tokens={tokens}
             onTokenRemove={(tokenId) => {
               const deleteKey = tokens[tokenId].text.split(':')[0];
@@ -257,29 +259,32 @@ const QueryForm = ({state, dispatch, filter}) => {
               dispatch({type:'SET_FILTER', filter: newFilter });
             }}
             onSelectedChange={(values)=> {
-              const value = values[values.length-1]; // latest
+              //need filer, setValue, dispatch so define here
+              const value = values[values.length-1]; latest
               let newFilter = {...filter};
               console.log('search bar select: ' ,tokens, value);
-              switch (value.catogory) {
-              case 'field_number':
-                setValue('field_number', value.field_number);
-                newFilter['field_number'] = value.field_number;
-                newFilter['collector'] = [{id: value.collector_id, text: value.collector}];
-                setValue('collector', [{id: value.collector_id, text: value.collector}]);
-              case 'collector':
-                setValue(value.category, [{id: value.id, text: value.text}]);
-                newFilter[value.category] = [{id: value.id, text: value.text}];
-              case 'accession_number':
-                const [k1, v1] = value.text.split(':');
-                setValue(value.category, v1);
-                newFilter[value.category] = v1;
-              default:
-                setValue(value.category, [value]);
-                newFilter[value.category] = [value];
+              if (value !== undefined) {
+                const item_id = value.item_id;
+                switch (value.term) {
+                case 'field_number':
+                  newFilter['field_number'] = value.field_number;
+                  newFilter['collector'] = [{object_id: value.collector_id, text: value.collector}];
+                  setValue('field_number', value.field_number);
+                  setValue('collector', [{id: value.id, text: value.collector}]);
+                case 'accession_number':
+                  const [k1, v1] = value.text.split(':');
+                  setValue(value.category, v1);
+                  newFilter[value.category] = v1;
+                default:
+                  console.log('vvv', value);
+                  setValue(value.term, [value]);
+                  newFilter[value.term] = [value];
+                }
+                dispatch({type:'SET_FILTER', filter: newFilter });
               }
-              dispatch({type:'SET_FILTER', filter: newFilter });
             }}
           />
+          {/* <SearchBar /> */}
         </Box>
         <Box flexGrow={0} mr={1}>
             <IconButton aria-label="Search" icon={SearchIcon} size="large"/>
@@ -643,65 +648,173 @@ const AdvanceSearch = ({form, onSubmit}) => {
     </>
   )
 }
+const SearchBarz = () => {
 
-const SearchBar = ({tokens, onTokenRemove, onSelectedChange}) => {
-//const SearchBar = () => {
-  //const [tokens2, setTokens] = React.useState(tokens)
+
+//  const [state, dispatch] = useReducer(reducer, initialState)
+    const [tokens, setTokens] = React.useState([
+    {text: 'zero', id: 0},
+    {text: 'one', id: 1},
+    {text: 'two', id: 2},
+    {text: 'three', id: 3},
+    {text: 'four', id: 4},
+    {text: 'five', id: 5},
+    {text: 'six', id: 6},
+    {text: 'seven', id: 7}
+    ]);
+
+  const SearchInput = React.forwardRef((props, ref) => (
+    <TextInputWithTokens
+      preventTokenWrapping
+      block
+      tokens={[{text: 'zero', id: 0}, {text: 'six', id: 6}]}
+    /*onTokenRemove={onTokenRemove}*/
+      onChange={(e) => {
+        console.log('eee', e.target.value);
+        if (e.target.value) {
+          /*setV(e.target.value);*/
+        }
+      }}
+    />
+  ));
+
+  const SearchOverlay = () => {
+    return (
+      <Overlay />
+    )
+  };
+  return (
+    <>
+      {/* <SearchInput ref={anchorRef} /> */}
+      {/* <SearchOverlay /> */}
+    </>
+  )
+};
+
+const SearchBary = () => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const openOverlay = React.useCallback(() => setIsOpen(true), [setIsOpen])
+    const closeOverlay = React.useCallback(() => setIsOpen(false), [setIsOpen])
+  const noButtonRef = React.useRef(null)
+  const anchorRef = React.useRef(null)
+  const [tokens, setTokens] = React.useState([
+    {text: 'zero', id: 0},
+    {text: 'one', id: 1},
+    {text: 'two', id: 2},
+    {text: 'three', id: 3},
+    {text: 'four', id: 4},
+    {text: 'five', id: 5},
+    {text: 'six', id: 6},
+    {text: 'seven', id: 7}
+    ])
+  return(
+    <>
+      <TextInputWithTokens
+        preventTokenWrapping
+        block
+        tokens={[{text: 'zero', id: 0}, {text: 'six', id: 6}]}
+    /*onTokenRemove={onTokenRemove}*/
+        onChange={(e) => {
+          console.log('eee', e.target.value);
+          if (e.target.value) {
+            setOpen(true);
+            console.log(anchorRef.current, 'uc');
+          }
+        }}
+        ref={anchorRef}
+        autoFocus
+      />
+      <ActionMenu
+        onOpenChange={(x)=> {
+        console.log(x, 'xx');
+        }}
+        open={open}
+        anchorRef={anchorRef}
+      >
+        {/* <ActionMenu.Anchor> */}
+        {/* </ActionMenu.Anchor> */}
+        <ActionMenu.Overlay
+          width="xxlarge"
+          onEscape={(e) => {
+            console.log(e, 'esc');
+            setOpen(false);
+          }}
+          onClickOutside={(e)=> {
+            console.log(e, 'out');
+            setOpen(false);
+          }}
+        >
+    <ActionList showDividers>
+      <ActionList.Group title="Live query">
+        <ActionList.Item>
+          <ActionList.LeadingVisual>
+            <SearchIcon />
+          </ActionList.LeadingVisual>
+          repo:github/memex,github/github
+        </ActionList.Item>
+      </ActionList.Group>
+      <ActionList.Divider />
+      <ActionList.Group title="Layout" variant="subtle">
+        <ActionList.Item>
+          <ActionList.LeadingVisual>
+            <NoteIcon />
+          </ActionList.LeadingVisual>
+          Table
+          <ActionList.Description variant="block">
+            Information-dense table optimized for operations across teams
+          </ActionList.Description>
+        </ActionList.Item>
+        <ActionList.Item role="listitem">
+          <ActionList.LeadingVisual>
+            <ProjectIcon />
+          </ActionList.LeadingVisual>
+          Board
+          <ActionList.Description variant="block">Kanban-style board focused on visual states</ActionList.Description>
+        </ActionList.Item>
+      </ActionList.Group>
+      <ActionList.Divider />
+      <ActionList.Group>
+        <ActionList.Item>
+          <ActionList.LeadingVisual>
+            <FilterIcon />
+          </ActionList.LeadingVisual>
+          Save sort and filters to current view
+        </ActionList.Item>
+        <ActionList.Item>
+          <ActionList.LeadingVisual>
+            <FilterIcon />
+          </ActionList.LeadingVisual>
+          Save sort and filters to new view
+        </ActionList.Item>
+      </ActionList.Group>
+      <ActionList.Divider />
+      <ActionList.Group>
+        <ActionList.Item>
+          <ActionList.LeadingVisual>
+            <GearIcon />
+          </ActionList.LeadingVisual>
+          View settings
+        </ActionList.Item>
+      </ActionList.Group>
+    </ActionList>
+  </ActionMenu.Overlay>
+</ActionMenu>
+    </>);
+}
+const SearchBarx = ({tokens, onTokenRemove, onSelectedChange}) => {
   const selectedTokenIds = tokens.map(token => token.id);
   const [selectedItemIds, setSelectedItemIds] = React.useState(selectedTokenIds);
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [visibility, setVisibility] = React.useState('hidden');
 
-  /*const onTokenRemove = tokenId => {
-    setTokens(tokens.filter(token => token.id !== tokenId))
-    setSelectedItemIds(selectedItemIds.filter(id => id !== tokenId))
-  }
-  const onSelectedChange = newlySelectedItems => {
-
-    if (!Array.isArray(newlySelectedItems)) {
-      return
+  const itemGroups = {};
+  items.forEach((x) => {
+    if (!itemGroups.hasOwnProperty(x.term)) {
+      itemGroups[x.term] = [];
     }
-    console.log(newlySelectedItems, 'xx');
-    if (newlySelectedItems.category === 'field_number') {
-      
-    }
-    const newlySelectedItems2 = [];
-    newlySelectedItems.forEach( x => {
-      console.log(x);
-      if (x.category === 'field_number') {
-        newlySelectedItems2.push({id: x.id, text: `field_number:${x.field_number}`});
-        newlySelectedItems2.push({id: x.collector_id, text: `collector:${x.collector_id}`});
-      } else {
-        newlySelectedItems2.push({id: x.id, text: x.text});
-      }
-    });
-
-    setSelectedItemIds(newlySelectedItems2.map(item => item.id))
-
-    if (newlySelectedItems2.length < selectedItemIds.length) {
-      const newlySelectedItemIds = newlySelectedItems2.map(({id}) => id)
-      const removedItemIds = selectedTokenIds.filter(id => !newlySelectedItemIds.includes(id))
-
-      for (const removedItemId of removedItemIds) {
-        onTokenRemove(removedItemId)
-      }
-
-      return
-    }
-
-    setTokens(newlySelectedItems2.map(({id, text}) => ({id, text})))
-  }
-    */
-  
-  /*
-  return (
-    <TextInputWithTokens
-      block
-      tokens={tokens}
-      onTokenRemove={onTokenRemove}
-    />
-  );
-  */
+    itemGroups[x.term].push(x);
+  });
   return (
     <Autocomplete>
       <Autocomplete.Input
@@ -718,9 +831,12 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange}) => {
               .then((resp) => { return resp.text() })
               .then((body) => { return JSON.parse(body) })
               .then((json) => {
-                //const items = json.data.map( x => ({id: x.id, text: x.display_name}));
-                setItems(json.data);
+                // add id as index
+                const items = json.data.map( (x, i) => ({id: i,             leadingVisual: TERM_ICON_MAP[x.term], ...x}));
+                setItems(items);
+                setVisibility('visible');
                 setLoading(false);
+                console.log(items);
               });
 
           } else {
@@ -728,29 +844,62 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange}) => {
           }
         }}
       />
-      <Autocomplete.Overlay width="xxlarge">
-        <Autocomplete.Menu
-          items={items}
-
-          selectedItemIds={selectedItemIds}
-          onSelectedChange={onSelectedChange}
-          selectionVariant="multiple"
-          aria-labelledby="autocompleteLabel-searchbar"
-          filterFn={ x => x }
-        />
+      <Autocomplete.Overlay
+        width="xxlarge"
+        onClickOutside={(e)=>{console.log('out', e);}}
+        visibility={visibility}
+      >
+        <ActionList showDividers>
+          {[
+            {key: 'collector', label: '採集者'},
+            {key: 'taxon', label: '物種'},
+          ].map((group) => {
+            return (
+              <ActionList.Group title={group.label} key={group.key}>
+              {items.map((item, index)=> {
+                return (
+                  <ActionList.Item key={index} onSelect={(e)=> {
+                    console.log('click', index, items[index]);
+                    setVisibility('hidden');
+                  }}>
+                    <ActionList.LeadingVisual>
+                      {TERM_ICON_MAP[item.term]}
+                    </ActionList.LeadingVisual>
+                    {item.text}
+                    <ActionList.Description variant="block">{`${item.term}:${item.object_id}`}</ActionList.Description>
+                    <ActionList.TrailingVisual>{`${item.term}:${item.object_id}`}</ActionList.TrailingVisual>
+                  </ActionList.Item>
+                );
+              })}
+              </ActionList.Group>
+            );
+          })}
+        </ActionList>
+        {/* <Autocomplete.Menu */}
+        {/*   items={items} */}
+        {/*   selectedItemIds={selectedItemIds} */}
+        {/*   onSelectedChange={onSelectedChange} */}
+        {/*   selectionVariant="multiple" */}
+        {/*   aria-labelledby="autocompleteLabel-searchbar" */}
+        {/*   filterFn={ x => x } */}
+        {/* /> */}
       </Autocomplete.Overlay>
     </Autocomplete>
   )
 };
 
-const getFilterWithId = (data) => {
+const justIds = (data) => {
   const filterIds = {};
   for (const [key, value] of Object.entries(data)) {
     if (typeof(value) === 'object'){
       if (value.length > 0) {
-        filterIds[key] = [];
         value.forEach( x => {
-          filterIds[key].push( x.id );
+          console.log(x, 'eoua');
+          let normKey = (['family', 'genus', 'species'].indexOf(key)>=0) ? 'taxon': key;
+          if (!filterIds.hasOwnProperty(normKey)) {
+            filterIds[normKey] = [];
+          }
+          filterIds[normKey].push( x.object_id || x.id );
         });
       }
     }
@@ -760,6 +909,33 @@ const getFilterWithId = (data) => {
   }
   return filterIds;
 };
+
+const toTokens = (filter) => {
+  const tokens = [];
+  let counter = 0;
+  for (const [key, value] of Object.entries(filter)) {
+    if (typeof(value) === 'object') {
+      if (value.length > 0) {
+        value.forEach( x => {
+          tokens.push( {
+            id:counter,
+            text: `${key}:${x.text}`,
+            term: x.term,
+            object_id: x.id,
+          });
+          counter++;
+        });
+      }
+    }
+    else if (value) {
+      tokens.push( {id:counter, text: `${key}:${value}`} );
+      counter++;
+    }
+  }
+  console.log('to tokens:', filter, tokens);
+  return tokens;
+};
+
 export default function HASTSearch() {
 
   const [state, dispatch] = React.useReducer(reducer, initialArg);
@@ -776,6 +952,7 @@ export default function HASTSearch() {
       family: 'taxa',
       genus: 'taxa',
       species: 'taxa',
+      taxon: 'taxa',
       country: 'named_areas',
       state_province: 'named_areas',
       municipality: 'named_areas',
@@ -799,7 +976,7 @@ export default function HASTSearch() {
       Promise.all(needFetch.map( x => getOne(x.resource, x.item_id))).then(
         (results) => {
           results.forEach( (v, i) => {
-            filter[needFetch[i].key] = [{id: v.json.id, text: v.json.display_name}];
+            filter[needFetch[i].key] = [{id: v.json.id, text: v.json.display_name, term: needFetch[i].key, object_id: v.json.id}];
           });
           fetchData({filter});
           const defaultFilter = {
@@ -827,7 +1004,7 @@ export default function HASTSearch() {
       params['range'] = [0, state.pagination.pageSize];
     }
 
-    params['filter'] = getFilterWithId(currentFilter);
+    params['filter'] = justIds(currentFilter);
 
     if (currentSort) {
       params['sort'] = {[currentSort]: ''}; // desc or asc
@@ -867,7 +1044,7 @@ export default function HASTSearch() {
   return (
     <ThemeProvider>
       <Pagehead>Search HAST specimens{/*Search 120,000 of the HAST's specimens*/}</Pagehead>
-      { state.isInit && <QueryForm state={state} dispatch={dispatch} filter={state.filter}/> }
+      { state.isInit && <QueryForm state={state} dispatch={dispatch} filter={state.filter} /> }
       {(state.isLoading) ? <Box display="flex" justifyContent="center" m={4}><Spinner /></Box> : null}
       {state.results && state.isLoading === false &&
        <Box mt={2}>
