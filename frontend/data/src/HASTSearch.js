@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import 'musubii/dist/musubii.min.css';
 
@@ -48,7 +48,7 @@ import {
   FilterIcon,
   ProjectIcon,
   NoteIcon,
-} from '@primer/octicons-react'
+} from '@primer/octicons-react';
 import {
   useForm,
   Controller,
@@ -70,17 +70,24 @@ import {
   SearchBar
 } from './SearchBar';
 
+const ctx = {
+  baseURL: process.env.BASE_URL,
+  apiURL: process.env.API_URL,
+  adminURL: process.env.ADMIN_URL,
+  termIconMap: {
+    'taxon': <ItalicIcon />,
+    'collector': <FeedPersonIcon />,
+    'field_number': <FeedTagIcon />,
+    'country': <LocationIcon />,
+    'accession_number': <ArchiveIcon />,
+  },
+};
 const BASE_URL = process.env.BASE_URL;
 const API_URL = process.env.API_URL;
 const ADMIN_URL = process.env.ADMIN_URL;
 
-const TERM_ICON_MAP = {
-  'taxon': <ItalicIcon />,
-  'collector': <FeedPersonIcon />,
-  'field_number': <FeedTagIcon />,
-  'country': <LocationIcon />,
-  'accession_number': <ArchiveIcon />,
-};
+const SearchContext = React.createContext(ctx);
+
 /**
 via: https://hackmd.io/@c36ICNyhQE6-iTXKxoIocg/BkMEznmXU#%E9%A1%AF%E7%A4%BA%E5%9C%B0%E5%9C%96
 */
@@ -249,7 +256,7 @@ const QueryForm = ({state, dispatch, filter}) => {
     <form onSubmit={handleSubmit(onSubmit)}>
       <Box display="flex">
         <Box flexGrow={12} pr={1}>
-          <SearchBarx
+          <SearchBar
             tokens={tokens}
             onTokenRemove={(tokenId) => {
               const deleteKey = tokens[tokenId].text.split(':')[0];
@@ -258,9 +265,18 @@ const QueryForm = ({state, dispatch, filter}) => {
               setValue(deleteKey, '');
               dispatch({type:'SET_FILTER', filter: newFilter });
             }}
+            onSelected={(item) => {
+              const newFilter = {...filter};
+              switch(item.category) {
+              case 'collector':
+                setValue(item.category, item);
+                newFilter['collector'] = [{id: item.id, text: item.text}];
+              }
+              dispatch({type:'SET_FILTER', filter: newFilter });
+            }}
             onSelectedChange={(values)=> {
               //need filer, setValue, dispatch so define here
-              const value = values[values.length-1]; latest
+              const value = values[values.length-1]; // T1latest
               let newFilter = {...filter};
               console.log('search bar select: ' ,tokens, value);
               if (value !== undefined) {
@@ -801,92 +817,6 @@ const SearchBary = () => {
 </ActionMenu>
     </>);
 }
-const SearchBarx = ({tokens, onTokenRemove, onSelectedChange}) => {
-  const selectedTokenIds = tokens.map(token => token.id);
-  const [selectedItemIds, setSelectedItemIds] = React.useState(selectedTokenIds);
-  const [items, setItems] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [visibility, setVisibility] = React.useState('hidden');
-
-  const itemGroups = {};
-  items.forEach((x) => {
-    if (!itemGroups.hasOwnProperty(x.term)) {
-      itemGroups[x.term] = [];
-    }
-    itemGroups[x.term].push(x);
-  });
-  return (
-    <Autocomplete>
-      <Autocomplete.Input
-        block
-        loading={loading}
-        as={TextInputWithTokens}
-        tokens={tokens}
-        onTokenRemove={onTokenRemove}
-        onChange={(e)=>{
-          // console.log(e.target.value, 'input');
-          if (e.target.value) {
-            setLoading(true);
-            fetch(`${API_URL}/search?q=${e.target.value}`)
-              .then((resp) => { return resp.text() })
-              .then((body) => { return JSON.parse(body) })
-              .then((json) => {
-                // add id as index
-                const items = json.data.map( (x, i) => ({id: i,             leadingVisual: TERM_ICON_MAP[x.term], ...x}));
-                setItems(items);
-                setVisibility('visible');
-                setLoading(false);
-                console.log(items);
-              });
-
-          } else {
-            setItems([]);
-          }
-        }}
-      />
-      <Autocomplete.Overlay
-        width="xxlarge"
-        onClickOutside={(e)=>{console.log('out', e);}}
-        visibility={visibility}
-      >
-        <ActionList showDividers>
-          {[
-            {key: 'collector', label: '採集者'},
-            {key: 'taxon', label: '物種'},
-          ].map((group) => {
-            return (
-              <ActionList.Group title={group.label} key={group.key}>
-              {items.map((item, index)=> {
-                return (
-                  <ActionList.Item key={index} onSelect={(e)=> {
-                    console.log('click', index, items[index]);
-                    setVisibility('hidden');
-                  }}>
-                    <ActionList.LeadingVisual>
-                      {TERM_ICON_MAP[item.term]}
-                    </ActionList.LeadingVisual>
-                    {item.text}
-                    <ActionList.Description variant="block">{`${item.term}:${item.object_id}`}</ActionList.Description>
-                    <ActionList.TrailingVisual>{`${item.term}:${item.object_id}`}</ActionList.TrailingVisual>
-                  </ActionList.Item>
-                );
-              })}
-              </ActionList.Group>
-            );
-          })}
-        </ActionList>
-        {/* <Autocomplete.Menu */}
-        {/*   items={items} */}
-        {/*   selectedItemIds={selectedItemIds} */}
-        {/*   onSelectedChange={onSelectedChange} */}
-        {/*   selectionVariant="multiple" */}
-        {/*   aria-labelledby="autocompleteLabel-searchbar" */}
-        {/*   filterFn={ x => x } */}
-        {/* /> */}
-      </Autocomplete.Overlay>
-    </Autocomplete>
-  )
-};
 
 const justIds = (data) => {
   const filterIds = {};
@@ -936,7 +866,7 @@ const toTokens = (filter) => {
   return tokens;
 };
 
-export default function HASTSearch() {
+const HASTSearch = () => {
 
   const [state, dispatch] = React.useReducer(reducer, initialArg);
 
@@ -1042,35 +972,37 @@ export default function HASTSearch() {
   console.log('hastsearch', state);
 
   return (
-    <ThemeProvider>
-      <Pagehead>Search HAST specimens{/*Search 120,000 of the HAST's specimens*/}</Pagehead>
-      { state.isInit && <QueryForm state={state} dispatch={dispatch} filter={state.filter} /> }
-      {(state.isLoading) ? <Box display="flex" justifyContent="center" m={4}><Spinner /></Box> : null}
-      {state.results && state.isLoading === false &&
-       <Box mt={2}>
+    <SearchContext.Provider value={ctx}>
+      <ThemeProvider>
+        <Pagehead>Search HAST specimens{/*Search 120,000 of the HAST's specimens*/}</Pagehead>
+        { state.isInit && <QueryForm state={state} dispatch={dispatch} filter={state.filter} /> }
+        {(state.isLoading) ? <Box display="flex" justifyContent="center" m={4}><Spinner /></Box> : null}
+        {state.results && state.isLoading === false &&
+         <Box mt={2}>
          {/* <UnderlineNav aria-label="Main"> */}
          {/*   <UnderlineNav.Link href="#" selected={state.view === 'table'}>表格</UnderlineNav.Link> */}
          {/*   <UnderlineNav.Link href="#" selected={state.view === 'gallery'}>圖片</UnderlineNav.Link> */}
          {/*   <UnderlineNav.Link href="#" selected={state.view === 'map'}>地圖</UnderlineNav.Link> */}
          {/* </UnderlineNav> */}
-         <SegmentedControl aria-label="Results view" onChange={ (selectedIndex) => {
-           const view = ['table', 'gallery', 'map'][selectedIndex];
-           if (view === 'map') {
-             fetchData({view:'map'});
-           } else {
-             dispatch({type: 'SET_VIEW', view: view});
-           }
-         }}>
-           <SegmentedControl.Button selected={state.view === 'table'}>表格</SegmentedControl.Button>
-           <SegmentedControl.Button selected={state.view === 'gallery'}>標本照</SegmentedControl.Button>
-           <SegmentedControl.Button selected={state.view === 'map'}>地圖</SegmentedControl.Button>
-         </SegmentedControl>
-         <Box my={4}>
-           <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} view={state.view} mapResults={state.map_results} />
-         </Box>
-         <Pagination pageCount={state.pagination.pageCount} currentPage={state.pagination.currentPage} onPageChange={onPageChange} />
-       </Box>}
-    </ThemeProvider>
+           <SegmentedControl aria-label="Results view" onChange={ (selectedIndex) => {
+             const view = ['table', 'gallery', 'map'][selectedIndex];
+             if (view === 'map') {
+               fetchData({view:'map'});
+             } else {
+               dispatch({type: 'SET_VIEW', view: view});
+             }
+           }}>
+             <SegmentedControl.Button selected={state.view === 'table'}>表格</SegmentedControl.Button>
+             <SegmentedControl.Button selected={state.view === 'gallery'}>標本照</SegmentedControl.Button>
+             <SegmentedControl.Button selected={state.view === 'map'}>地圖</SegmentedControl.Button>
+           </SegmentedControl>
+           <Box my={4}>
+             <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} view={state.view} mapResults={state.map_results} />
+           </Box>
+           <Pagination pageCount={state.pagination.pageCount} currentPage={state.pagination.currentPage} onPageChange={onPageChange} />
+         </Box>}
+      </ThemeProvider>
+    </SearchContext.Provider>
   );
 }
 
@@ -1256,5 +1188,7 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
        </>
        : null}
     </>
-  )
+  );
 };
+
+export { HASTSearch, SearchContext };
