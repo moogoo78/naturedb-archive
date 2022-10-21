@@ -1,3 +1,4 @@
+
 import json
 import time
 
@@ -279,37 +280,55 @@ def collection_item(collection_id):
 
 
 
-@api.route('/search', methods=['GET'])
-def get_search():
+@api.route('/searchbar', methods=['GET'])
+def get_searchbar():
     '''for searchbar
     '''
     q = request.args.get('q')
     data = []
     if q.isdigit():
+        # Field Number (with Collector)
         rows = Collection.query.filter(Collection.field_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            collector = ''
-            if r.collector and r.collector.display_name():
-                collector = r.collector.display_name()
+            item = {
+                'id': r.id,
+                'field_number': r.field_number or '',
+                'collector': r.collector.to_dict() if r.collector else {},
+            }
+            item['term'] = 'field_number'
+            data.append(item)
 
-            data.append({'object_id': r.id, 'text': f'field_number:{collector} {r.field_number}', 'term': 'field_number', 'collector_id': r.collector_id, 'field_number': r.field_number, 'collector': collector})
-
+        # Accession Number
         rows = Unit.query.filter(Unit.accession_number.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            data.append({'object_id': r.id, 'text': f'accession_number:{r.accession_number}', 'term': 'accession_number'})
+            #unit = r.to_dict()
+            unit = {
+                'id': r.id,
+                'accession_number': r.accession_number
+            }
+            unit['term'] = 'accession_number'
+            data.append(unit)
     else:
+        # Collector
         rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{q}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
-            data.append({'object_id': r.id, 'text': f'collector:{r.display_name()}', 'term': 'collector'})
+            collector = r.to_dict()
+            collector['term'] = 'collector'
+            data.append(collector)
 
+        # Taxon
         rows = Taxon.query.filter(Taxon.full_scientific_name.ilike(f'{q}%')).limit(10).all()
         for r in rows:
-            data.append({'object_id': r.id, 'text': f'{r.display_name()}', 'term': 'taxon'})
+            taxon = r.to_dict()
+            taxon['term'] = 'taxon'
+            data.append(taxon)
 
+        # Location
         rows = NamedArea.query.filter(NamedArea.name.ilike(f'{q}%') | NamedArea.name_en.ilike(f'%{q}%')).limit(10).all()
         for r in rows:
-            tag = r.area_class.name
-            data.append({'object_id': r.id, 'text': f'{tag}:{r.display_name()}', 'term': tag})
+            loc = r.to_dict()
+            loc['term'] = 'named_area'
+            data.append(loc)
 
     resp = jsonify({
         'data': data,
@@ -408,12 +427,15 @@ def get_explore():
 
     if value := filtr.get('locality_text'):
         stmt = stmt.where(Collection.locality_text.ilike(f'%{value}%'))
-    if value := filtr.get('municipality'):
+    if value := filtr.get(''):
+        stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+    if value := filtr.get('named_area'):
         stmt = stmt.where(Collection.named_areas.any(id=value[0]))
     if value := filtr.get('country'):
         stmt = stmt.where(Collection.named_areas.any(id=value[0]))
-    if value := filtr.get('state_province'):
+    if value := filtr.get('stateProvince'):
         stmt = stmt.where(Collection.named_areas.any(id=value[0]))
+        print(stmt, flush=True)
     if value := filtr.get('county'):
         stmt = stmt.where(Collection.named_areas.any(id=value[0]))
     if value := filtr.get('locality'):
@@ -491,6 +513,10 @@ def get_explore():
     elapsed_mapping = None
     for r in result.all():
         if c := r[2]:
+            t = None
+            if taxon_id := c.proxy_taxon_id:
+                t = session.get(Taxon, taxon_id)
+
             if view == 'map':
                 if c.longitude_decimal and c.latitude_decimal:
                     data.append({
@@ -520,7 +546,8 @@ def get_explore():
                     'field_number': c.field_number,
                     'collector': c.collector.to_dict() if c.collector else '',
                     'collect_date': c.collect_date.strftime('%Y-%m-%d') if c.collect_date else '',
-                    'taxon': c.proxy_taxon_text,
+                    'taxon_text': c.proxy_taxon_text,
+                    'taxon': t.to_dict() if t else {},
                     'named_areas': [x.to_dict() for x in c.named_areas],
                     'locality_text': c.locality_text,
                     'altitude': c.altitude,

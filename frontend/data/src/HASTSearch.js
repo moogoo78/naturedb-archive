@@ -1,7 +1,5 @@
 import React from 'react';
 
-import 'musubii/dist/musubii.min.css';
-
 import {
   Autocomplete,
   Box,
@@ -34,7 +32,6 @@ import {
   AnchoredOverlay,
 } from '@primer/react';
 import {Dialog} from '@primer/react/drafts';
-
 import {
   SearchIcon,
   ChevronDownIcon,
@@ -42,12 +39,14 @@ import {
   FeedTagIcon,
   LocationIcon,
   FeedPersonIcon,
-  ItalicIcon,
+  MortarBoardIcon,
+  VerifiedIcon,
   ArchiveIcon,
   GearIcon,
   FilterIcon,
   ProjectIcon,
   NoteIcon,
+  IdBadgeIcon,
 } from '@primer/octicons-react';
 import {
   useForm,
@@ -56,10 +55,12 @@ import {
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import 'musubii/dist/musubii.min.css';
 
 import {
   FreeAutocomplete,
   FetchControllerMulti,
+  SciName,
 } from './Helpers';
 import {
   getList,
@@ -75,16 +76,13 @@ const ctx = {
   apiURL: process.env.API_URL,
   adminURL: process.env.ADMIN_URL,
   termIconMap: {
-    'taxon': <ItalicIcon />,
+    'taxon': <FeedStarIcon/>,
     'collector': <FeedPersonIcon />,
     'field_number': <FeedTagIcon />,
-    'country': <LocationIcon />,
+    'named_area': <LocationIcon />,
     'accession_number': <ArchiveIcon />,
   },
 };
-const BASE_URL = process.env.BASE_URL;
-const API_URL = process.env.API_URL;
-const ADMIN_URL = process.env.ADMIN_URL;
 
 const SearchContext = React.createContext(ctx);
 
@@ -175,7 +173,7 @@ const initialArg = {
   isLoading: false,
   isInit: false,
   filter: {
-    collector: {},
+    collector: '',
     scientific_name: '',
     field_number: '',
     field_number2: '',
@@ -238,7 +236,6 @@ const QueryForm = ({state, dispatch, filter}) => {
   const onSubmit = data => {
     console.log('submit', data)
 
-    //fetchData({filterWithId});
     const filterIds = justIds(data);
     const params = new URLSearchParams(filterIds);
     const qsList = [];
@@ -247,7 +244,8 @@ const QueryForm = ({state, dispatch, filter}) => {
     });
 
     const queryString = (qsList.length > 0) ? '?q=' + qsList.join(',') : '/';
-    //console.log(queryString, filterIds, filter);
+
+    //console.log(queryString, filterIds);
     window.location.replace(queryString);
   }
   const tokens = toTokens(filter);
@@ -267,37 +265,20 @@ const QueryForm = ({state, dispatch, filter}) => {
             }}
             onSelected={(item) => {
               const newFilter = {...filter};
-              switch(item.category) {
-              case 'collector':
-                setValue(item.category, item);
-                newFilter['collector'] = [{id: item.id, text: item.text}];
+              if (['collector', 'taxon', 'named_area'].indexOf(item.term) >= 0) {
+                const normKey = (item.term === 'collector') ? 'collector' : item.filterKey;
+                setValue(normKey, [item]);
+                newFilter[normKey] = [item];
+              } else if (item.term === 'field_number') {
+                newFilter['field_number'] = item.field_number;
+                newFilter['collector'] = [{text: item.collector.display_name, ...item.collector}];
+                setValue('field_number', item.field_number);
+                setValue('collector', [item.collector]);
+              } else {
+                setValue(item.term, item.text);
+                newFilter[item.term] = item.text;
               }
               dispatch({type:'SET_FILTER', filter: newFilter });
-            }}
-            onSelectedChange={(values)=> {
-              //need filer, setValue, dispatch so define here
-              const value = values[values.length-1]; // T1latest
-              let newFilter = {...filter};
-              console.log('search bar select: ' ,tokens, value);
-              if (value !== undefined) {
-                const item_id = value.item_id;
-                switch (value.term) {
-                case 'field_number':
-                  newFilter['field_number'] = value.field_number;
-                  newFilter['collector'] = [{object_id: value.collector_id, text: value.collector}];
-                  setValue('field_number', value.field_number);
-                  setValue('collector', [{id: value.id, text: value.collector}]);
-                case 'accession_number':
-                  const [k1, v1] = value.text.split(':');
-                  setValue(value.category, v1);
-                  newFilter[value.category] = v1;
-                default:
-                  console.log('vvv', value);
-                  setValue(value.term, [value]);
-                  newFilter[value.term] = [value];
-                }
-                dispatch({type:'SET_FILTER', filter: newFilter });
-              }
             }}
           />
           {/* <SearchBar /> */}
@@ -317,11 +298,11 @@ const QueryForm = ({state, dispatch, filter}) => {
 };
 
 const AdvanceSearch = ({form, onSubmit}) => {
-  //console.log('adv', state, form);
+  const { control, setValue, getValues } = form;
   const [isOpen, setIsOpen] = React.useState(false);
   const [tabnav, setTabnav] = React.useState('taxon');
 
-  const { control, setValue, getValues } = form;
+  // console.log('adv:', getValues());
 
   const openDialog = React.useCallback((e) => {
     e.preventDefault();
@@ -664,159 +645,6 @@ const AdvanceSearch = ({form, onSubmit}) => {
     </>
   )
 }
-const SearchBarz = () => {
-
-
-//  const [state, dispatch] = useReducer(reducer, initialState)
-    const [tokens, setTokens] = React.useState([
-    {text: 'zero', id: 0},
-    {text: 'one', id: 1},
-    {text: 'two', id: 2},
-    {text: 'three', id: 3},
-    {text: 'four', id: 4},
-    {text: 'five', id: 5},
-    {text: 'six', id: 6},
-    {text: 'seven', id: 7}
-    ]);
-
-  const SearchInput = React.forwardRef((props, ref) => (
-    <TextInputWithTokens
-      preventTokenWrapping
-      block
-      tokens={[{text: 'zero', id: 0}, {text: 'six', id: 6}]}
-    /*onTokenRemove={onTokenRemove}*/
-      onChange={(e) => {
-        console.log('eee', e.target.value);
-        if (e.target.value) {
-          /*setV(e.target.value);*/
-        }
-      }}
-    />
-  ));
-
-  const SearchOverlay = () => {
-    return (
-      <Overlay />
-    )
-  };
-  return (
-    <>
-      {/* <SearchInput ref={anchorRef} /> */}
-      {/* <SearchOverlay /> */}
-    </>
-  )
-};
-
-const SearchBary = () => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const openOverlay = React.useCallback(() => setIsOpen(true), [setIsOpen])
-    const closeOverlay = React.useCallback(() => setIsOpen(false), [setIsOpen])
-  const noButtonRef = React.useRef(null)
-  const anchorRef = React.useRef(null)
-  const [tokens, setTokens] = React.useState([
-    {text: 'zero', id: 0},
-    {text: 'one', id: 1},
-    {text: 'two', id: 2},
-    {text: 'three', id: 3},
-    {text: 'four', id: 4},
-    {text: 'five', id: 5},
-    {text: 'six', id: 6},
-    {text: 'seven', id: 7}
-    ])
-  return(
-    <>
-      <TextInputWithTokens
-        preventTokenWrapping
-        block
-        tokens={[{text: 'zero', id: 0}, {text: 'six', id: 6}]}
-    /*onTokenRemove={onTokenRemove}*/
-        onChange={(e) => {
-          console.log('eee', e.target.value);
-          if (e.target.value) {
-            setOpen(true);
-            console.log(anchorRef.current, 'uc');
-          }
-        }}
-        ref={anchorRef}
-        autoFocus
-      />
-      <ActionMenu
-        onOpenChange={(x)=> {
-        console.log(x, 'xx');
-        }}
-        open={open}
-        anchorRef={anchorRef}
-      >
-        {/* <ActionMenu.Anchor> */}
-        {/* </ActionMenu.Anchor> */}
-        <ActionMenu.Overlay
-          width="xxlarge"
-          onEscape={(e) => {
-            console.log(e, 'esc');
-            setOpen(false);
-          }}
-          onClickOutside={(e)=> {
-            console.log(e, 'out');
-            setOpen(false);
-          }}
-        >
-    <ActionList showDividers>
-      <ActionList.Group title="Live query">
-        <ActionList.Item>
-          <ActionList.LeadingVisual>
-            <SearchIcon />
-          </ActionList.LeadingVisual>
-          repo:github/memex,github/github
-        </ActionList.Item>
-      </ActionList.Group>
-      <ActionList.Divider />
-      <ActionList.Group title="Layout" variant="subtle">
-        <ActionList.Item>
-          <ActionList.LeadingVisual>
-            <NoteIcon />
-          </ActionList.LeadingVisual>
-          Table
-          <ActionList.Description variant="block">
-            Information-dense table optimized for operations across teams
-          </ActionList.Description>
-        </ActionList.Item>
-        <ActionList.Item role="listitem">
-          <ActionList.LeadingVisual>
-            <ProjectIcon />
-          </ActionList.LeadingVisual>
-          Board
-          <ActionList.Description variant="block">Kanban-style board focused on visual states</ActionList.Description>
-        </ActionList.Item>
-      </ActionList.Group>
-      <ActionList.Divider />
-      <ActionList.Group>
-        <ActionList.Item>
-          <ActionList.LeadingVisual>
-            <FilterIcon />
-          </ActionList.LeadingVisual>
-          Save sort and filters to current view
-        </ActionList.Item>
-        <ActionList.Item>
-          <ActionList.LeadingVisual>
-            <FilterIcon />
-          </ActionList.LeadingVisual>
-          Save sort and filters to new view
-        </ActionList.Item>
-      </ActionList.Group>
-      <ActionList.Divider />
-      <ActionList.Group>
-        <ActionList.Item>
-          <ActionList.LeadingVisual>
-            <GearIcon />
-          </ActionList.LeadingVisual>
-          View settings
-        </ActionList.Item>
-      </ActionList.Group>
-    </ActionList>
-  </ActionMenu.Overlay>
-</ActionMenu>
-    </>);
-}
 
 const justIds = (data) => {
   const filterIds = {};
@@ -824,12 +652,17 @@ const justIds = (data) => {
     if (typeof(value) === 'object'){
       if (value.length > 0) {
         value.forEach( x => {
-          console.log(x, 'eoua');
-          let normKey = (['family', 'genus', 'species'].indexOf(key)>=0) ? 'taxon': key;
+          let normKey = key;
+          if (['family', 'genus', 'species'].indexOf(key) >=0) {
+            normKey = 'taxon';
+          } else if (['country', 'stateProvince', 'county', 'municipality', 'national_park', 'locality'].indexOf(key) >=0) {
+            normKey = 'named_area';
+          }
+
           if (!filterIds.hasOwnProperty(normKey)) {
             filterIds[normKey] = [];
           }
-          filterIds[normKey].push( x.object_id || x.id );
+          filterIds[normKey].push( x.id );
         });
       }
     }
@@ -851,7 +684,6 @@ const toTokens = (filter) => {
             id:counter,
             text: `${key}:${x.text}`,
             term: x.term,
-            object_id: x.id,
           });
           counter++;
         });
@@ -862,7 +694,7 @@ const toTokens = (filter) => {
       counter++;
     }
   }
-  console.log('to tokens:', filter, tokens);
+  // console.log('to tokens:', filter, tokens);
   return tokens;
 };
 
@@ -885,9 +717,12 @@ const HASTSearch = () => {
       taxon: 'taxa',
       country: 'named_areas',
       state_province: 'named_areas',
+      stateProvince: 'named_areas',
+      county: 'named_areas',
       municipality: 'named_areas',
       national_park: 'named_areas',
-      locality: 'named_areas'
+      locality: 'named_areas',
+      named_area: 'named_areas',
     };
     const needFetch = [];
     if (q) {
@@ -897,6 +732,7 @@ const HASTSearch = () => {
           needFetch.push({
             key: key,
             resource: fetchMap[key],
+            queryStringKey: key,
             item_id: value});
         } else {
           filter[key] = value;
@@ -906,7 +742,11 @@ const HASTSearch = () => {
       Promise.all(needFetch.map( x => getOne(x.resource, x.item_id))).then(
         (results) => {
           results.forEach( (v, i) => {
-            filter[needFetch[i].key] = [{id: v.json.id, text: v.json.display_name, term: needFetch[i].key, object_id: v.json.id}];
+            if (needFetch[i].queryStringKey === 'taxon') {
+              filter[v.json.rank] = [{id: v.json.id, text: v.json.display_name, term: needFetch[i].key}];
+            } else {
+              filter[needFetch[i].key] = [{id: v.json.id, text: v.json.display_name, term: needFetch[i].key}];
+            }
           });
           fetchData({filter});
           const defaultFilter = {
@@ -974,29 +814,30 @@ const HASTSearch = () => {
   return (
     <SearchContext.Provider value={ctx}>
       <ThemeProvider>
-        <Pagehead>Search HAST specimens{/*Search 120,000 of the HAST's specimens*/}</Pagehead>
+        {/* <Pagehead>Search HAST specimens Search 120,000 of the HAST's specimens</Pagehead> */}
         { state.isInit && <QueryForm state={state} dispatch={dispatch} filter={state.filter} /> }
         {(state.isLoading) ? <Box display="flex" justifyContent="center" m={4}><Spinner /></Box> : null}
         {state.results && state.isLoading === false &&
-         <Box mt={2}>
-         {/* <UnderlineNav aria-label="Main"> */}
-         {/*   <UnderlineNav.Link href="#" selected={state.view === 'table'}>表格</UnderlineNav.Link> */}
-         {/*   <UnderlineNav.Link href="#" selected={state.view === 'gallery'}>圖片</UnderlineNav.Link> */}
-         {/*   <UnderlineNav.Link href="#" selected={state.view === 'map'}>地圖</UnderlineNav.Link> */}
-         {/* </UnderlineNav> */}
-           <SegmentedControl aria-label="Results view" onChange={ (selectedIndex) => {
-             const view = ['table', 'gallery', 'map'][selectedIndex];
-             if (view === 'map') {
-               fetchData({view:'map'});
-             } else {
-               dispatch({type: 'SET_VIEW', view: view});
-             }
-           }}>
-             <SegmentedControl.Button selected={state.view === 'table'}>表格</SegmentedControl.Button>
-             <SegmentedControl.Button selected={state.view === 'gallery'}>標本照</SegmentedControl.Button>
-             <SegmentedControl.Button selected={state.view === 'map'}>地圖</SegmentedControl.Button>
-           </SegmentedControl>
-           <Box my={4}>
+         <Box>
+         <UnderlineNav aria-label="Main">
+           <UnderlineNav.Link href="#" selected={state.view === 'table'} onClick={(e) => {dispatch({type: 'SET_VIEW', view: 'table'});}}>表格</UnderlineNav.Link>
+           <UnderlineNav.Link href="#" selected={state.view === 'list'} onClick={(e) => {dispatch({type: 'SET_VIEW', view: 'list'});}}>條列</UnderlineNav.Link>
+           <UnderlineNav.Link href="#" selected={state.view === 'gallery'} onClick={(e) => {dispatch({type: 'SET_VIEW', view: 'gallery'});}}>圖片</UnderlineNav.Link>
+           <UnderlineNav.Link href="#" selected={state.view === 'map'} onClick={(e) => {fetchData({view:'map'});}}>地圖</UnderlineNav.Link>
+         </UnderlineNav>
+           {/* <SegmentedControl aria-label="Results view" onChange={ (selectedIndex) => { */}
+           {/*   const view = ['table', 'gallery', 'map'][selectedIndex]; */}
+           {/*   if (view === 'map') { */}
+           {/*     fetchData({view:'map'}); */}
+           {/*   } else { */}
+           {/*     dispatch({type: 'SET_VIEW', view: view}); */}
+           {/*   } */}
+           {/* }}> */}
+           {/*   <SegmentedControl.Button selected={state.view === 'table'}>表格</SegmentedControl.Button> */}
+           {/*   <SegmentedControl.Button selected={state.view === 'gallery'}>標本照</SegmentedControl.Button> */}
+           {/*   <SegmentedControl.Button selected={state.view === 'map'}>地圖</SegmentedControl.Button> */}
+           {/* </SegmentedControl> */}
+           <Box mt={2}>
              <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} view={state.view} mapResults={state.map_results} />
            </Box>
            <Pagination pageCount={state.pagination.pageCount} currentPage={state.pagination.currentPage} onPageChange={onPageChange} />
@@ -1051,6 +892,8 @@ const UnitCells = ({units}) => {
 
 const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, foo}) => {
   const [checked, setChecked] = React.useState(Array(20).fill(false));
+  const context = React.useContext(SearchContext);
+
   const sortMap = {
     created: '新增日期',
     taxon: '學名',
@@ -1061,8 +904,8 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
     <>
       {(view !== 'map') ?
        <>
-       <Box my={2}>
-         <Text>{results.total.toLocaleString()} 筆 - 查詢時間: {results.elapsed.toFixed(2)} seconds (total: {results.elapsed_count.toFixed(2)}, mapping: {results.elapsed_mapping.toFixed(2)})</Text>
+         <Box mb={3}>
+         <Text sx={{fontSize: '16px', fontWeight: 'bold'}}>查詢結果: {results.total.toLocaleString()} 筆</Text><Text sx={{fontSize: '12px'}}> (搜尋時間: {results.elapsed.toFixed(2)} seconds, total: {results.elapsed_count.toFixed(2)}, mapping: {results.elapsed_mapping.toFixed(2)})</Text>
        </Box>
        {/*
           <Box my={2}>
@@ -1083,7 +926,7 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
               }
             });
             const ids = unitIds.join(',');
-            window.open(`${BASE_URL}/print-label?ids=${ids}`, '_blank');
+            window.open(`${context.baseURL}/print-label?ids=${ids}`, '_blank');
           }}>列印標籤</Button>
         </Box>
         <Box>
@@ -1116,8 +959,8 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
            {results.data.map((v, i) => {
              let scientificName = '';
              let commonName = '';
-             if (v.taxon) {
-               const nameList = v.taxon.split('|');
+             if (v.taxon_text) {
+               const nameList = v.taxon_text.split('|');
                if (nameList.length > 1) {
                  scientificName = nameList[0];
                  commonName = nameList[1];
@@ -1134,31 +977,67 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
                      setChecked(newState);
                    }}/>
                  </td>
-                 <td>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}<div><a href={`${ADMIN_URL}/collections/${v.collection_id}`} target="_blank" className="text is-link is-xs">edit</a></div></td>
+                 <td>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}<div><a href={`${ctx.adminURL}/collections/${v.collection_id}`} target="_blank" className="text is-link is-xs">edit</a></div></td>
                  {/*<UnitCells units={v.units}/>*/}
-                 <td><a href={`${BASE_URL}/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} style={{height: '75px'}} /></a></td>
-                 <td><a href={`${BASE_URL}/specimens/HAST:${v.accession_number}`} className="text is-link"> {v.accession_number || ''}</a></td>
-                 <td>{scientificName}<br/>{commonName}</td>
-                 <td>{ v.collector?.display_name } {v.field_number}<div>{scientificName}</div></td>
+               <td><a href={`${ctx.baseURL}/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} /></a></td>
+                 <td><a href={`${context.baseURL}/specimens/HAST:${v.accession_number}`} className="text is-link"> {v.accession_number || ''}</a></td>
+                 <td><SciName /*taxon={v.taxon}*/ name={scientificName} /><br/>{commonName}</td>
+                 <td>{ v.collector?.display_name } {v.field_number}</td>
                  <td><span className="text is-dark9 font-size-xs">{ v.collect_date }</span></td>
                  <td>
-                   <div>{ namedAreas.join('/') }</div>
-                   <div>{v.locality_text}</div>
-                   <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div>
-                   <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div>
+                   <Text sx={{ fontSize: '14px'}}>
+                     <div>{ namedAreas.join('/') }</div>
+                     <div>{v.locality_text}</div>
+                     <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div>
+                     <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div>
+                   </Text>
                  </td>
                </tr>);
            })}
          </tbody>
        </table>
        : null}
+      {(view === 'list') ?
+       <Box display="grid" gridTemplateColumns="1fr" gridGap={0}>
+         {results.data.map((v, i) => {
+           let scientificName = '';
+           let commonName = '';
+           if (v.taxon_text) {
+             const nameList = v.taxon_text.split('|');
+             if (nameList.length > 1) {
+               scientificName = nameList[0];
+               commonName = nameList[1];
+             }
+           }
+           const namedAreas = v.named_areas.map(x => x.name);
+           return (
+             <Box p={3} borderColor="border.default" borderWidth={0} borderBottomWidth={1} borderStyle="solid" key={i}>
+               <Box display="flex">
+                 <Box mr={3}>
+                   <a href={`${ctx.baseURL}/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} /></a>
+                 </Box>
+                 <Box>
+                   <SciName name={scientificName} fontSize="18px" fontWeight="bold" />
+                   <Text ml={2}>{commonName}</Text>
+                   <div>HAST:{v.accession_number}</div>
+                   <div>{ v.collector?.display_name } {v.field_number}, {v.collect_date}</div>
+                   <div>{ namedAreas.join(' ') }</div>
+                     <div>{v.locality_text}</div>
+                     <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div>
+                   <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div>
+                 </Box>
+               </Box>
+             </Box>);
+         })}
+       </Box>
+       : null}
       {(view === 'gallery') ?
        <>
          <div className="grid is-gap-md">
            {results.data.map((v, i) => {
              let scientificName = '';
-             if (v.taxon) {
-               const nameList = v.taxon.split('|');
+             if (v.taxon_text) {
+               const nameList = v.taxon_text.split('|');
                if (nameList.length > 1) {
                  scientificName = nameList[0];
                }
@@ -1167,7 +1046,7 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
              return (
                <div className="column is-3" key={i}>
                  <div>
-                   <a href={`${BASE_URL}/specimens/HAST:${v.accession_number}`} className="text is-link">
+                   <a href={`${ctx.baseURL}/specimens/HAST:${v.accession_number}`} className="text is-link">
                <img src={v.image_url.replace('_s', '_m')} style={{height: '350px'}} />
                    </a>
                    <div className="is-sm">{scientificName}</div>

@@ -117,6 +117,7 @@ class Taxon(Base):
             'full_scientific_name': self.full_scientific_name,
             'rank': self.rank,
             'common_name': self.common_name,
+            'canonical_name': self.canonical_name,
             'display_name': self.display_name(),
             #'p': self.parent_id,
         }

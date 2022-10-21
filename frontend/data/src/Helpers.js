@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   Portal,
+  Text,
   TextInput,
   TextInputWithTokens,
   registerPortalRoot,
@@ -22,7 +23,7 @@ import {
 
 //const FetchControllerMulti = React.forwardRef((props, ref) => {
 const FetchControllerMulti = (props) => {
-  // console.log(props);
+  // console.log(props.name, props.value, 'multi');
   const scrollContainerRef = React.useRef(null);
   const [tokens, setTokens] = React.useState(props.value || []);
   const selectedTokenIds = tokens.map(token => token.id);
@@ -234,4 +235,32 @@ const AutocompleteWithContextInternal = ((props) => {
   );
 });
 
-export { FreeAutocomplete, FetchControllerMulti }
+const SciName = ({taxon, name, fontSize='16px', fontWeight}) => {
+  if (name) {
+    const styles = {
+      fontSize,
+      fontWeight
+    };
+
+    const parts = name.split(' ');
+    //const author = [...parts].splice(2).join(' ');
+    const author = parts.slice(2).join(' ');
+    // stupid way
+    if(name.indexOf(' var. ') > 0) {
+      const infraIndex = parts.indexOf('var.');
+      const a1 = parts.slice(2, 3);
+      const infraEpithet = parts.slice(4, 5);
+      const a2 = parts.slice(5).join(' ');
+
+      return (<><Text sx={{ fontStyle: 'italic', ...styles}}>{`${parts[0]} ${parts[1]}`}</Text><Text sx={{...styles}}>{` ${a1} `}</Text><Text sx={{ ...styles }}>{" var. "}</Text><Text sx={{ fontStyle: 'italic', ...styles}}>{`${infraEpithet} `}</Text><Text sx={{...styles}}>{a2}</Text></>);
+    } else if (parts.length >= 2 && author) {
+      return (<><Text sx={{ fontStyle: 'italic', ...styles }}>{`${parts[0]} ${parts[1]}`}</Text> <Text sx={{ ...styles }}>{author}</Text></>);
+    } else if(parts.length === 1) {
+      return (<Text sx={{ fontStyle: 'italic', ...styles}}>{`${parts[0]}`}</Text>);
+    }
+  } else if (taxon) {
+    // TODO
+  }
+};
+
+export { FreeAutocomplete, FetchControllerMulti, SciName }

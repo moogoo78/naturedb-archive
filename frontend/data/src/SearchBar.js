@@ -7,26 +7,21 @@ import {
 } from '@primer/react';
 
 import {
-  SearchIcon,
-  ChevronDownIcon,
-  FeedStarIcon,
-  FeedTagIcon,
-  LocationIcon,
-  FeedPersonIcon,
-  ItalicIcon,
-  ArchiveIcon,
-  GearIcon,
-  FilterIcon,
-  ProjectIcon,
-  NoteIcon,
-} from '@primer/octicons-react';
-
-import {
   SearchContext,
 } from 'HASTSearch';
 
-const SearchBar = ({tokens, onTokenRemove, onSelectedChange, onSelected}) => {
-  const context = useContext(SearchContext);
+
+const termOrder = [
+  'field_number',
+  'collector',
+  'taxon',
+  'named_area',
+  'accession_number'
+];
+
+const SearchBar = ({tokens, onTokenRemove, onSelected}) => {
+  const context = React.useContext(SearchContext);
+
   const selectedTokenIds = tokens.map(token => token.id);
   const [selectedItemIds, setSelectedItemIds] = React.useState(selectedTokenIds);
   const [items, setItems] = React.useState([]);
@@ -35,13 +30,41 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange, onSelected}) => {
   const [showMenu, setShowMenu] = React.useState(false);
   const [inputValue, setInputValue] = React.useState('');
 
-  const itemGroups = {};
-  items.forEach((x) => {
-    if (!itemGroups.hasOwnProperty(x.term)) {
-      itemGroups[x.term] = [];
+  // Set items by term for suggestions
+  const availableTermItems = [];
+
+  const itemGroups = {
+    collector: {
+      label: '採集者',
+      items: [],
+    },
+    taxon: {
+      label: '物種',
+      items: [],
+    },
+    named_area: {
+      label: '地點',
+      items: [],
+    },
+    field_number: {
+      label: '採集號',
+      items: [],
+    },
+    accession_number: {
+      label: '館號',
+      items: [],
     }
-    itemGroups[x.term].push(x);
+  };
+
+  items.forEach((x) => {
+    itemGroups[x.term].items.push(x);
   });
+  termOrder.forEach((term) => {
+    if (itemGroups[term].items.length > 0) {
+      availableTermItems.push(itemGroups[term]);
+    }
+  });
+
   return (
     <Autocomplete>
       <Autocomplete.Input
@@ -55,16 +78,52 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange, onSelected}) => {
           // console.log(e.target.value, 'input');
           if (e.target.value) {
             setLoading(true);
-            fetch(`${API_URL}/search?q=${e.target.value}`)
+            fetch(`${context.apiURL}/searchbar?q=${e.target.value}`)
               .then((resp) => { return resp.text() })
               .then((body) => { return JSON.parse(body) })
               .then((json) => {
                 // add id as index
-                const items = json.data.map( (x, i) => ({id: i, ...x}));
+                // console.log(json.data,'json');
+                const items = json.data.map( (x, i) => {
+                  const item = { id: x.id, term: x.term };
+                  let title = '';
+                  let descr = '';
+                  switch(x.term) {
+                  case 'collector':
+                    item['title'] = x.display_name;
+                    item['text'] = x.display_name;
+                    item['description'] = (x.abbreviated_name) ? `abbr. ${x.abbreviated_name}`: '';
+                    break;
+                  case 'taxon':
+                    item['title'] = `${x.full_scientific_name} ${x.common_name}`;
+                    item['text'] = x.display_name;
+                    item['description'] = `${x.rank}`;
+                    item['filterKey'] = x.rank;
+                    break;
+                  case 'named_area':
+                    item['title'] = x.display_name;
+                    item['text'] = x.display_name;
+                    item['description'] = `${x.area_class.label} (${x.area_class.name})`;
+                    item['filterKey'] = x.area_class.name;
+                    break;
+                  case 'field_number':
+                    item['title'] = `${(x.collector) ? x.collector.display_name:''} ${x.field_number}`;
+                    item['description'] = '';
+                    item['collector'] = x.collector;
+                    item['field_number'] = x.field_number;
+                    break;
+                  case 'accession_number':
+                    item['title'] = `HAST:${x.accession_number}`;
+                    item['text'] = x.accession_number;
+                    item['description'] = '';
+                    break;
+                  }
+                  return item;
+                });
                 setItems(items);
                 setShowMenu(true);
                 setLoading(false);
-                console.log(items);
+                // console.log(items);
                 setInputValue(e.target.value);
               });
           } else {
@@ -74,30 +133,27 @@ const SearchBar = ({tokens, onTokenRemove, onSelectedChange, onSelected}) => {
       />
       <Autocomplete.Overlay
         width="xxlarge"
-        onClickOutside={(e)=>{console.log('out', e);}}
+        onClickOutside={(e)=>{setShowMenu(false);}}
         visibility={(showMenu === true) ? 'visible': 'hidden'}
       >
         <ActionList showDividers>
-          {[
-            {key: 'collector', label: '採集者'},
-            {key: 'taxon', label: '物種'},
-          ].map((group) => {
+          {availableTermItems.map((group, groupIndex) => {
             return (
-              <ActionList.Group title={group.label} key={group.key}>
-              {items.map((item, index)=> {
+              <ActionList.Group title={group.label} key={groupIndex}>
+              {group.items.map((item, itemIndex)=> {
                 return (
-                  <ActionList.Item key={index} onSelect={(e)=> {
-                    console.log('click', index, items[index]);
-                    onSelected(items[index]);
+                  <ActionList.Item key={itemIndex} onSelect={(e)=> {
+                    console.log('click', item);
+                    onSelected(item);
                     setShowMenu(false);
                     setInputValue('');
                   }}>
                     <ActionList.LeadingVisual>
-                      {TERM_ICON_MAP[item.category]}
+                      {context.termIconMap[item.term]}
                     </ActionList.LeadingVisual>
-                    {item.text}
-                    <ActionList.Description variant="block">{`${item.term}:${item.object_id}`}</ActionList.Description>
-                    <ActionList.TrailingVisual>{`${item.term}:${item.object_id}`}</ActionList.TrailingVisual>
+                    {item.title}
+                    <ActionList.Description variant="block">{item.description}</ActionList.Description>
+                    <ActionList.TrailingVisual>{`${item.term}`}</ActionList.TrailingVisual>
                   </ActionList.Item>
                 );
               })}
