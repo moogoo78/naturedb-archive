@@ -1,38 +1,13 @@
-<!doctype html>
-<html>
-  <head>
-    <title>中研院植物標本館 :: HAST</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="initial-scale=1, width=device-width" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/musubii@7.1.0/dist/musubii.min.css" />
-  </head>
-  <body>
-      <header class="section is-padding-top-xl is-padding-bottom-xl">
-        <div class="inner is-padding-right-sm is-padding-left-md">
-          <div class="grid is-middle is-between">
-            <h1><span class="text is-xl is-strong">HAST</span> <span class="text is-sm">Academia Sinica</span></h1>
-          </div>
-        </div>
-      </header>
-      <main class="main">
-        <div class="section is-padding-horizontal-safe">
-          <div class="inner is-padding-horizontal-md">
-            <section class="section">
-              <h1 class="gh-stats-h1">最新消息</h1>
-              <!-- <h2 class="gh-stats-header gh-stats-h2">Tags</h2> -->
-              <ul class="list is-disc">
-                {% for a in articles %}
-                <li class="item"><a href="./articles/{{a.id}}">{{a.subject}} - {{a.publish_date}}</a></li>
-                {% endfor %}
-              </ul>
-            </section>
-          </div>
-        </div>
-      </main>
-    </div>
-  </body>
-</html>
+{% extends "base.html" %}
 
-
-
-
+{% block main %}
+<section class="section">
+  <h1 class="gh-stats-h1">最新消息</h1>
+  <!-- <h2 class="gh-stats-header gh-stats-h2">Tags</h2> -->
+  <ul class="list is-disc">
+    {% for a in articles %}
+    <li class="item"><a href="./articles/{{a.id}}">{{a.subject}} - {{a.publish_date}}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

@@ -297,6 +297,10 @@ def index():
     articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
     return render_template('index.html', articles=articles)
 
+@main.route('/about')
+def about():
+    return render_template('about.html')
+
 @main.route('/articles/<article_id>')
 def article_detail(article_id):
     article = Article.query.get(article_id)
