@@ -24,6 +24,7 @@ from app.models import (
     MeasurementOrFactParameterOption,
     MeasurementOrFact,
     Dataset,
+    MultimediaObject,
 )
 from app.helpers import conv_hast21
 
@@ -183,6 +184,7 @@ def get_measurement_or_fact_option_list():
 
 @main.route('/foo')
 def foo():
+    '''
     count = 0
     for x in Collection.query.all():
         count += 1
@@ -193,6 +195,8 @@ def foo():
             session.commit()
             count += 1
             print(count, flush=True)
+    '''
+    return jsonify({})
 
 def find_coel():
     from sqlalchemy import create_engine

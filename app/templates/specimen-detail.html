@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block style %}
@@ -99,6 +100,14 @@
         <h4>標註</h4>
         {% for i in item.annotations %}
         {{ display_data(i.display_category(), i.text) }}
+        {% endfor %}
+      </div>
+    </div>
+    <h3 class="data-heading">生態照</h3>
+    <div class="card is-bg-light is-outline">
+      <div class="grid is-padding-md">
+        {% for i in item.multimedia_objects %}
+        <div class="column is-4"><img src="{{ i.file_url }}" alt="" /></div>
         {% endfor %}
       </div>
     </div>

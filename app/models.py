@@ -492,6 +492,7 @@ class Collection(Base):
     changed = Column(DateTime, default=get_time, onupdate=get_time) # abcd: DateModified
     project_id = Column(Integer, ForeignKey('project.id'))
     project = relationship('Project')
+
     '''
     @validates('altitude')
     def validate_altitude(self, key, value):
@@ -873,6 +874,7 @@ class Unit(Base):
     source_data = Column(JSONB)
     information_withheld = Column(Text)
     annotations = relationship('Annotation')
+    multimedia_objects = relationship('MultimediaObject')
 
     def display_kind_of_unit(self):
         if self.kind_of_unit:
@@ -1149,3 +1151,20 @@ class Article(Base):
         return {
             'categories': [x.to_dict() for x in ArticleCategory.query.all()]
         }
+
+class MultimediaObject(Base):
+    __tablename__ = 'multimedia_object'
+
+    id = Column(Integer, primary_key=True)
+    #collection_id = Column(ForeignKey('collection.id', ondelete='SET NULL'))
+
+    unit_id = Column(ForeignKey('unit.id', ondelete='SET NULL'))
+    multimedia_type = Column(String(500), default='StillImage') # DC term. Recommended terms are Collection, StillImage, Sound, MovingImage, InteractiveResource, Text.
+    title = Column(String(500))
+    source = Column(String(500))
+    provider = Column(String(500))
+    file_url = Column(String(500))
+    # product_url
+    created = Column(DateTime, default=get_time)
+    note = Column(Text)
+    source_data = Column(JSONB)
