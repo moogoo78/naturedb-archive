@@ -1,3 +1,4 @@
+
 import json
 from datetime import datetime
 import re
@@ -304,6 +305,10 @@ def index():
 @main.route('/about')
 def about():
     return render_template('about.html')
+
+@main.route('/robots.txt')
+def robots_txt():
+    return render_template('robots.txt')
 
 @main.route('/articles/<article_id>')
 def article_detail(article_id):
