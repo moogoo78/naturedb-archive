@@ -5,6 +5,33 @@
     <title>中研院植物標本館 :: HAST</title>
     <meta name="viewport" content="initial-scale=1, width=device-width" />
     <link rel="stylesheet" type="text/css" href="/static/css/musubii.min.css">
+    <style>
+     .ndb-wrapper .ndb-heading-1 {
+       margin: -8px 0 24px;
+     }
+
+     .ndb-wrapper .ndb-heading-2 {
+       margin: 60px 0 12px;
+     }
+     .ndb-heading-1 {
+       font-size: 200%;
+     }
+     .ndb-heading-2 {
+       font-size: 150%;
+          }
+     .ndb-heading-1, .ndb-heading-2, .ndb-heading-3 {
+       position: relative;
+       color: rgba(0, 0, 0, 0.6);
+       font-weight: 700;
+       font-family: "Yu Gothic Medium", sans-serif;
+     }
+     .ndb-wrapper .ndb-text {
+       margin: 16px 0;
+     }
+     .ndb-text {
+       line-height: 1.75;
+     }
+    </style>
     {% block style %}{% endblock %}
   </head>
   <body>
@@ -34,7 +61,7 @@
           </div>
         </div>
       </main>
-      <footer class="section is-footer is-padding-bottom-safe">
+      <footer class="section is-footer is-padding-bottom-safe" style="padding-top: 2.5em;padding-bottom: 2.5em;">
         <div class="inner is-padding-horizontal-md">
           <div class="box is-space-md">
             <div class="box">

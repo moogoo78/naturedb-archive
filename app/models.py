@@ -854,6 +854,9 @@ class Unit(Base):
 
     # abcd: SpecimenUnit
     accession_number = Column(String(500), index=True)
+    #accession_uri = Column(String(500)) ark?
+    #accession_catalogue = Column(String(500))
+    # accession_date
     duplication_number = Column(String(500)) # ==Think==
     #abcd:preparations
     preparation_type = Column(String(500)) #specimens (S), tissues, DNA
