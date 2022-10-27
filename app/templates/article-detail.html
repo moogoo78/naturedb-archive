@@ -1,7 +1,8 @@
+
 {% extends "base.html" %}
 
 {% block main %}
-{{ article.subject }}
+<span class="badge is-plain is-info">{{ article.category.label }}</span> {{ article.subject }}
 
 <hr />
 <pre>

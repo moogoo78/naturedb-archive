@@ -6,7 +6,7 @@
   <!-- <h2 class="gh-stats-header gh-stats-h2">Tags</h2> -->
   <ul class="list is-disc">
     {% for a in articles %}
-    <li class="item"><a href="./articles/{{a.id}}">{{a.subject}} - {{a.publish_date}}</a></li>
+    <li class="item"><span class="badge is-plain is-info">{{ a.category.label }}</span> <a href="./articles/{{a.id}}">{{a.subject}} - {{a.publish_date}}</a></li>
     {% endfor %}
   </ul>
 </section>

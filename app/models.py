@@ -1145,6 +1145,7 @@ class Article(Base):
             'category_id': self.category_id or '',
             'publish_date': self.publish_date.strftime('%Y-%m-%d') if self.publish_date else'',
             'created': self.created or '',
+            'category': self.category.to_dict() if self.category else None,
         }
 
     def get_form_layout(self):
