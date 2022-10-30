@@ -83,7 +83,7 @@ class Taxon(Base):
             return s
 
     def get_parents(self):
-        res = TaxonRelation.query.filter(TaxonRelation.child_id==self.id).order_by(TaxonRelation.depth).all()
+        res = TaxonRelation.query.filter(TaxonRelation.child_id==self.id, TaxonRelation.parent_id!=self.id).order_by(TaxonRelation.depth).all()
         return [x.parent for x in res]
 
     def get_children(self, depth=0):

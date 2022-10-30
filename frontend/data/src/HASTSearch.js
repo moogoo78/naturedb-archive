@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Dialog as DialogV1,
+  CounterLabel,
   FormControl,
   Pagehead,
   TabNav,
@@ -159,6 +160,13 @@ const reducer = (state, action) => {
       isLoading: false,
       view: 'map',
     }
+  case 'SET_CHECKLIST_RESULTS':
+    return {
+      ...state,
+      checklist_results: action.checklist_results,
+      isLoading: false,
+      view: 'checklist',
+    }
   case 'SET_VIEW':
     return {
       ...state,
@@ -201,6 +209,7 @@ const initialArg = {
   },
   results: null,
   map_results: null,
+  checklist_results: null,
   view: 'table',
   //collector_options: [],
 };
@@ -784,6 +793,9 @@ const HASTSearch = () => {
       params['view'] = 'map';
       params['range'] = [0, 500];
     }
+    else if (view === 'checklist') {
+      params['view'] = 'checklist';
+    }
     // console.log('sort', sort, currentSort, params);
     //console.log('params: ', params);
     getList('explore', params)
@@ -792,6 +804,8 @@ const HASTSearch = () => {
 
         if (view === 'map') {
           dispatch({type: 'SET_MAP_RESULTS', map_results: json });
+        } else if (view === 'checklist') {
+          dispatch({type: 'SET_CHECKLIST_RESULTS', checklist_results: json });
         } else {
           const pageCount = Math.ceil(json.total / state.pagination.pageSize) || 1;
           const currentPage = page || 1;
@@ -823,6 +837,7 @@ const HASTSearch = () => {
            <UnderlineNav.Link href="#" selected={state.view === 'table'} onClick={(e) => {dispatch({type: 'SET_VIEW', view: 'table'});}}>表格</UnderlineNav.Link>
            <UnderlineNav.Link href="#" selected={state.view === 'list'} onClick={(e) => {dispatch({type: 'SET_VIEW', view: 'list'});}}>條列</UnderlineNav.Link>
            <UnderlineNav.Link href="#" selected={state.view === 'gallery'} onClick={(e) => {dispatch({type: 'SET_VIEW', view: 'gallery'});}}>圖片</UnderlineNav.Link>
+           <UnderlineNav.Link href="#" selected={state.view === 'checklist'} onClick={(e) => {fetchData({view:'checklist'});}}>物種</UnderlineNav.Link>
            <UnderlineNav.Link href="#" selected={state.view === 'map'} onClick={(e) => {fetchData({view:'map'});}}>地圖</UnderlineNav.Link>
          </UnderlineNav>
            {/* <SegmentedControl aria-label="Results view" onChange={ (selectedIndex) => { */}
@@ -838,7 +853,7 @@ const HASTSearch = () => {
            {/*   <SegmentedControl.Button selected={state.view === 'map'}>地圖</SegmentedControl.Button> */}
            {/* </SegmentedControl> */}
            <Box mt={2}>
-             <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} view={state.view} mapResults={state.map_results} />
+             <ResultView results={state.results} pagination={state.pagination} onSortChange={onSortChange} sort={state.sort} view={state.view} mapResults={state.map_results} checklistResults={state.checklist_results}/>
            </Box>
            <Pagination pageCount={state.pagination.pageCount} currentPage={state.pagination.currentPage} onPageChange={onPageChange} />
          </Box>}
@@ -890,7 +905,7 @@ const UnitCells = ({units}) => {
 };
 */
 
-const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, foo}) => {
+const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, checklistResults}) => {
   const [checked, setChecked] = React.useState(Array(20).fill(false));
   const context = React.useContext(SearchContext);
 
@@ -1058,6 +1073,39 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
                </div>);
            })}
          </div>
+       </>
+       : null}
+      {(view === 'checklist' && checklistResults) ?
+       <>
+         <Box display="grid" gridTemplateColumns="1fr" gridGap={3}>
+           {checklistResults.data.map((x, k)=> {
+             const labelMap = {
+               family: 'serve',
+               genus: 'success',
+               species: 'accent',
+             };
+             //<Label variant={labelMap[x.obj.rank]}>{x.obj.rank}</Label> 
+             return (
+               <Box p={3} borderColor="border.default" borderWidth={1} borderStyle="solid" key={k}><Text>{`${x.obj.full_scientific_name} (${x.obj.common_name})`}</Text> <CounterLabel>{x.count}</CounterLabel>
+                 <Box display="grid" gridTemplateColumns="1fr" gridGap={1}>
+                 {x.children.map((genus, genusIndex) => {
+                   return (
+                     <Box pl={3} pt={1} borderColor="border.default" borderWidth={1} key={genusIndex}>{`${genus.obj.full_scientific_name} (${genus.obj.common_name})`} <CounterLabel>{genus.count}</CounterLabel>
+                       <Box display="grid" gridTemplateColumns="1fr" gridGap={1}>
+                         {genus.children.map((species, speciesIndex) => {
+                           return (
+                             <Box pl={3} pt={1} borderColor="border.default" borderWidth={1} key={speciesIndex}>{`${species.obj.full_scientific_name} (${species.obj.common_name})`} <CounterLabel>{species.count}</CounterLabel></Box>
+                           );
+                         })}
+                       </Box>
+                     </Box>
+                   );
+                 })}
+                 </Box>
+               </Box>
+             );
+           })}
+         </Box>
        </>
        : null}
       {(view === 'map' && mapResults) ?

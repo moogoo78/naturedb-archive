@@ -340,6 +340,7 @@ def get_searchbar():
 
 @api.route('/explore', methods=['GET'])
 def get_explore():
+    view = request.args.get('view', '')
     # group by collection
     #stmt = select(Collection, func.array_agg(Unit.id), func.array_agg(Unit.accession_number)).select_from(Unit).join(Collection, full=True).group_by(Collection.id) #where(Unit.id>40, Unit.id<50)
     # TODO: full outer join cause slow
@@ -360,7 +361,6 @@ def get_explore():
         'sort': json.loads(request.args.get('sort')) if request.args.get('sort') else {},
         'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
     }
-    view = request.args.get('view', '')
 
     # query_key_map = {}
 
@@ -461,7 +461,9 @@ def get_explore():
     base_stmt = stmt
 
     # sort
-    if view != 'map':
+    if view == 'checklist':
+        stmt = stmt.order_by(Collection.proxy_taxon_text)
+    elif view != 'map':
         if sort := payload['sort']:
             if 'collect_date' in sort:
                 stmt = stmt.order_by(Collection.collect_date)
@@ -474,17 +476,20 @@ def get_explore():
         else:
             # default order
             stmt = stmt.order_by(Person.full_name, cast(Collection.field_number, LargeBinary)) # TODO ulitilize Person.sorting_name
-
         #print(stmt, flush=True)
 
-
     # limit & offset
-    start = int(payload['range'][0])
-    end = int(payload['range'][1])
-    limit = min((end-start), 1000) # TODO: max query range
-    stmt = stmt.limit(limit)
-    if start > 0:
-        stmt = stmt.offset(start)
+    if view != 'checklist':
+        start = int(payload['range'][0])
+        end = int(payload['range'][1])
+        limit = min((end-start), 1000) # TODO: max query range
+        stmt = stmt.limit(limit)
+        if start > 0:
+            stmt = stmt.offset(start)
+
+    # group by
+    #if view == 'checklist':
+    #    stmt = stmt.group_by(Collection.proxy_taxon_id)
 
     # =======
     # results
@@ -511,6 +516,11 @@ def get_explore():
     data = []
     begin_time = time.time()
     elapsed_mapping = None
+
+    taxon_tree = {'children': [], 'count': 0}
+    rank_list = [{}, {}, {}] # family, genus, species
+    rank_map = {'family': 0, 'genus': 1, 'species': 2}
+    taxon_ids = []
     for r in result.all():
         if c := r[2]:
             t = None
@@ -528,6 +538,28 @@ def get_explore():
                         'longitude_decimal': c.longitude_decimal,
                         'latitude_decimal': c.latitude_decimal,
                     })
+            elif view == 'checklist':
+                if c.proxy_taxon_id:
+                    taxon_ids.append(c.proxy_taxon_id)
+
+                    # taxon = session.get(Taxon, c.proxy_taxon_id)
+                    # parents = taxon.get_parents()
+                    rows = TaxonRelation.query.filter(TaxonRelation.child_id==c.proxy_taxon_id).order_by(TaxonRelation.depth).all()
+                    tlist = [r.parent for r in rows]
+                    for index, t in enumerate(tlist):
+                        map_idx = rank_map[t.rank]
+                        parent_id = 0
+                        if index < len(tlist) - 1:
+                            parent_id = tlist[index+1].id
+                        if t.id not in rank_list[map_idx]:
+                            rank_list[map_idx][t.id] = {
+                                'obj': t.to_dict(),
+                                'parent_id': parent_id,
+                                'count': 1,
+                                'children': [],
+                            }
+                        else:
+                            rank_list[map_idx][t.id]['count'] += 1
             else:
                 image_url = ''
                 try:
@@ -557,6 +589,26 @@ def get_explore():
                 })
 
     elapsed_mapping = time.time() - begin_time
+
+    # update checklist attributes
+    if view == 'checklist':
+        flat_list = []
+        tree = {'id':0, 'children':[]}
+        taxon_list = {
+            0: tree,
+        }
+        # sort
+        for rank_dict in rank_list:
+            for _, node in rank_dict.items():
+                flat_list.append(node)
+
+        for x in flat_list:
+            taxon_list[x['obj']['id']] = x
+            taxon_list[x['parent_id']]['children'].append(taxon_list[x['obj']['id']])
+        #for t in tree['children']:
+        #    print(t, flush=True)
+        data = tree['children']
+
     resp = jsonify({
         'data': data,
         # 'key_map': query_key_map,
