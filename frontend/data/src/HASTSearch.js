@@ -1077,6 +1077,7 @@ const ResultView = ({results, pagination, onSortChange, sort, view, mapResults, 
        : null}
       {(view === 'checklist' && checklistResults) ?
        <>
+         <Text>{(checklistResults.is_truncated === true) ? '數量過多，請縮小篩選條件。': null}</Text>
          <Box display="grid" gridTemplateColumns="1fr" gridGap={3}>
            {checklistResults.data.map((x, k)=> {
              const labelMap = {

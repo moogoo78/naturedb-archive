@@ -509,7 +509,6 @@ def get_explore():
         total = session.execute(count_stmt).scalar()
         elapsed_count = time.time() - begin_time
 
-
     # --------------
     # result mapping
     # --------------
@@ -517,11 +516,18 @@ def get_explore():
     begin_time = time.time()
     elapsed_mapping = None
 
-    taxon_tree = {'children': [], 'count': 0}
     rank_list = [{}, {}, {}] # family, genus, species
     rank_map = {'family': 0, 'genus': 1, 'species': 2}
-    taxon_ids = []
-    for r in result.all():
+    is_truncated = False
+    TRUNCATE_LIMIT = 2000
+    if view == 'checklist' and total > TRUNCATE_LIMIT: #  TODO
+        is_truncated = True
+
+    rows = result.all()
+    if is_truncated is True:
+        rows = rows[0:TRUNCATE_LIMIT] # TODO
+
+    for r in rows:
         if c := r[2]:
             t = None
             if taxon_id := c.proxy_taxon_id:
@@ -540,12 +546,10 @@ def get_explore():
                     })
             elif view == 'checklist':
                 if c.proxy_taxon_id:
-                    taxon_ids.append(c.proxy_taxon_id)
-
                     # taxon = session.get(Taxon, c.proxy_taxon_id)
                     # parents = taxon.get_parents()
-                    rows = TaxonRelation.query.filter(TaxonRelation.child_id==c.proxy_taxon_id).order_by(TaxonRelation.depth).all()
-                    tlist = [r.parent for r in rows]
+                    tr_list = TaxonRelation.query.filter(TaxonRelation.child_id==c.proxy_taxon_id).order_by(TaxonRelation.depth).all()
+                    tlist = [r.parent for r in tr_list]
                     for index, t in enumerate(tlist):
                         map_idx = rank_map[t.rank]
                         parent_id = 0
@@ -590,7 +594,7 @@ def get_explore():
 
     elapsed_mapping = time.time() - begin_time
 
-    # update checklist attributes
+    # update data while view = checklist
     if view == 'checklist':
         flat_list = []
         tree = {'id':0, 'children':[]}
@@ -602,16 +606,17 @@ def get_explore():
             for _, node in rank_dict.items():
                 flat_list.append(node)
 
+        # make tree
         for x in flat_list:
             taxon_list[x['obj']['id']] = x
             taxon_list[x['parent_id']]['children'].append(taxon_list[x['obj']['id']])
-        #for t in tree['children']:
-        #    print(t, flush=True)
+
         data = tree['children']
 
     resp = jsonify({
         'data': data,
         # 'key_map': query_key_map,
+        'is_truncated': is_truncated,
         'total': total,
         'elapsed': elapsed,
         'elapsed_count': elapsed_count,
