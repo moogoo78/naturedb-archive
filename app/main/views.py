@@ -11,6 +11,7 @@ from flask import (
 import markdown
 from sqlalchemy import (
     desc,
+    func,
 )
 from app.main import main
 from app.database import session
@@ -185,6 +186,28 @@ def get_measurement_or_fact_option_list():
 
 @main.route('/foo')
 def foo():
+
+    #stmt = select()
+    #x = session.query(Collection.proxy_taxon_id,func.count(Collection.proxy_taxon_id)).group_by(Collection.proxy_taxon_id).all()
+    #print(len(x), flush=True)
+
+    import csv
+    from app.taxon.models import Taxon
+    family_list = Taxon.query.filter(Taxon.rank=='family').all()
+    print(len(family_list), flush=True)
+    '''
+    order_list = []
+    order_map = {}
+    with open('TaiwanSpecies20220831_UTF8.csv', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row['kingdom'] and row['kingdom'] == 'Plantae':
+                if item := row['order']:
+                    if item not in order_list:
+                        order_list.append(item)
+                        order_map[item] = row.get('order_c', '')
+        print(len(order_list), flush=True)
+    '''
     '''
     count = 0
     for x in Collection.query.all():
@@ -301,6 +324,10 @@ def bego():
 def index():
     articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
     return render_template('index.html', articles=articles)
+
+@main.route('/making-specimen')
+def making_specimen():
+    return render_template('making-specimen.html')
 
 @main.route('/about')
 def about():
