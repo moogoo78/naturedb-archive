@@ -28,6 +28,7 @@ import {
   Label,
   SegmentedControl,
   Checkbox,
+  CheckboxGroup,
   ActionMenu,
   ActionList,
   AnchoredOverlay,
@@ -622,7 +623,7 @@ const AdvanceSearch = ({form, onSubmit}) => {
            </> : null }
           {(tabnav === 'specimen') ?
            <>
-             <Box display="flex">
+             <Box display="flex" pt={3}>
                <Box flexGrow={1} pr={2}>
                  <FormControl>
                    <FormControl.Label>館號</FormControl.Label>
@@ -646,6 +647,28 @@ const AdvanceSearch = ({form, onSubmit}) => {
                      }) => (<TextInput block {...field} />)}
                    />
                  </FormControl>
+               </Box>
+             </Box>
+             <Box display="flex" pt={3}>
+               <Box flexGrow={1}>
+                 {/* <FormControl> */}
+                 {/*   <FormControl.Label></FormControl.Label> */}
+                 {/* </FormControl> */}
+                 <CheckboxGroup>
+                   <CheckboxGroup.Label>模式標本</CheckboxGroup.Label>
+                   <FormControl>
+                     <Checkbox value="holotype" />
+                     <FormControl.Label>Holotype</FormControl.Label>
+                   </FormControl>
+                   <FormControl>
+                     <Checkbox value="isotype" />
+                     <FormControl.Label>Isotype</FormControl.Label>
+                   </FormControl>
+                   <FormControl>
+                     <Checkbox value="paratype" />
+                     <FormControl.Label>Paratype</FormControl.Label>
+                   </FormControl>
+                 </CheckboxGroup>
                </Box>
              </Box>
            </> : null }
