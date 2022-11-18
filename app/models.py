@@ -829,6 +829,7 @@ class FieldNumber(Base):
 class Unit(Base):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
+    NomenclaturalTypeDesignation
     '''
     KIND_OF_UNIT_MAP = {'HS': 'Herbarium Sheet'}
 
@@ -866,6 +867,9 @@ class Unit(Base):
     acquisition_date = Column(DateTime)
     acquired_from = Column(Integer, ForeignKey('person.id'), nullable=True)
     acquisition_source_text = Column(Text) # hast: provider
+    #verified
+    #reference
+    #NomenclaturalReference
 
     specimen_marks = relationship('SpecimenMark')
     dataset = relationship('Dataset')

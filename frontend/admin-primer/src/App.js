@@ -35,9 +35,9 @@ import { ArticleList, ArticleForm } from 'Article';
 
 
 const AdminHeader = () => (
-  <Header>
+  <Header sx={{backgroundColor: '#488A99'}}>
     <Header.Item>
-      <Header.Link href="#" fontSize={2}>
+      <Header.Link href="#" fontSize={2} sx={{color: '#DADADA'}}>
         <span>{process.env.ORGANIZATION_TITLE}</span>
       </Header.Link>
     </Header.Item>
@@ -61,13 +61,15 @@ const NavItem = ({to, children}) => {
 }
 const AdminSidebar = () => (
   <Box
-    borderWidth="1px"
+    borderWidth="0px"
+    borderRightWidth="1px"
     borderStyle="solid"
     borderColor="border.default"
-    borderRadius={2}
-    p={1}
-    m={3}
+    borderRadius={0}
+    m={0}
+    p={2}
     maxWidth={200}
+    sx={{ background: '#F1F1F1'}}
   >
     <NavList>
       <NavItem to="/">Dashboard</NavItem>
@@ -96,9 +98,15 @@ export default function App() {
     <BrowserRouter basename={(process.env.MY_ENV === 'prod') ? '/admin' : '/'}>
       <ThemeProvider>
         <AdminHeader />
-        <Box display="flex">
+        <Box
+          display="flex"
+          borderWidth="0px"
+          borderTopWidth="1px"
+          borderColor="border.default"
+          borderStyle="solid"
+        >
           <AdminSidebar />
-          <Box flexGrow={1} borderColor="border.default" borderWidth={0} borderStyle="solid">
+          <Box flexGrow={1} borderColor="border.default" borderWidth={0} borderStyle="solid" px={3}>
             <AdminMain />
           </Box>
         </Box>

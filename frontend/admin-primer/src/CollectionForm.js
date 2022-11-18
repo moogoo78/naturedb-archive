@@ -87,6 +87,7 @@ const PhokControl = ({ name, label, as=TextInput, asProps, control, errors, ...r
     }
   }
   const As = as;
+
   return(
   <FormControl>
     <FormControl.Label>{label}</FormControl.Label>
@@ -265,6 +266,7 @@ const AutocompleteQuery = React.forwardRef((props, ref) => {
   );
 });
 
+// Autocomplete with context
 const MyAutocomplete = React.forwardRef((props, ref) => {
   return (
     <Autocomplete>
@@ -274,6 +276,7 @@ const MyAutocomplete = React.forwardRef((props, ref) => {
         value={props.value}
         setValue={props.setValue}
         name={props.name}
+        freeSolo={(props.freeSolo === undefined) ? false : props.freeSolo}
       />
     </Autocomplete>
   )
@@ -292,11 +295,24 @@ const AutocompleteWithContextInternal = ((props) => {
   const [filterText, setFilterText] = React.useState(props.value)
 
   const mySetValue = ((type_, val) => {
-    // console.log('set value', type_, val);
+    // console.log('my set value', type_, val);
     setFilterText?.(val);
     props.setValue(props.name, val, {shouldDirty: true});
     setInputValue(val);
   });
+
+  const myFilterFn = item => {
+    /* slowly */
+    if (filterText) {
+      if (item.text.toUpperCase().includes(filterText.toUpperCase())) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return true;
+  };
+
   return (
     <Autocomplete.Context.Provider
       value={{...autocompleteContext, autocompleteSuggestion: '', setAutocompleteSuggestion: () => false}}
@@ -305,7 +321,11 @@ const AutocompleteWithContextInternal = ((props) => {
         name={props.name}
         ref={props.fwdRef}
         value={filterText}
-        onChange={(event) => { mySetValue('input', event.target.value); }}
+        onChange={(event) => {
+          if (props.freeSolo) {
+            mySetValue('input', event.target.value);
+          }
+        }}
         block
         trailingAction={
           <TextInput.Action
@@ -322,9 +342,11 @@ const AutocompleteWithContextInternal = ((props) => {
           selectedItemIds={[]}
           selectionVariant="single"
           onSelectedChange={(values)=>{
-            const val = values[0].text.split(' / ')[0];
+            //const val = values[0].text.split(' / ')[0];
+            const val = values[0].text;
             mySetValue('select', val);
           }}
+          filterFn={myFilterFn}
         />
       </Autocomplete.Overlay>
     </Autocomplete.Context.Provider>
@@ -415,8 +437,12 @@ export default function CollectionForm() {
         choices: mof.options.map( x => ({id: x.id, text: `${x.value} / ${x.description}`}))
       }
     }
-    const namedAreas = form.named_areas.map(x => `named_areas__${x.name}`);
-    const helperNames = ['collector', 'taxon'].concat(namedAreas);
+    form.named_areas.forEach(x => {
+      helpers[`named_areas__${x.name}`] = {
+        choices: x.options.map(item => ({id: item.id, text: item.display_name}))
+      }
+    });
+    const helperNames = ['collector', 'taxon'];
     for (const name of helperNames) {
       helpers[name] = {
         choices: [],
@@ -488,7 +514,8 @@ export default function CollectionForm() {
       for (const name in dirtyFields) {
         payload[name] = data[name];
       }
-      // console.log(payload, data);
+      console.log(payload, data);
+      /*
       updateOrCreate('collections', payload, data.id || null)
         .then((json) => {
           // console.log('return ', json);
@@ -505,6 +532,7 @@ export default function CollectionForm() {
         .catch(error => {
           dispatch({type: 'SHOW_FLASH', text: `${error}`, isError: true });
         });
+        */
     }
 
     const rest = {
@@ -555,6 +583,7 @@ export default function CollectionForm() {
             gridRowGap={3}
           >
             {formWidgets.named_areas.map((na, index) => {
+              //fetchResourceName: 'named_areas', queryFilter: {area_class_id: na.id}
               return (
                 <Box
                   borderWidth="0px"
@@ -562,7 +591,7 @@ export default function CollectionForm() {
                   borderColor="border.default"
                   borderRadius={2}
                   key={index}>
-                  <PhokControl name={`named_areas.${na.name}`} label={na.label} as={AutocompleteQuery} asProps={{ block: true, fetchResourceName: 'named_areas', queryFilter: {area_class_id: na.id}}} {...rest}/>
+                  <PhokControl name={`named_areas.${na.name}`} label={na.label} as={MyAutocomplete} asProps={{ block: true, items: state.helpers[`named_areas__${na.name}`].choices}} {...rest}/>
 
                 </Box>
               )
@@ -612,7 +641,7 @@ export default function CollectionForm() {
                   {/*
                   <PhokControl name={`biotopes.${biotope.name}`} label={biotope.label} as={AutocompleteFreeText} asProps={{ block: true, items: state.helpers[`biotopes__${biotope.name}`].choices }} {...rest} />
                    */}
-                  <PhokControl name={`biotopes.${biotope.name}`} label={biotope.label} {...rest} as={MyAutocomplete} asProps={{ block: true, items: state.helpers[`biotopes__${biotope.name}`].choices }} {...rest} />
+                  <PhokControl name={`biotopes.${biotope.name}`} label={biotope.label} {...rest} as={MyAutocomplete} asProps={{ block: true, items: state.helpers[`biotopes__${biotope.name}`].choices, freeSolo: true }} {...rest} />
                 </Box>
               )
             })}
@@ -730,7 +759,7 @@ export default function CollectionForm() {
                         borderColor="border.default"
                         borderRadius={2}
                         key={mof.id}>
-                        <PhokControl name={`units.${index}.measurement_or_facts.${mof.name}`} label={mof.label} as={MyAutocomplete} asProps={{ block: true, items: state.helpers[`unit_measurement_or_facts__${mof.name}`].choices }} {...rest} />
+                        <PhokControl name={`units.${index}.measurement_or_facts.${mof.name}`} label={mof.label} as={MyAutocomplete} asProps={{ block: true, items: state.helpers[`unit_measurement_or_facts__${mof.name}`].choices, freeSolo: true }} {...rest} />
                       </Box>
                     );
                   })}
@@ -749,8 +778,8 @@ export default function CollectionForm() {
               )})}
           </Box>
         </Box>
-        <Box mt={3}>
-      <Button type="submit" variant="outline" size="medium">{(params.collectionId) ? '儲存' : '新增'}</Button>
+        <Box mt={3} pt={2} borderWidth="0px" borderTopWidth="1px" borderStyle="solid" borderColor="border.default">
+      <Button type="submit" variant="primary" size="medium">{(params.collectionId) ? '儲存' : '新增'}</Button>
           {/* <Button type="button" variant="default" size="medium">儲存並且離開</Button> */}
         </Box>
       </form>
