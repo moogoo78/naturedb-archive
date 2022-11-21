@@ -32,6 +32,11 @@ import CollectionForm from 'CollectionForm';
 import { ArticleList, ArticleForm } from 'Article';
 
 // import 'musubii/dist/musubii.min.css';
+const adminContext = {
+  baseURL: process.env.BASE_URL,
+  apiURL: process.env.API_URL,
+};
+const AdminContext = React.createContext(adminContext);
 
 
 const AdminHeader = () => (
@@ -93,24 +98,28 @@ const AdminMain = () => (
     </Routes>
 )
 
-export default function App() {
+const Admin = () => {
   return (
-    <BrowserRouter basename={(process.env.MY_ENV === 'prod') ? '/admin' : '/'}>
-      <ThemeProvider>
-        <AdminHeader />
-        <Box
-          display="flex"
-          borderWidth="0px"
-          borderTopWidth="1px"
-          borderColor="border.default"
-          borderStyle="solid"
-        >
-          <AdminSidebar />
-          <Box flexGrow={1} borderColor="border.default" borderWidth={0} borderStyle="solid" px={3}>
-            <AdminMain />
+    <AdminContext.Provider value={adminContext}>
+      <BrowserRouter basename={(process.env.MY_ENV === 'prod') ? '/admin' : '/'}>
+        <ThemeProvider>
+          <AdminHeader />
+          <Box
+            display="flex"
+            borderWidth="0px"
+            borderTopWidth="1px"
+            borderColor="border.default"
+            borderStyle="solid"
+          >
+            <AdminSidebar />
+            <Box flexGrow={1} borderColor="border.default" borderWidth={0} borderStyle="solid" px={3}>
+              <AdminMain />
+            </Box>
           </Box>
-        </Box>
-    </ThemeProvider>
-    </BrowserRouter>
+        </ThemeProvider>
+      </BrowserRouter>
+    </AdminContext.Provider>
   )
-}
+};
+
+export { Admin, AdminContext };

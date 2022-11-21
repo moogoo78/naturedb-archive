@@ -308,6 +308,38 @@ const formatDate = (date) => {
   }
 }
 
+
+const getCookie = (name) => {
+  const cookieValue = decodeURIComponent(document.cookie)
+    .split('; ')
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split('=')[1];
+  console.log(cookieValue, 'get value');
+  return cookieValue;
+}
+
+const clearCookie = (name) => {
+  if (getCookie('toprint')) {
+    document.cookie = `${name}=''; max-age=0; path=/`;
+  }
+};
+const setCookie = (name, value, expiredDays) => {
+  const d = new Date();
+  d.setTime(d.getTime() + (expiredDays * 24 * 60 * 60 * 1000));
+  const expires = "expires="+d.toUTCString();
+  let cookieValue = '';
+  if (getCookie('toprint')) {
+    cookieValue = getCookie('toprint');
+    console.log(cookieValue, 'a');
+    cookieValue += `,${value}`;
+    console.log(cookieValue, 'b');
+  } else {
+    cookieValue = value;
+  }
+  document.cookie = `${name}=${encodeURIComponent(cookieValue)}; expires=${expires}; path=/`;
+  console.log(document.cookie, 'yyy');
+};
+
 export {
   getList,
   getOne,
@@ -319,6 +351,8 @@ export {
   dateToYMD,
   YMDToDate,
   formatDate,
+  getCookie,
+  setCookie,
 }
 
 /*

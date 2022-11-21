@@ -10,7 +10,6 @@ import {
   SearchContext,
 } from 'HASTSearch';
 
-
 const termOrder = [
   'field_number',
   'collector',
