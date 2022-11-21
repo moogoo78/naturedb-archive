@@ -50,10 +50,10 @@ import {
 
 const CollectionSearchBox = () => {
   const context = React.useContext(AdminContext);
-  const availableTermItems = [];
-
+  let availableTermItems = [];
   const termLabel = {
     field_number: '採集號',
+    field_number_range: '採集號範圍',
     collector: '採集者',
     taxon: '學名',
     named_area: '地點',
@@ -61,6 +61,7 @@ const CollectionSearchBox = () => {
   };
 
   const formatItemsFn = (data) => {
+    availableTermItems = [];
     const items = data.map( (x, i) => {
       const item = { id: x.id, term: x.term };
       let title = '';
@@ -89,6 +90,10 @@ const CollectionSearchBox = () => {
         item['collector'] = x.collector;
         item['field_number'] = x.field_number;
         break;
+      case 'field_number_range':
+        item['title'] = x.field_number_range;
+        item['text'] = x.field_number_range;
+        break;
       case 'accession_number':
         item['title'] = `HAST:${x.accession_number}`;
         item['text'] = x.accession_number;
@@ -101,27 +106,31 @@ const CollectionSearchBox = () => {
   };
 
   const formatTokensFn = (filter) => {
-  const tokens = [];
-  let counter = 0;
-  for (const [key, value] of Object.entries(filter)) {
-    if (typeof(value) === 'object') {
-      if (value.length > 0) {
-        value.forEach( x => {
-          tokens.push( {
-            id:counter,
-            text: `${termLabel[key]}:${x.text}`,
-            term: x.term,
+    const tokens = [];
+    let counter = 0;
+    for (const [key, value] of Object.entries(filter)) {
+      if (typeof(value) === 'object') {
+        if (value.length > 0) {
+          value.forEach( x => {
+            tokens.push( {
+              id:counter,
+              text: `${termLabel[key]}:${x.text}`,
+              term: key,
+            });
+            counter++;
           });
-          counter++;
-        });
+        }
+      }
+      else if (value) {
+        tokens.push( {
+          id:counter,
+          text: `${termLabel[key]}:${value}`,
+          term: key,
+        } );
+        counter++;
       }
     }
-    else if (value) {
-      tokens.push( {id:counter, text: `${termLabel[key]}:${value}`} );
-      counter++;
-    }
-  }
-  // console.log('to tokens:', filter, tokens);
+    // console.log('to tokens:', filter, tokens);
     return tokens;
   };
 
@@ -141,7 +150,11 @@ const CollectionSearchBox = () => {
       },
       field_number: {
         label: '採集號',
-      items: [],
+        items: [],
+      },
+      field_number_range: {
+        label: '採集號範圍',
+        items: [],
       },
       accession_number: {
         label: '館號',
@@ -149,6 +162,7 @@ const CollectionSearchBox = () => {
       }
     };
     const termOrder = [
+      'field_number_range',
       'field_number',
       'collector',
       'taxon',
@@ -164,7 +178,7 @@ const CollectionSearchBox = () => {
         availableTermItems.push(itemGroups[term]);
       }
     });
-
+    console.log(availableTermItems);
     return (
       <ActionList showDividers>
         {availableTermItems.map((group, groupIndex) => {
@@ -277,7 +291,7 @@ export default function CollectionList() {
   const renderResults = (results) => {
     return (
       <>
-        <Button onClick={ e => { setMyStar();}}>勾選項目加入列印暫存</Button>
+        <Box my={2}><Button variant="outline" onClick={ e => { setMyStar();}}>勾選項目加入列印暫存</Button></Box>
         <Box display="grid" gridTemplateColumns="1fr" gridGap={0}>
           {results.data.map((v, i) => {
             let scientificName = '';

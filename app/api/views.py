@@ -1,6 +1,7 @@
 
 import json
 import time
+import re
 
 from flask import (
     render_template,
@@ -308,6 +309,13 @@ def get_searchbar():
             }
             unit['term'] = 'accession_number'
             data.append(unit)
+    elif '-' in q:
+        m = re.search(r'([0-9]+)-([0-9]+)', q)
+        if m:
+            data.append({
+                'field_number_range': q,
+                'term': 'field_number_range',
+            })
     else:
         # Collector
         rows = Person.query.filter(Person.full_name.ilike(f'%{q}%') | Person.atomized_name['en']['given_name'].astext.ilike(f'%{q}%') | Person.atomized_name['en']['inherited_name'].astext.ilike(f'%{q}%')).limit(10).all()
@@ -391,6 +399,19 @@ def get_explore():
             many_or = or_()
             for x in fn_list:
                 many_or = or_(many_or, Collection.field_number.ilike(f'{x}%'))
+            stmt = stmt.where(many_or)
+        else:
+            stmt = stmt.where(Collection.field_number.ilike('%{}%'.format(value)))
+    if value := filtr.get('field_number_range'):
+        if '-' in value:
+            start, end = value.split('-')
+            fn_list = [str(x) for x in range(int(start), int(end)+1)]
+            if len(fn_list) > 1000:
+                fn_list = [] # TODO flash
+
+            many_or = or_()
+            for x in fn_list:
+                many_or = or_(many_or, Collection.field_number == x)
             stmt = stmt.where(many_or)
         else:
             stmt = stmt.where(Collection.field_number.ilike('%{}%'.format(value)))
