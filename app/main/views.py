@@ -28,7 +28,10 @@ from app.models import (
     Dataset,
     MultimediaObject,
 )
-from app.helpers import conv_hast21
+from app.helpers import (
+    conv_hast21,
+    get_record,
+)
 
 
 @main.route('/conv-hast21')
@@ -351,16 +354,12 @@ def specimen_detail(collection_id):
 
 @main.route('/print-label')
 def print_label():
-    ids = request.args.get('ids')
+    keys = request.args.get('keys', '')
     #query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Person.full_name, Collection.field_number)#.all()
-    query = Collection.query.join(Person).filter(Collection.id.in_(ids.split(','))).order_by(Collection.id)#.all()
-    #print(query, flush=True)
-    collections = query.all()
-    item_list = []
-    for i in collections:
-        item_list += i.units
+    key_list = keys.split(',')
+    records = [get_record(key) for key in key_list]
 
-    return render_template('print-label.html', item_list=item_list)
+    return render_template('print-label.html', records=records)
 
 @main.route('/specimen-image/<org_and_accession_number>')
 def specimen_image(org_and_accession_number):

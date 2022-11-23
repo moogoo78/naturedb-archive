@@ -4,9 +4,13 @@ import {
   ActionList,
   Box,
   Button,
+  IconButton,
   Checkbox,
   Text,
 } from '@primer/react';
+import {
+  PencilIcon,
+} from '@primer/octicons-react';
 import {
   useNavigate,
   Link as RouterLink,
@@ -24,7 +28,7 @@ import {
   SearchBox,
   ListContainer
 } from './ListContainer';
-
+import './table.css';
 
 /*
     collector: '',
@@ -178,7 +182,7 @@ const CollectionSearchBox = () => {
         availableTermItems.push(itemGroups[term]);
       }
     });
-    console.log(availableTermItems);
+
     return (
       <ActionList showDividers>
         {availableTermItems.map((group, groupIndex) => {
@@ -238,13 +242,14 @@ const CollectionSearchBox = () => {
 export default function CollectionList() {
   const navigate = useNavigate();
   const context = React.useContext(AdminContext);
-  const [check, setCheck] = React.useState([]);
 
   const getMyStar = () => {
     const saved = localStorage.getItem('mystar');
     const values = JSON.parse(saved);
     return values || [];
   }
+  const [check, setCheck] = React.useState(getMyStar());
+
   const setMyStar = () => {
     const values = getMyStar();
     let newStar = [...values];
@@ -253,7 +258,6 @@ export default function CollectionList() {
         newStar.push(check[i]);
       }
     }
-    console.log(check, values, newStar);
     localStorage.setItem('mystar', JSON.stringify(newStar));
     alert('已放入列印暫存');
   };
@@ -288,52 +292,6 @@ export default function CollectionList() {
     return filterIds;
   };
 
-  const renderResults = (results) => {
-    return (
-      <>
-        <Box my={2}><Button variant="outline" onClick={ e => { setMyStar();}}>勾選項目加入列印暫存</Button></Box>
-        <Box display="grid" gridTemplateColumns="1fr" gridGap={0}>
-          {results.data.map((v, i) => {
-            let scientificName = '';
-            let commonName = '';
-            if (v.taxon_text) {
-              const nameList = v.taxon_text.split('|');
-              if (nameList.length > 1) {
-                scientificName = nameList[0];
-                commonName = nameList[1];
-              }
-            }
-            const namedAreas = v.named_areas.map(x => x.name);
-            return (
-              <Box p={3} borderColor="border.default" borderWidth={0} borderBottomWidth={1} borderStyle="solid" key={i}>
-                <Checkbox id={`checkbox-${i}`} onChange={(e)=> {
-                  if (check.indexOf(v.unit_id) < 0) {
-                    setCheck([...check, v.unit_id]);
-                  }
-                }}/>
-                <Box display="flex">
-                  <Box mr={3}>
-                    {v.image_url ? <a href={`${context.baseURL}/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} /></a> : null}
-                  </Box>
-                  <Box>
-                    <Text>{scientificName}</Text>
-                    <Text ml={2}>{commonName}</Text>
-                    <div>HAST:{v.accession_number}</div>
-                    <div>{ v.collector?.display_name } {v.field_number}, {v.collect_date}</div>
-                    <div>{ namedAreas.join(' ') }</div>
-                    <div>{v.locality_text}</div>
-                    <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div>
-                    <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div>
-                  </Box>
-                </Box>
-              </Box>
-            );
-          })}
-        </Box>
-      </>
-    );
-  };
-
   const CollectionToolbar = () => {
     return (
       <Box display="flex" justifyContent="flex-end" m={2}>
@@ -347,9 +305,9 @@ export default function CollectionList() {
               <ActionList.Item onSelect={ e => {
                 const printList = getMyStar();
                 if (printList.length > 0) {
-                  window.open(`${context.baseURL}/print-label?ids=${printList.join(',')}`, '_blank');
+                  window.open(`${context.baseURL}/print-label?keys=${printList.join(',')}`, '_blank');
                 }
-              }}>列印</ActionList.Item>
+              }}>{`列印 (${check.length})`}</ActionList.Item>
               <ActionList.Divider />
               <ActionList.Item onSelect={ e => { clearMyStar(); }} variant="danger">清除列印暫存</ActionList.Item>
             </ActionList>
@@ -359,6 +317,119 @@ export default function CollectionList() {
       </Box>
     );
   };
+
+  const TableView = ({results, pagination}) => {
+  return (
+      <>
+        <Box display="flex" flexDirection="column" mt={2} sx={{ color: '#666666' }}>
+          <Box mt={2}>
+            <Button variant="outline" onClick={ e => { setMyStar();}}>勾選項目加入列印暫存</Button>
+          </Box>
+        </Box>
+        <Box mt={2}>
+          <table>
+            <thead>
+              <tr>
+                <th className="table-col1">#</th><th className="table-col2">標本照</th><th  className="table-col3">館號</th><th  className="table-col4">物種</th><th className="table-col5">採集號</th><th className="table-col6">採集日期</th><th className="table-col7">採集地點</th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.data.map((v, i) => {
+                let scientificName = '';
+                let commonName = '';
+                if (v.taxon_text) {
+                  const nameList = v.taxon_text.split('|');
+                  if (nameList.length > 1) {
+                    scientificName = nameList[0];
+                    commonName = nameList[1];
+                  }
+                }
+                const namedAreas = v.named_areas.map(x => x.name);
+                return (
+                  <tr key={i}>
+                    <td className="table-col1">
+                      <Box display="flex">
+                        <Box>
+                          <Checkbox
+                            id={`checkbox-${i}`}
+                            checked={check.includes(v.id)}
+                            onClick={ e => {
+                              const index = check.indexOf(v.id);
+                              const newCheck = check;
+                              if (index >= 0 ) {
+                                //newCheck.splice(index, 1); this dosen't work
+                                setCheck(check.filter( (_, i) => i !==index));
+                              } else {
+                                setCheck([...check, v.id]);
+                              }
+                            }}
+                          />{(i+1)+(pagination.currentPage-1)*pagination.pageSize}
+                        </Box>
+                        {/* <Button leadingIcon={PencilIcon} onClick={ e => { */}
+                        {/*   //navigate(, {replace: true}) */}
+                        {/*   window.open(`/collections/${v.collection_id}`); */}
+                        {/* }} size="small"></Button> */}
+                        <Box ml={2}>
+                          <IconButton icon={PencilIcon} onClick={ _ => {
+                            window.open(`/collections/${v.collection_id}`);
+                          }}/>
+                        </Box>
+                      </Box>
+                    </td>
+                    <td className="table-col2"><img src={v.image_url} height="30px"/></td>
+                    <td className="table-col3">{v.accession_number || ''}</td>
+                    <td className="table-col4">{`${scientificName} ${commonName}`}</td>
+                    <td className="table-col5">{ v.collector?.display_name } {v.field_number}</td>
+                    <td className="table-col6">{ v.collect_date }</td>
+                    <td className="table-col7">{namedAreas.join('/')}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </Box>
+        {/* <Box display="grid" gridTemplateColumns="1fr" gridGap={0}> */}
+        {/*   {results.data.map((v, i) => { */}
+        {/*     let scientificName = ''; */}
+        {/*     let commonName = ''; */}
+        {/*     if (v.taxon_text) { */}
+        {/*       const nameList = v.taxon_text.split('|'); */}
+        {/*       if (nameList.length > 1) { */}
+        {/*         scientificName = nameList[0]; */}
+        {/*         commonName = nameList[1]; */}
+        {/*       } */}
+        {/*     } */}
+        {/*     const namedAreas = v.named_areas.map(x => x.name); */}
+        {/*     return ( */}
+        {/*       <Box p={3} borderColor="border.default" borderWidth={0} borderBottomWidth={1} borderStyle="solid" key={i}> */}
+        {/*         <Checkbox id={`checkbox-${i}`} onChange={(e)=> { */}
+        {/*           if (check.indexOf(v.unit_id) < 0) { */}
+        {/*             setCheck([...check, v.unit_id]); */}
+        {/*           } */}
+        {/*         }}/> */}
+        {/*         <Box display="flex"> */}
+        {/*           <Box mr={3}> */}
+        {/*             {v.image_url ? <a href={`${context.baseURL}/specimens/HAST:${v.accession_number}`} className="text is-link"> <img src={v.image_url} /></a> : null} */}
+        {/*           </Box> */}
+        {/*           <Box> */}
+        {/*             <Text>{scientificName}</Text> */}
+        {/*             <Text ml={2}>{commonName}</Text> */}
+        {/*             <div>HAST:{v.accession_number}</div> */}
+        {/*             <div>{ v.collector?.display_name } {v.field_number}, {v.collect_date}</div> */}
+        {/*             <div>{ namedAreas.join(' ') }</div> */}
+        {/*             <div>{v.locality_text}</div> */}
+        {/*             <div><>海拔: {v.altitude}{(v.altitude2) ? ` -  ${v.altitude2}`:''}</></div> */}
+        {/*             <div>經緯度: {v.longitude_decimal}, {v.latitude_decimal}</div> */}
+        {/*           </Box> */}
+        {/*         </Box> */}
+        {/*       </Box> */}
+        {/*     ); */}
+        {/*   })} */}
+        {/* </Box> */}
+      </>
+    );
+  };
+  
   // console.log('chk', check);
   return (
     <ListContainer
@@ -367,7 +438,7 @@ export default function CollectionList() {
       SearchBox={CollectionSearchBox}
       truncFilterIdFn={truncFilterIdFn}
       getListName="explore"
-      renderResults={renderResults}
+      ResultsView={TableView}
       ListToolbar={CollectionToolbar}
     />
   )

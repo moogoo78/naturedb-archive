@@ -303,8 +303,8 @@ const AutocompleteWithContextInternal = ((props) => {
 
   const myFilterFn = item => {
     /* slowly */
-    if (filterText) {
-      if (item.text.toUpperCase().includes(filterText.toUpperCase())) {
+    if (filterText && filterText.text) {
+      if (item.text.toUpperCase().includes(filterText.text.toUpperCase())) {
         return true;
       } else {
         return false;

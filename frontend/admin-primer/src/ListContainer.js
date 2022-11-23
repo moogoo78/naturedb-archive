@@ -7,6 +7,7 @@ import {
   Pagehead,
   Pagination,
   Spinner,
+  Text,
   TextInputWithTokens,
 } from '@primer/react';
 import {
@@ -76,7 +77,19 @@ const reducer = (state, action) => {
   }
 };
 
-const ListContainer = ({title, resource, SearchBox, truncFilterIdFn, getListName, renderResults, ListToolbar}) => {
+const ResultsBox = ({results, pagination, ResultsView}) => {
+  return (
+    <>
+      <Box display="flex" flexDirection="column" mt={2} sx={{ color: '#666666' }}>
+        <Box><Text sx={{fontSize: '16px', fontWeight: 'bold'}}>查詢結果: {results.total.toLocaleString()} 筆</Text><Text sx={{fontSize: '12px'}}> (搜尋時間: {results.elapsed.toFixed(2)} seconds, total: {results.elapsed_count.toFixed(2)}, mapping: {results.elapsed_mapping.toFixed(2)})</Text>
+        </Box>
+      </Box>
+      <ResultsView results={results} pagination={pagination}/>
+    </>
+  );
+};
+
+const ListContainer = ({title, resource, SearchBox, truncFilterIdFn, getListName, ResultsView, ListToolbar}) => {
   const navigate = useNavigate();
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
@@ -145,14 +158,12 @@ const ListContainer = ({title, resource, SearchBox, truncFilterIdFn, getListName
         </Box>
         {(state.isLoading) ? <Box display="flex" justifyContent="center" m={4}><Spinner /></Box> : null}
         {state.results && state.isLoading === false &&
-         renderResults(state.results)}
+         <ResultsBox results={state.results} pagination={state.pagination} ResultsView={ResultsView} />}
         <Pagination pageCount={state.pagination.pageCount} currentPage={state.pagination.currentPage} onPageChange={onPageChange} />
       </ListContext.Provider>
     </>
   )
 };
-
-
 
 const SearchBox = ({queryURL, formatItemsFn, renderItems, handleItemSelect, formatTokensFn}) => {
   const { state, dispatch } = React.useContext(ListContext);
@@ -230,4 +241,4 @@ const SearchBox = ({queryURL, formatItemsFn, renderItems, handleItemSelect, form
   )
 };
 
-export { ListContainer, SearchBox }
+export { ListContainer, SearchBox, ListContext }

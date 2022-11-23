@@ -803,7 +803,7 @@ class Collection(Base):
 
     def get_first_id_taxon(self):
         if len(self.identifications.all()) > 0:
-            self.identifications[0].taxon
+            return self.identifications[0].taxon
         else:
             return None
 

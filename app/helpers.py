@@ -483,3 +483,21 @@ def conv_hast21(key):
             make_mof_option(con)
         elif key == 'make_proj':
             make_proj(con)
+
+def get_record(key):
+    collection_id, unit_id = key.split('/')
+    record = {}
+    if unit_id:
+        u = Unit.query.get(unit_id)
+        record = {
+            'type': 'unit',
+            'unit': u,
+            'collection': u.collection,
+        }
+    else:
+        record = {
+            'type': 'collection',
+            'collection': Collection.query.get(collection_id),
+        }
+
+    return record

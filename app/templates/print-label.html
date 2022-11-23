@@ -26,10 +26,10 @@
       <h1 class="page-title">page 1</h1>
       <div class="page-item-wrapper">
         <div class="page-item-column">
-          {% for item in item_list %}
-        <div class="hast-label-item">
-          {% for id in item.collection.identifications[1:] %}
-          <div class="id-container">
+          {% for record in records %}
+          <div class="hast-label-item">
+            {% for id in record.collection.identifications.all()[1:] %}
+            <div class="id-container">
             <div class="taxon">
               {% if id.taxon.rank == "species" %}
               {% set id_family = id.taxon.get_higher_taxon('family') %}
@@ -43,13 +43,13 @@
             </div>
           </div>
           {% endfor %}
-          {% set named_areas = item.collection.get_named_area_list() %}
+          {% set named_areas = record.collection.get_named_area_list() %}
           <div class="institution">
             <!-- LAYOUT1 span class="institution-name">中央研究院植物標本館</span><span class="institution-code">(HAST)</span-->
             <span class="collection-name">{{ named_areas[0].name_en }}</span>
           </div>
           <div class="taxon">
-            {% set first_id_taxon = item.collection.get_first_id_taxon() %}
+            {% set first_id_taxon = record.collection.get_first_id_taxon() %}
             {% if first_id_taxon %}
             <span class="taxon-family">{{ first_id_taxon.get_higher_taxon('family').display_name('label') }}</span>
             <span class="taxon-species">{{ first_id_taxon.display_name('label') }}</span>
@@ -59,36 +59,36 @@
         <div class="locality">
           {# if taiwan: show from hsien, else other country, show from province (ex: china) #}
           <span class="locality-list">{{ named_areas[1:]|rejectattr('value', 'none')|map(attribute='value.display_name')|join(', ')|replace('TAIWAN (台灣), ', '', 1) }}</span>
-          {% if item.locality_text %}<span class="box">{{ item.locality_text }}</span>{% endif %}
+          {% if record.collection.locality_text %}<span class="box">{{ record.collection.locality_text }}</span>{% endif %}
         </div>
         <div class="geographic-position">
-          {% set coordinates = item.collection.get_coordinates('dms') %}
+          {% set coordinates = record.collection.get_coordinates('dms') %}
           {% if coordinates %}<span>{{ coordinates.x_label }}, {{ coordinates.y_label }}</span>{% endif %}
-          {% if item.collection.altitude  %}<span class="altitude">Elev. ca. {{ item.collection.altitude }}{% if item.collection.altitude2 %}-{{ item.collection.altitude2 }}{% endif %} m<span>{% endif %}
+          {% if record.collection.altitude  %}<span class="altitude">Elev. ca. {{ record.collection.altitude }}{% if record.collection.altitude2 %}-{{ record.collection.altitude2 }}{% endif %} m<span>{% endif %}
         </div>
         <div class="annotation-container">
-          {% set param1 = item.collection.get_parameters(['veget', 'topography'])|map(attribute='value')|join(', ')|capitalize() %}
-          {% set param2a = item.get_parameters(['life-form'])|map(attribute='value')|join(', ')|capitalize() %}
-          {% set param2b = item.get_parameters(['plant-h', 'fruit', 'fruit-color', 'flower', 'flower-color', 'sex-char'])|map(attribute='value')|join(', ') %}
-          {% set param3 = item.collection.get_parameters(['habitat', 'light', 'humidity', 'abundance', 'naturalness'])|map(attribute='value')|join(', ')|capitalize() %}
+          {% set param1 = record.collection.get_parameters(['veget', 'topography'])|map(attribute='value')|join(', ')|capitalize() %}
+          {% set param2a = record.collection.get_parameters(['life-form'])|map(attribute='value')|join(', ')|capitalize() %}
+          {% set param2b = record.collection.get_parameters(['plant-h', 'fruit', 'fruit-color', 'flower', 'flower-color', 'sex-char'])|map(attribute='value')|join(', ') %}
+          {% set param3 = record.collection.get_parameters(['habitat', 'light', 'humidity', 'abundance', 'naturalness'])|map(attribute='value')|join(', ')|capitalize() %}
           {% if param1 %}<div class="annotations">{{ param1 }}.</div>{% endif %}
           {% if param2a or param2b %}<div class="annotations">{% if param2a %}{{ param2a }};{% endif %}{% if param2b %} {{ param2b }}.{% endif %}</div>{% endif %}
           {% if param3 %}<div class="annotations">{{ param3 }}.</div>{% endif %}
 
-          {% set field_note_list = [item.collection.field_note, item.collection.field_note_en] %}
-          {% set annotation_list =  item.get_annotations(['add-char', 'name-comment']) %}
+          {% set field_note_list = [record.collection.field_note, record.collection.field_note_en] %}
+          {% set annotation_list = [] %} {# record.unit.get_annotations(['add-char', 'name-comment']) #}
           {% if field_note_list or annotation_list %}<div class="annotations">{{ field_note_list|reject('none')|join(', ') }}aa{{ annotation_list|rejectattr('text', 'none')|map(attribute='text')|join(', ') }}</div>{% endif %}
         </div>
         <div class="collect">
-          {% set companion_list = [item.collection.companion_text, item.collection.companion_text_en ] %}
-          <span class="collect-num">{{ item.collection.collector.display_name() }} {{ item.collection.field_number }}{% if companion_list %}<span class="box companion">& {{ companion_list|reject('none')|join(', ') }}</span>{% endif %}</span>
-          <span class="collect-date">{% if item.collection.collect_date %}{{ item.collection.collect_date.strftime('%b. %d, %Y') }}{% endif %}</span>
+          {% set companion_list = [record.collection.companion_text, record.collection.companion_text_en ] %}
+          <span class="collect-num">{{ record.collection.collector.display_name() }} {{ record.collection.field_number }}{% if companion_list %}<span class="box companion">& {{ companion_list|reject('none')|join(', ') }}</span>{% endif %}</span>
+          <span class="collect-date">{% if record.collection.collect_date %}{{ record.collection.collect_date.strftime('%b. %d, %Y') }}{% endif %}</span>
         </div>
         <!-- LAYOUT1 div class="footer">HERBARIUM, ACADEMIA SINICA, TAIPEI (HAST)</div-->
         <div class="institution"><span class="institution-name">中央研究院植物標本館</span><span class="institution-code">Herbarium, Academia Sinica, Taipei (HAST)</span></div>
         <div class="annotations">
-          {% if item.get_annotations(['is-greenhouse'])[0] and item.get_annotations(['is-greenhouse'])[0].text == "G" %}<span class="box">Plants of this collection were brought back for cultivation.</span>{% endif %}
-          {% if item.preparation_date %}<span class="box">This specimen was pressed on {{ item.preparation_date.strftime('%b. %d, %Y') }}</span>{% endif %}
+          {% if record.unit and record.unit.get_annotations(['is-greenhouse'])[0] and record.unit.get_annotations(['is-greenhouse'])[0].text == "G" %}<span class="box">Plants of this collection were brought back for cultivation.</span>{% endif %}
+          {% if record.unit and record.unit.preparation_date %}<span class="box">This specimen was pressed on {{ record.unit.preparation_date.strftime('%b. %d, %Y') }}</span>{% endif %}
         </div>
 
         </div>
