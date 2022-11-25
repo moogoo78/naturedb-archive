@@ -46,7 +46,7 @@
           {% set named_areas = record.collection.get_named_area_list() %}
           <div class="institution">
             <!-- LAYOUT1 span class="institution-name">中央研究院植物標本館</span><span class="institution-code">(HAST)</span-->
-            <span class="collection-name">{{ named_areas[0].name_en }}</span>
+            <span class="collection-name">{{ named_areas[0].value.name_en }}</span>
           </div>
           <div class="taxon">
             {% set first_id_taxon = record.collection.get_first_id_taxon() %}
@@ -67,21 +67,13 @@
           {% if record.collection.altitude  %}<span class="altitude">Elev. ca. {{ record.collection.altitude }}{% if record.collection.altitude2 %}-{{ record.collection.altitude2 }}{% endif %} m<span>{% endif %}
         </div>
         <div class="annotation-container">
-          {% set param1 = record.collection.get_parameters(['veget', 'topography'])|map(attribute='value')|join(', ')|capitalize() %}
-          {% set param2a = record.collection.get_parameters(['life-form'])|map(attribute='value')|join(', ')|capitalize() %}
-          {% set param2b = record.collection.get_parameters(['plant-h', 'fruit', 'fruit-color', 'flower', 'flower-color', 'sex-char'])|map(attribute='value')|join(', ') %}
-          {% set param3 = record.collection.get_parameters(['habitat', 'light', 'humidity', 'abundance', 'naturalness'])|map(attribute='value')|join(', ')|capitalize() %}
-          {% if param1 %}<div class="annotations">{{ param1 }}.</div>{% endif %}
-          {% if param2a or param2b %}<div class="annotations">{% if param2a %}{{ param2a }};{% endif %}{% if param2b %} {{ param2b }}.{% endif %}</div>{% endif %}
-          {% if param3 %}<div class="annotations">{{ param3 }}.</div>{% endif %}
-
-          {% set field_note_list = [record.collection.field_note, record.collection.field_note_en] %}
-          {% set annotation_list = [] %} {# record.unit.get_annotations(['add-char', 'name-comment']) #}
-          {% if field_note_list or annotation_list %}<div class="annotations">{{ field_note_list|reject('none')|join(', ') }}aa{{ annotation_list|rejectattr('text', 'none')|map(attribute='text')|join(', ') }}</div>{% endif %}
+          {% for _, text in record.annotation_list.items() %}
+          <div class="annotations">{{ text }}</div>
+          {% endfor %}
+          {% if field_note_list or annotation_list %}<div class="annotations">{{ field_note_list|reject('none')|join(', ') }}{{ annotation_list|rejectattr('text', 'none')|map(attribute='text')|join(', ') }}</div>{% endif %}
         </div>
         <div class="collect">
-          {% set companion_list = [record.collection.companion_text, record.collection.companion_text_en ] %}
-          <span class="collect-num">{{ record.collection.collector.display_name() }} {{ record.collection.field_number }}{% if companion_list %}<span class="box companion">& {{ companion_list|reject('none')|join(', ') }}</span>{% endif %}</span>
+          <span class="collect-num">{{ record.collection.collector.display_name() }} {{ record.collection.field_number }}{% if record.collection.companion_list %}<span class="box companion">& {{ record.collection.companion_list|join(', ') }}</span>{% endif %}</span>
           <span class="collect-date">{% if record.collection.collect_date %}{{ record.collection.collect_date.strftime('%b. %d, %Y') }}{% endif %}</span>
         </div>
         <!-- LAYOUT1 div class="footer">HERBARIUM, ACADEMIA SINICA, TAIPEI (HAST)</div-->

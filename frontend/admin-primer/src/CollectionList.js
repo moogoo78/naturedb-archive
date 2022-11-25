@@ -10,6 +10,8 @@ import {
 } from '@primer/react';
 import {
   PencilIcon,
+  StarIcon,
+  StarFillIcon,
 } from '@primer/octicons-react';
 import {
   useNavigate,
@@ -243,26 +245,26 @@ export default function CollectionList() {
   const navigate = useNavigate();
   const context = React.useContext(AdminContext);
 
-  const getMyStar = () => {
+  React.useEffect(()=> {
     const saved = localStorage.getItem('mystar');
-    const values = JSON.parse(saved);
-    return values || [];
-  }
-  const [check, setCheck] = React.useState(getMyStar());
-
-  const setMyStar = () => {
-    const values = getMyStar();
-    let newStar = [...values];
-    for (const i in check) {
-      if (!values.includes(check[i])) {
-        newStar.push(check[i]);
-      }
+    if (saved) {
+      const values = JSON.parse(saved);
+      setSelectedRecords(new Set(values));
+    } else {
+      setSelectedRecords(new Set());
     }
-    localStorage.setItem('mystar', JSON.stringify(newStar));
-    alert('已放入列印暫存');
+  }, []);
+
+
+  const [selectedRecords, setSelectedRecords] = React.useState(new Set());
+  console.log(selectedRecords);
+  const saveMyStar = (mySet) => {
+    setSelectedRecords(mySet);
+    localStorage.setItem('mystar', JSON.stringify(Array.from(mySet)));
   };
   const clearMyStar = () => {
     localStorage.removeItem('mystar');
+    setSelectedRecords(new Set());
     alert('已清除列印暫存');
   };
 
@@ -303,11 +305,10 @@ export default function CollectionList() {
               {/* <ActionList.Item onSelect={ e => { setMyStar(); }}>勾選項目加入列印暫存</ActionList.Item> */}
               <ActionList.Item onSelect={ e => { navigate(`/collections/create`, {replace: true}) }}>新增項目</ActionList.Item>
               <ActionList.Item onSelect={ e => {
-                const printList = getMyStar();
-                if (printList.length > 0) {
-                  window.open(`${context.baseURL}/print-label?keys=${printList.join(',')}`, '_blank');
+                if (selectedRecords.size > 0) {
+                  window.open(`${context.baseURL}/print-label?keys=${Array.from(selectedRecords).join(',')}`, '_blank');
                 }
-              }}>{`列印 (${check.length})`}</ActionList.Item>
+              }}>{`列印 (${selectedRecords.size})`}</ActionList.Item>
               <ActionList.Divider />
               <ActionList.Item onSelect={ e => { clearMyStar(); }} variant="danger">清除列印暫存</ActionList.Item>
             </ActionList>
@@ -323,14 +324,14 @@ export default function CollectionList() {
       <>
         <Box display="flex" flexDirection="column" mt={2} sx={{ color: '#666666' }}>
           <Box mt={2}>
-            <Button variant="outline" onClick={ e => { setMyStar();}}>勾選項目加入列印暫存</Button>
+            {/* <Button variant="outline" onClick={ e => { setMyStar();}}>勾選項目加入列印暫存</Button> */}
           </Box>
         </Box>
         <Box mt={2}>
           <table>
             <thead>
               <tr>
-                <th className="table-col1">#</th><th className="table-col2">標本照</th><th  className="table-col3">館號</th><th  className="table-col4">物種</th><th className="table-col5">採集號</th><th className="table-col6">採集日期</th><th className="table-col7">採集地點</th>
+                <th className="table-col1">#</th><th className="table-col2">標本照</th><th  className="table-col3">館號</th><th  className="table-col4">物種</th><th className="table-col5">採集號</th><th className="table-col6">採集日期</th><th className="table-col7">採集地點</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -349,31 +350,38 @@ export default function CollectionList() {
                   <tr key={i}>
                     <td className="table-col1">
                       <Box display="flex">
-                        <Box>
-                          <Checkbox
-                            id={`checkbox-${i}`}
-                            checked={check.includes(v.id)}
-                            onClick={ e => {
-                              const index = check.indexOf(v.id);
-                              const newCheck = check;
-                              if (index >= 0 ) {
-                                //newCheck.splice(index, 1); this dosen't work
-                                setCheck(check.filter( (_, i) => i !==index));
-                              } else {
-                                setCheck([...check, v.id]);
-                              }
-                            }}
-                          />{(i+1)+(pagination.currentPage-1)*pagination.pageSize}
+                        <Box mx={2} mb={2} onClick={ e => {
+                          const newSelected = new Set(selectedRecords);
+                          if (newSelected.has(v.record_key)) {
+                            newSelected.delete(v.record_key);
+                          } else {
+                            newSelected.add(v.record_key);
+                          }
+                          saveMyStar(newSelected);
+                        }}>
+                          {(selectedRecords.has(v.record_key)) ? <StarFillIcon /> : <StarIcon />}
+                        </Box>
+                        <Box mt={1}>
+                          <Text>{(i+1)+(pagination.currentPage-1)*pagination.pageSize}</Text>
+                          {/* <Checkbox */}
+                          {/*   id={`checkbox-${i}`} */}
+                          {/*   checked={check.includes(v.record_key)} */}
+                          {/*   onClick={ e => { */}
+                          {/*     const index = check.indexOf(v.record_key); */}
+                          {/*     const newCheck = check; */}
+                          {/*     if (index >= 0 ) { */}
+                          {/*       //newCheck.splice(index, 1); this dosen't work */}
+                          {/*       setCheck(check.filter( (_, i) => i !==index)); */}
+                          {/*     } else { */}
+                          {/*       setCheck([...check, v.record_key]); */}
+                          {/*     } */}
+                          {/*   }} */}
+                          {/* /> */}
                         </Box>
                         {/* <Button leadingIcon={PencilIcon} onClick={ e => { */}
                         {/*   //navigate(, {replace: true}) */}
                         {/*   window.open(`/collections/${v.collection_id}`); */}
                         {/* }} size="small"></Button> */}
-                        <Box ml={2}>
-                          <IconButton icon={PencilIcon} onClick={ _ => {
-                            window.open(`/collections/${v.collection_id}`);
-                          }}/>
-                        </Box>
                       </Box>
                     </td>
                     <td className="table-col2"><img src={v.image_url} height="30px"/></td>
@@ -382,6 +390,15 @@ export default function CollectionList() {
                     <td className="table-col5">{ v.collector?.display_name } {v.field_number}</td>
                     <td className="table-col6">{ v.collect_date }</td>
                     <td className="table-col7">{namedAreas.join('/')}</td>
+                    <td className="table-edit">
+                      <Box display="flex">
+                        <Box ml={2}>
+                          <IconButton icon={PencilIcon} onClick={ _ => {
+                            window.open(`/collections/${v.collection_id}`);
+                          }}/>
+                        </Box>
+                      </Box>
+                    </td>
                   </tr>
                 )
               })}

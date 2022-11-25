@@ -149,6 +149,9 @@ h1.page-title {
 .hast-label-item .collect-num {
 }
 .hast-label-item .collect-date {
+  width: 90px;
+  text-align: right;
+  margin-left: 2px;
 }
 .hast-label-item .box {
   display: block;

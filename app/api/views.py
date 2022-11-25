@@ -1,4 +1,3 @@
-
 import json
 import time
 import re
@@ -606,7 +605,7 @@ def get_explore():
                 data.append({
                     'unit_id': r[0],
                     'collection_id': c.id,
-                    'id': f'{c.id}/{unit_id}',
+                    'record_key': f'u{r[0]}' if r[0] else f'c{c.id}',
                     'accession_number': r[1],
                     'image_url': image_url,
                     'field_number': c.field_number,

@@ -135,22 +135,24 @@ class MeasurementOrFact(Base):
         ('flower', '花'),
         ('fruit', '果'),
         ('flower-color', '花色'),
-        ('fruit-color', '果色'),
+        ('fruit-color', 'd果色'),
     )
 
     #PARAMETER_FOR_COLLECTION = ('habitat', 'veget', 'topography', 'naturalness', 'light-intensity', 'humidity', 'abundance')
     UNIT_OPTIONS = (
         {'id': 10, 'name': 'life-form', 'label': '生長型'},
-        {'id': 11, 'name': 'flower', 'label': '花'},
-        {'id': 12, 'name': 'fruit', 'label': '果'},
+        {'id': 8, 'name': 'plant-h', 'label': '植株高度'},
+        {'id': 11, 'name': 'flower', 'label': '花期'},
         {'id': 13, 'name': 'flower-color', 'label': '花色'},
-        {'id': 14, 'name': 'fruit-color', 'label': '果色'}
+        {'id': 12, 'name': 'fruit', 'label': '果期'},
+        {'id': 14, 'name': 'fruit-color', 'label': '果色'},
+        {'id': 9, 'name': 'sex-char', 'label': '性狀描述'},
     )
     BIOTOPE_OPTIONS = (
         {'id': 7, 'name': 'veget', 'label': '植群型'},
         {'id': 6, 'name': 'topography', 'label': '地形位置'},
-        {'id': 2, 'name': 'habitat', 'label': '微棲地'},
-        {'id': 5 , 'name': 'naturalness', 'label': '自然度'},
+        {'id': 2, 'name': 'habitat', 'label': '微生育地'},
+        {'id': 5, 'name': 'naturalness', 'label': '自然度'},
         {'id': 4, 'name': 'light-intensity', 'label': '環境光度'},
         {'id': 3, 'name': 'humidity', 'label': '環境濕度'},
         {'id': 1, 'name': 'abundance', 'label': '豐富度'},
@@ -523,14 +525,15 @@ class Collection(Base):
 
     def get_parameters(self, parameter_list=[]):
         params = {f'{x.parameter.name}': x for x in self.biotope_measurement_or_facts}
-
-        rows = []
+        items = []
         if len(parameter_list) == 0:
             parameter_list = [x for x in params]
-        for key in parameter_list:
-            if p := params.get(key, ''):
-                rows.append(p.to_dict())
-        return rows
+        for name in parameter_list:
+            if p := params.get(name, ''):
+                item = p.to_dict()
+                item['name'] = name
+                items.append(item)
+        return items
 
     @property
     def latest_scientific_name(self):
@@ -807,6 +810,14 @@ class Collection(Base):
         else:
             return None
 
+    @property
+    def companion_list(self):
+        items = []
+        if x:= self.companion_text:
+            items.append(x)
+        if x:= self.companion_text_en:
+            items.append(x)
+        return items
 
 class FieldNumber(Base):
     __tablename__ = 'other_field_number'
@@ -940,13 +951,15 @@ class Unit(Base):
     def get_parameters(self, parameter_list=[]):
         params = {f'{x.parameter.name}': x for x in self.measurement_or_facts}
 
-        rows = []
+        items = []
         if len(parameter_list) == 0:
             parameter_list = [x for x in params]
-        for key in parameter_list:
-            if p := params.get(key, ''):
-                rows.append(p.to_dict())
-        return rows
+        for name in parameter_list:
+            if p := params.get(name, ''):
+                item = p.to_dict()
+                item['name'] = name
+                items.append(item)
+        return items
 
     def get_annotations(self, parameter_list=[]):
         params = {f'{x.category}': x for x in self.annotations}

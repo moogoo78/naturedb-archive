@@ -484,20 +484,130 @@ def conv_hast21(key):
         elif key == 'make_proj':
             make_proj(con)
 
+def process_text(process_list, text_list):
+    result = ''
+
+    for process, args in process_list.items():
+        if process == 'join':
+            result = args.get('char', ',').join(text_list)
+        elif process == 'use':
+            result = text_list[0]
+        if process == 'capitalize':
+            result = result.capitalize()
+        if process == 'end':
+            result = f"{result}{args['char']}"
+    return result
+
 def get_record(key):
-    collection_id, unit_id = key.split('/')
+    unit = None
+    collection = None
     record = {}
-    if unit_id:
-        u = Unit.query.get(unit_id)
+    if key[0] == 'u':
+        unit = Unit.query.get(key[1:])
+
         record = {
             'type': 'unit',
-            'unit': u,
-            'collection': u.collection,
+            'unit': unit,
+            'collection': unit.collection,
         }
-    else:
+    elif key[0] == 'c':
+        collection = Collection.query.get(key[1:])
         record = {
             'type': 'collection',
-            'collection': Collection.query.get(collection_id),
+            'collection': collection,
         }
 
+    # generate label text
+    # ordered dict after python 3.6
+    hast_label_policy = {
+        'biotope1a': {
+            'label': '1a',
+            'parameter_list': ['veget'],
+            'process_list': {
+                'use': None,
+                'capitalize': None,
+                'end': {
+                    'char': '.'
+                }
+            }
+        },
+        'biotope1b': {
+            'label': '1b',
+            'parameter_list': ['topography'],
+            'process_list': {
+                'use': None,
+                'capitalize': None,
+                'end': {
+                    'char': '.'
+                }
+            }
+        },
+        'mof1': {
+            'label': '2a',
+            'parameter_list': ['life-form', 'plant-h'],
+            'process_list': {
+                'join': {
+                    'char': ', '
+                },
+                'capitalize': None,
+                'end': {
+                    'char': ';'
+                }
+            }
+        },
+        'mof2': {
+            'label': '2b',
+            'parameter_list': ['fruit', 'fruit-color', 'flower', 'flower-color', 'sex-char'],
+            'process_list': {
+                'join': {
+                    'char': ', '
+                },
+                'end': {
+                    'char': '.'
+                }
+            },
+        },
+        'biotope2': {
+            'label': '3',
+            'parameter_list': ['habitat', 'light-intensity', 'humidity', 'abundance'],
+            'process_list': {
+                'join': {
+                    'char': ', '
+                },
+                'capitalize': None,
+                'end': {
+                    'char': '.'
+                }
+            }
+        }
+    }
+    hast_label_format = ['biotope1a+biotope1b', 'mof1+mof2', 'biotope2']
+    annotations = {}
+    param_map = {}
+    items = record['collection'].get_parameters()
+    for i in items:
+        param_map[i['name']] = i['value']
+    if record['type'] == 'unit':
+        items = record['unit'].get_parameters()
+        for i in items:
+            param_map[i['name']] = i['value']
+
+    text_map = {}
+    for name, policy in hast_label_policy.items():
+        text_map[name] = process_text(
+            policy['process_list'],
+            [param_map[x] for x in policy['parameter_list'] if param_map.get(x, '')])
+
+    for i in hast_label_format:
+        if '+' in i:
+            parts = i.split('+')
+            text = ' '.join([text_map[p] for p in parts])
+        else:
+            text = text_map[i]
+        annotations[i] = text
+
+    record.update({
+        'annotation_list': annotations,
+    })
+    #print(annotations, flush=True)
     return record
