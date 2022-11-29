@@ -233,11 +233,11 @@ def register_blueprint_api(app):
 def create_app():
     app = Flask(__name__)
 
-    from app.main import main as main_bp
-    #from app.admin import admin as admin_bp;
+    from app.blueprints.main import main as main_bp
+    from app.blueprints.admin import admin as admin_bp;
 
     app.register_blueprint(main_bp)
-    #app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
 
     register_blueprint_api(app)
     #print(app.config, flush=True)

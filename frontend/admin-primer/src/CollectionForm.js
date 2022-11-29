@@ -213,10 +213,9 @@ const MySelect = React.forwardRef((props, ref)=> {
 
 const AutocompleteQuery = React.forwardRef((props, ref) => {
   const [loading, setLoading] = React.useState(false);
-  const [items, setItems] = React.useState((props.value) ? [props.value] : []);
+  const [items, setItems] = React.useState([]);
   const [selected, setSelected] = React.useState((props.value) ? props.value : null);
-  //console.log(props, selected, items);
-  //console.log('sel', selected, props);
+  // console.log(props, selected, items);
   return (
       <Autocomplete>
         <Autocomplete.Input
@@ -229,7 +228,7 @@ const AutocompleteQuery = React.forwardRef((props, ref) => {
             const filter = { q: e.target.value, ...props.queryFilter };
             getList(props.fetchResourceName, {filter: filter})
               .then(({json}) => {
-                const items = json.data.map( x => ({id: x.id, text: x.display_name}));
+                const items = json.data.map( x => ({...x, text: x.display_name}));
                 setItems(items);
                 setLoading(false);
               });
@@ -245,7 +244,7 @@ const AutocompleteQuery = React.forwardRef((props, ref) => {
               sx={{color: 'fg.subtle'}}
             />
           }
-          value={(selected) ? selected.text : ''}
+          value={(selected) ? selected.display_name : ''}
         />
         <Autocomplete.Overlay width="xxlarge">
           <Autocomplete.Menu
@@ -284,7 +283,6 @@ const MyAutocomplete = React.forwardRef((props, ref) => {
 
 
 const AutocompleteWithContextInternal = ((props) => {
-  //console.log('int', props);
   const autocompleteContext = React.useContext(Autocomplete.Context);
   //console.log(autocompleteContext);
   if (autocompleteContext === null) {
@@ -464,6 +462,10 @@ export default function CollectionForm() {
       // console.log(json.collector);
       console.log('🐣 fetch', json);
 
+      //if (json.data.collector) {
+      //  json.data.collector =  {id: json.data.collector.id, text: json.data.collector.display_name};
+      //}
+        
       // helper
       let helpers = initHelpers(json.form);
       if (json.data.longitude_decimal) {
@@ -495,7 +497,6 @@ export default function CollectionForm() {
     const { register, handleSubmit, watch, control, setValue, formState: { errors, dirtyFields } } = useForm({
       defaultValues: defaultValues,
     });
-
     const {
       fields: unitFields,
       append: unitAppend,

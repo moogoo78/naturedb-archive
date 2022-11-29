@@ -1,0 +1,45 @@
+  {% for i in record.units %}
+  <div class="uk-card uk-card-default uk-grid-collapse uk-child-width-1-2@s uk-margin" uk-grid>
+    <div class="uk-flex-last@s uk-card-media-right uk-cover-container">
+        <img src="{{ i.get_image('_m') }}" alt="">
+        <canvas width="400"></canvas>
+    </div>
+    <div>
+      <div class="uk-card-body">
+        <h3 class="uk-card-title">{{ loop.index }}.</h3>
+        <div class="uk-grid-small" uk-grid>
+          <div class="uk-width-1-2@s">
+            <div class="uk-margin">
+              <label class="uk-form-label">館號</label>
+              <div class="uk-form-controls">
+                <input class="uk-input" type="text" name="units[loop.index].accession_number" value="{{ i.accession_number }}" />
+              </div>
+            </div>
+          </div>
+          <div class="uk-width-1-2@s">
+            <div class="uk-margin">
+              <label class="uk-form-label">壓製日期</label>
+              <div class="uk-form-controls">
+                <input class="uk-input" type="date" name="" value="" />
+              </div>
+            </div>
+          </div>
+      <div class="uk-width-1-1@s">
+        <hr class="uk-divider-icon">
+        <h4>測量</h4>
+      </div>
+      {% for j in i.get_measurement_or_fact_list() %}
+      <div class="uk-width-1-1@s">
+        <div class="uk-margin">
+          <label class="uk-form-label">{{ j.label }}</label>
+          <div class="uk-form-controls">
+            <input class="uk-input" type="text" name="" value="{{ j.value.value }}" data-realid="{{ j.option_id }}"/>
+          </div>
+        </div>
+      </div>
+      {% endfor%}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}

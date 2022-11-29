@@ -1,19 +1,19 @@
-
 import json
 from datetime import datetime
 import re
 
 from flask import (
+    Blueprint,
     request,
     render_template,
     jsonify,
 )
-import markdown
 from sqlalchemy import (
     desc,
     func,
 )
-from app.main import main
+import markdown
+
 from app.database import session
 #from app.database import session
 #from app.models import Dataset, Collection
@@ -32,6 +32,8 @@ from app.helpers import (
     conv_hast21,
     get_record,
 )
+
+main = Blueprint('main', __name__)
 
 
 @main.route('/conv-hast21')

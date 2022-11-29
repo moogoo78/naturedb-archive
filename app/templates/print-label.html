@@ -39,7 +39,7 @@
             </div>
             <div class="left-right">
               <span>Det. by {{ id.identifier.display_name('label') }}</span>
-              <span>{{ id.date.strftime('%b. %d, %Y') }}</span>
+              <span>{% if id.date %}{{ id.date.strftime('%b. %d, %Y') }}{% endif %}</span>
             </div>
           </div>
           {% endfor %}

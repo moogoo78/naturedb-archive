@@ -485,8 +485,10 @@ def conv_hast21(key):
             make_proj(con)
 
 def process_text(process_list, text_list):
-    result = ''
+    if len(text_list) == 0:
+        return ''
 
+    result = ''
     for process, args in process_list.items():
         if process == 'join':
             result = args.get('char', ',').join(text_list)
