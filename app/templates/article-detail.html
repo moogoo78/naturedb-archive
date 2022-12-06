@@ -2,14 +2,12 @@
 {% extends "base.html" %}
 
 {% block main %}
-<span class="badge is-plain is-info">{{ article.category.label }}</span> {{ article.subject }}
+<div class="uk-container uk-container-small uk-margin uk-margin-large-top">
+  <article class="uk-article">
+    <h1 class="uk-article-title">{{ article.subject }}</h1>
+    <p class="uk-article-meta">    <span class="uk-label uk-label-warning">{{ article.category.label }}</span> | {{ article.publish_date }}</span></p>
 
-<hr />
-<pre>
-{{ article.content }}
-</pre>
-
-
-{{ article.content_html | safe }}
-
+    {{ article.content_html | safe }}
+  </article>
+</div>
 {% endblock %}

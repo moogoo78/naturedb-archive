@@ -30,7 +30,7 @@ COPY ./docker/start /srv/start
 RUN sed -i 's/\r$//g' /srv/start
 RUN chmod +x /srv/start
 
-ENV FLASK_APP=run.py
+ENV FLASK_APP=wsgi.py
 ENV FLASK_DEBUG=1
 ENV FLASK_ENV=development
 #CMD ["/root/.local/bin/flask", "run", "--host", "0.0.0.0"]

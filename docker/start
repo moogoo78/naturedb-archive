@@ -12,7 +12,7 @@ set -o nounset
 /root/.local/bin/flask migrate
 
 if [ "$WEB_ENV" == "dev" ]; then
-    /root/.local/bin/flask run --host 0.0.0.0
+    /root/.local/bin/flask run --app wsgi:app --host 0.0.0.0 --debug
 else
-    /root/.local/bin/gunicorn --bind 0.0.0.0:8001 run:app
+    /root/.local/bin/gunicorn --bind 0.0.0.0:8001 wsgi:app
 fi

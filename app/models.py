@@ -19,6 +19,7 @@ from sqlalchemy.orm import (
     validates,
 )
 from sqlalchemy.dialects.postgresql import JSONB
+from flask_login import UserMixin
 
 from app.utils import (
     get_time,
@@ -335,17 +336,6 @@ class Identification(Base):
     #     ('3', '四次鑑定'),
     #)
 
-    # code: International Code of Botanical Nomenclature
-    TYPE_STATUS_CHOICES = (
-        ('holotype', 'holotype'),
-        ('lectotype', 'lectotype'),
-        ('isotype', 'isotype'),
-        ('syntype', 'syntype'),
-        ('paratype', 'paratype'),
-        ('neotype', 'neotype'),
-        ('epitype', 'epitype'),
-    )
-
     __tablename__ = 'identification'
 
     id = Column(Integer, primary_key=True)
@@ -355,8 +345,6 @@ class Identification(Base):
     identifier = relationship('Person')
     taxon_id = Column(Integer, ForeignKey('taxon.id', ondelete='set NULL'), nullable=True, index=True)
     taxon = relationship('Taxon', backref=backref('taxon'))
-    type_status = Column(String(50), nullable=True)
-    type_text = Column(String(1000))
     date = Column(DateTime)
     date_text = Column(String(50)) #格式不完整的鑑訂日期, helper: ex: 1999-1
     created = Column(DateTime, default=get_time)
@@ -843,9 +831,18 @@ class FieldNumber(Base):
 class Unit(Base):
     '''mixed abcd: SpecimenUnit/ObservationUnit (phycal state-specific subtypes of the unit reocrd)
     BotanicalGardenUnit/HerbariumUnit/ZoologicalUnit/PaleontologicalUnit
-    NomenclaturalTypeDesignation
     '''
     KIND_OF_UNIT_MAP = {'HS': 'Herbarium Sheet'}
+
+    TYPE_STATUS_CHOICES = (
+        ('holotype', 'holotype'),
+        ('lectotype', 'lectotype'),
+        ('isotype', 'isotype'),
+        ('syntype', 'syntype'),
+        ('paratype', 'paratype'),
+        ('neotype', 'neotype'),
+        ('epitype', 'epitype'),
+    )
 
     __tablename__ = 'unit'
 
@@ -883,7 +880,17 @@ class Unit(Base):
     acquisition_source_text = Column(Text) # hast: provider
     #verified
     #reference
-    #NomenclaturalReference
+
+    #NomenclaturalTypeDesignation
+    type_status = Column(String(50))
+    typified_name = Column(String(500)) # The name based on the specimen.
+    type_reference = Column(String(500)) # NomenclaturalReference: Published reference
+    type_reference = Column(String(500))
+    type_reference_link = Column(String(500))
+    type_note = Column(String(500))
+
+    # type_code = Column(String(100)) # CodeAssessment: ?
+    type_identification_id = Column(Integer, ForeignKey('identification.id', ondelete='SET NULL'), nullable=True)
 
     specimen_marks = relationship('SpecimenMark')
     dataset = relationship('Dataset')
@@ -1067,6 +1074,7 @@ class Organization(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(500))
     abbreviation = Column(String(500))
+    related_link_categories = relationship('RelatedLinkCategory')
 
     def to_dict(self):
         return {
@@ -1074,6 +1082,7 @@ class Organization(Base):
             'name': self.name,
             'abbreviation': self.abbreviation,
         }
+
 
 class Dataset(Base):
     __tablename__ = 'dataset'
@@ -1194,3 +1203,37 @@ class MultimediaObject(Base):
     created = Column(DateTime, default=get_time)
     note = Column(Text)
     source_data = Column(JSONB)
+
+
+class RelatedLinkCategory(Base):
+    __tablename__ = 'related_link_category'
+
+    id = Column(Integer, primary_key=True)
+    label = Column(String(500))
+    name = Column(String(500))
+    sort = Column(Integer, nullable=True)
+    organization_id = Column(ForeignKey('organization.id', ondelete='SET NULL'))
+    related_links = relationship('RelatedLink')
+
+class RelatedLink(Base):
+    __tablename__ = 'related_link'
+
+    id = Column(Integer, primary_key=True)
+    category_id = Column(ForeignKey('related_link_category.id', ondelete='SET NULL'))
+    title = Column(String(500))
+    url = Column(String(1000))
+    note = Column(String(1000))
+    status = Column(String(4), default='P')
+    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)
+
+    category = relationship('RelatedLinkCategory', back_populates='related_links')
+
+class User(Base, UserMixin):
+    __tablename__ = 'user'
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(500))
+    passwd = Column(String(500))
+    created = Column(DateTime, default=get_time)
+    status = Column(String(1), default='P')
+    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='SET NULL'), nullable=True)

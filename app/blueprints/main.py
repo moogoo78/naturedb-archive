@@ -12,7 +12,6 @@ from sqlalchemy import (
     desc,
     func,
 )
-import markdown
 
 from app.database import session
 #from app.database import session
@@ -27,6 +26,7 @@ from app.models import (
     MeasurementOrFact,
     Dataset,
     MultimediaObject,
+    Organization,
 )
 from app.helpers import (
     conv_hast21,
@@ -192,39 +192,6 @@ def get_measurement_or_fact_option_list():
 @main.route('/foo')
 def foo():
 
-    #stmt = select()
-    #x = session.query(Collection.proxy_taxon_id,func.count(Collection.proxy_taxon_id)).group_by(Collection.proxy_taxon_id).all()
-    #print(len(x), flush=True)
-
-    import csv
-    from app.taxon.models import Taxon
-    family_list = Taxon.query.filter(Taxon.rank=='family').all()
-    print(len(family_list), flush=True)
-    '''
-    order_list = []
-    order_map = {}
-    with open('TaiwanSpecies20220831_UTF8.csv', newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            if row['kingdom'] and row['kingdom'] == 'Plantae':
-                if item := row['order']:
-                    if item not in order_list:
-                        order_list.append(item)
-                        order_map[item] = row.get('order_c', '')
-        print(len(order_list), flush=True)
-    '''
-    '''
-    count = 0
-    for x in Collection.query.all():
-        count += 1
-        ids = [x for x in x.identifications.order_by(Identification.verification_level).all()]
-        if len(ids):
-            x.last_taxon = '{}|{}'.format(ids[-1].taxon.full_scientific_name if ids[-1].taxon else '', ids[-1].taxon.common_name if ids[-1].taxon else '')
-            #x.save()
-            session.commit()
-            count += 1
-            print(count, flush=True)
-    '''
     return jsonify({})
 
 def find_coel():
@@ -328,29 +295,23 @@ def bego():
 @main.route('/')
 def index():
     articles = [x.to_dict() for x in Article.query.order_by(Article.publish_date.desc()).limit(10).all()]
-    return render_template('index.html', articles=articles)
+    units = Unit.query.filter(Unit.accession_number!='').order_by(func.random()).limit(4).all()
+    return render_template('index.html', articles=articles, units=units)
 
-@main.route('/making-specimen')
-def making_specimen():
-    return render_template('making-specimen.html')
-
-@main.route('/about')
-def about():
-    return render_template('about.html')
+@main.route('/data')
+def data_explore():
+    options = {
+        'type_status': Unit.TYPE_STATUS_CHOICES,
+    }
+    return render_template('data-explore.html', options=options)
 
 @main.route('/robots.txt')
 def robots_txt():
     return render_template('robots.txt')
 
-@main.route('/articles/<article_id>')
-def article_detail(article_id):
-    article = Article.query.get(article_id)
-    article.content_html = markdown.markdown(article.content)
-    return render_template('article-detail.html', article=article)
-
-@main.route('/specimens/<collection_id>')
-def specimen_detail(collection_id):
-    ids = collection_id.split(':')
+@main.route('/specimens/<record_id>')
+def specimen_detail(record_id):
+    ids = record_id.split(':')
     if item := Unit.query.filter(Unit.accession_number==ids[1]).first():
         return render_template('specimen-detail.html', item=item)
 

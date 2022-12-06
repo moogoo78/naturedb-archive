@@ -1,92 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>中研院植物標本館 :: HAST</title>
-    <meta name="viewport" content="initial-scale=1, width=device-width" />
-    <link rel="stylesheet" type="text/css" href="/static/css/musubii.min.css">
-    <style>
-     .ndb-wrapper .ndb-heading-1 {
-       margin: -8px 0 24px;
-     }
 
-     .ndb-wrapper .ndb-heading-2 {
-       margin: 60px 0 12px;
-     }
-     .ndb-wrapper .ndb-heading-3 {
-       margin: 32px 0 12px;
-     }
-     .ndb-wrapper .ndb-heading-4 {
-       margin: 24px 0 12px;
-     }
-     .ndb-heading-1 {
-       font-size: 200%;
-     }
-     .ndb-heading-2 {
-       font-size: 150%;
-     }
-     .ndb-heading-3 {
-       font-size: 125%;
-     }
-     .ndb-heading-4 {
-       font-size: 100%;
-     }
-     .ndb-heading-1, .ndb-heading-2, .ndb-heading-3 {
-       position: relative;
-       color: rgba(0, 0, 0, 0.6);
-       font-weight: 700;
-       font-family: "Yu Gothic Medium", sans-serif;
-     }
-     .ndb-wrapper .ndb-text {
-       margin: 16px 0;
-     }
-     .ndb-text {
-       line-height: 1.75;
-     }
-    </style>
-    {% block style %}{% endblock %}
-  </head>
-  <body>
-  <body>
-      <header class="section is-padding-top-xl is-padding-bottom-xl">
-        <div class="inner is-padding-right-sm is-padding-left-md">
-          <div class="grid is-gap-md is-middle">
-            <div class="column is-2">
-              <h1><a href="/"><span class="text is-xl is-strong">HAST</span></a></h1>
-            </div>
-            <div class="column is-1">
-              <a href="/about">介紹</a>
-            </div>
-            <div class="column is-1">
-              <a href="/data">查詢</a>
-            </div>
-            <div class="column is-1">
-              <a href="/">最新消息</a>
-            </div>
-            <div class="column is-1">
-              <a href="/making-specimen">標本製作</a>
-            </div>
-          </div>
-        </div>
-      </header>
-      <main class="main">
-        <div class="section is-padding-horizontal-safe">
-          <div class="inner is-padding-horizontal-md">
-            {% block main %}{% endblock %}
-          </div>
-        </div>
-      </main>
-      <footer class="section is-footer is-padding-bottom-safe" style="padding-top: 2.5em;padding-bottom: 2.5em;">
-        <div class="inner is-padding-horizontal-md">
-          <div class="box is-space-md">
-            <div class="box">
-              <p class="text is-center is-sm">
-                <!--span class="text is-font-sans-en">©</span--> Biodiversity Research Museum, Academia Sinica, Taiwan 2022
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  </body>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>HAST :: 中研院植物標本館</title>
+	<link rel="icon" href="img/favicon.ico">
+	<!-- CSS FILES -->
+	{#<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/uikit@latest/dist/css/uikit.min.css">#}
+        {#<link rel="stylesheet" href="{{ url_for('static', filename='css/uikit.css')}} " />#}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/uikit.min.css')}} " />
+	<style>
+		nav.nav-scroll {
+			position: relative;
+			z-index: 2;
+			height: 2rem;
+			box-sizing: border-box;
+			overflow-y: hidden;
+			padding: 1rem;
+			border-top: 1px solid rgba(0, 0, 0, 0.075);
+			line-height: 1em;
+		}
+
+		nav.nav-scroll>ul {
+			overflow-x: auto;
+			text-align: center;
+			white-space: nowrap;
+			-webkit-overflow-scrolling: touch;
+			padding-bottom: 1rem;
+		}
+
+		nav.nav-scroll>ul>li>a {
+			font-weight: 500;
+		}
+
+		.news-slide>li>.uk-card {
+			box-shadow: none;
+			border: 1px solid rgba(0, 0, 0, 0.075);
+		}
+
+		h1,
+		h2,
+		h3,
+		h4,
+		h5,
+		h6 {
+			font-weight: 700;
+		}
+
+		.uk-logo>img {
+			height: 58px;
+		}
+
+		#header.uk-sticky-below {
+			box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.07);
+		}
+         #hast-header {
+           height: 60px;
+         }
+	</style>
+        {% block style %}{% endblock %}
+</head>
+
+<body>
+  
+	<!--HEADER-->
+	<header id="header" style="background-color: #fff;"
+		data-uk-sticky="show-on-up: true; animation: uk-animation-fade; media: @l">
+		<div class="uk-container uk-container-small">
+			<nav id="hast-header" data-uk-navbar="mode: click;">
+			  <div class="uk-navbar-left nav-overlay uk-visible@m">
+                            {#
+					<ul class="uk-navbar-nav">
+						<li>
+							<a href="#" title="Subscribe"></a>
+						</li>
+						<li>
+							<a href="#" title="Sign Up">Sign Up</a>
+						</li>
+					</ul>
+                                        #}
+				</div>
+				<div class="uk-navbar-center nav-overlay">
+				  {#<a class="uk-navbar-item uk-logo" href="#" title="Logo"><img src="img/n-logo.png" alt="Logo"></a>#}
+                                  中研院植物標本館 (HAST)
+				</div>
+                                {#
+				<div class="uk-navbar-right nav-overlay">
+				  <a class="uk-navbar-toggle uk-visible@m" data-uk-search-icon
+					  data-uk-toggle="target: .nav-overlay; animation: uk-animation-fade" href="#"></a>
+					<div class="uk-navbar-item">
+						<a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="facebook"></a>
+						<a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="twitter"></a>
+						<a class="uk-visible@s" style="margin-right: 4px" href="#" data-uk-icon="instagram"></a>
+						<a class="uk-navbar-toggle uk-hidden@m" data-uk-toggle data-uk-navbar-toggle-icon
+							href="#offcanvas-nav"></a>
+					</div>
+
+				</div>
+                                #}
+                                {#
+				<div class="nav-overlay uk-navbar-left uk-flex-1" hidden>
+					<div class="uk-navbar-item uk-width-expand">
+						<form class="uk-search uk-search-navbar uk-width-1-1">
+							<input class="uk-search-input" type="search" placeholder="Search...">
+						</form>
+					</div>
+					<a class="uk-navbar-toggle" data-uk-close
+						data-uk-toggle="target: .nav-overlay; animation: uk-animation-fade" href="#"></a>
+				</div>
+                                #}
+			</nav>
+		</div>
+	</header>
+	<!--/HEADER-->
+	<!-- NAVIGATION -->
+	<div id="hast-nav" class="uk-container uk-container-small">
+		<nav class="nav-scroll">
+			<ul class="uk-subnav uk-flex uk-flex-between uk-flex-nowrap">
+			  <li class="uk-active"><a href="{{ url_for('main.index') }}">最新消息</a></li>
+                          <li><a href="{{ url_for('page.about_page') }}">標本館介紹</a></li>
+				<li><a href="{{ url_for('main.data_explore') }}">資料查詢</a></li>
+				<li><a href="{{ url_for('page.making_specimen') }}">標本製作</a></li>
+                                <li><a href="#">研究人員</a></li>
+                                <li><a href="{{ url_for('page.related_links') }}">相關網站</a></li>
+                                <li><a href="{{ url_for('page.visiting') }}">注意事項</a></li>
+			</ul>
+		</nav>
+	</div>
+	<!-- /NAVIGATION -->
+        {% block main %}
+        {% endblock %}
+
+	<!--FOOTER-->
+	<footer class="uk-section uk-section-small uk-section-muted">
+		<div class="uk-container">
+			<p class="uk-text-small uk-text-center">Copyright 2022 - HAST</p>
+		</div>
+	</footer>
+	<!--/FOOTER-->
+	<!-- OFFCANVAS -->
+	<div id="offcanvas-nav" data-uk-offcanvas="flip: true; overlay: true">
+		<div class="uk-offcanvas-bar uk-offcanvas-bar-animation uk-offcanvas-slide">
+			<button class="uk-offcanvas-close uk-close" type="button" data-uk-close></button>
+			<ul class="uk-nav uk-nav-default">
+				<li class="uk-active"><a href="#">Active</a></li>
+				<li class="uk-parent">
+					<a href="#">Parent</a>
+					<ul class="uk-nav-sub">
+						<li><a href="#">Sub item</a></li>
+						<li><a href="#">Sub item</a></li>
+					</ul>
+				</li>
+				<li class="uk-nav-header">Header</li>
+				<li><a href="#js-options"><span class="uk-margin-small-right" data-uk-icon="icon: table"></span>
+						Item</a></li>
+				<li><a href="#"><span class="uk-margin-small-right" data-uk-icon="icon: thumbnails"></span> Item</a>
+				</li>
+				<li class="uk-nav-divider"></li>
+				<li><a href="#"><span class="uk-margin-small-right" data-uk-icon="icon: trash"></span> Item</a></li>
+			</ul>
+			<h3>Title</h3>
+			<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+				dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
+				ex ea commodo consequat.</p>
+		</div>
+	</div>
+	<!-- /OFFCANVAS -->
+	<!-- JS FILES -->
+        <script src="{{ url_for('static', filename='js/uikit.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/uikit-icons.min.js') }}"></script>
+        {% block script %}{% endblock %}
+
+</body>
+
 </html>

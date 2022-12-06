@@ -486,7 +486,7 @@ def get_explore():
 
     stmt = collection_filter(stmt, payload)
     base_stmt = stmt
-    print(payload['filter'], flush=True)
+    # print(payload['filter'], flush=True)
     # sort
     if view == 'checklist':
         stmt = stmt.order_by(Collection.proxy_taxon_text)
