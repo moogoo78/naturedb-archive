@@ -116,17 +116,17 @@
 	<!--/HEADER-->
 	<!-- NAVIGATION -->
 	<div id="hast-nav" class="uk-container uk-container-small">
-		<nav class="nav-scroll">
-			<ul class="uk-subnav uk-flex uk-flex-between uk-flex-nowrap">
-			  <li class="uk-active"><a href="{{ url_for('main.index') }}">最新消息</a></li>
-                          <li><a href="{{ url_for('page.about_page') }}">標本館介紹</a></li>
-				<li><a href="{{ url_for('main.data_explore') }}">資料查詢</a></li>
-				<li><a href="{{ url_for('page.making_specimen') }}">標本製作</a></li>
-                                <li><a href="#">研究人員</a></li>
-                                <li><a href="{{ url_for('page.related_links') }}">相關網站</a></li>
-                                <li><a href="{{ url_for('page.visiting') }}">注意事項</a></li>
-			</ul>
-		</nav>
+	  <nav class="nav-scroll">
+	    <ul class="uk-subnav uk-flex uk-flex-between uk-flex-nowrap">
+	      <li {% if url_for('main.index') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('main.index') }}">最新消息</a></li>
+              <li {% if url_for('page.about_page') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.about_page') }}">標本館介紹</a></li>
+	      <li {% if url_for('main.data_explore') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('main.data_explore') }}">資料查詢</a></li>
+	      <li {% if url_for('page.making_specimen') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.making_specimen') }}">標本製作</a></li>
+              <li {% if url_for('page.researcher') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.researcher') }}">研究人員</a></li>
+              <li {% if url_for('page.related_links') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.related_links') }}">相關網站</a></li>
+              <li {% if url_for('page.visiting') in request.base_url %} class="uk-active"{% endif %}><a href="{{ url_for('page.visiting') }}">注意事項</a></li>
+	    </ul>
+	  </nav>
 	</div>
 	<!-- /NAVIGATION -->
         {% block main %}

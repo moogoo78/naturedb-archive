@@ -12,6 +12,10 @@ from app.models import (
 
 page = Blueprint('page', __name__)
 
+@page.route('/researcher')
+def researcher():
+    return render_template('researcher.html')
+
 @page.route('/visiting')
 def visiting():
     return render_template('visiting.html')
