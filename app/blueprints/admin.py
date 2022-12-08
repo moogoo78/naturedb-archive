@@ -1,3 +1,4 @@
+
 from functools import wraps
 import re
 
@@ -21,6 +22,14 @@ from app.models import (
     ArticleCategory,
     RelatedLink,
     RelatedLinkCategory,
+    MeasurementOrFactParameter,
+    MeasurementOrFactParameterOption,
+    MeasurementOrFactParameterOptionGroup,
+    AreaClass,
+    NamedArea,
+)
+from app.taxon.models import (
+    Taxon,
 )
 from app.database import session
 
@@ -68,7 +77,58 @@ ADMIN_REGISTER_MAP = {
             'name': { 'label': 'key' },
         },
         'list_display': ('label', 'name')
-    }
+    },
+    'area_class': {
+        'name': 'area_class',
+        'fields': {
+            'label': { 'label': '標題' },
+            'name': { 'label': 'key',},
+        },
+        'list_display': ('label', 'name')
+    },
+    'named_area': {
+        'name': 'named_area',
+        'fields': {
+            'name': { 'label': '名稱',},
+            'name_en': { 'label': '名稱 (英文)',},
+            'area_class': { 'label': '地理分級', 'type': 'select', 'foreign': AreaClass, 'display': 'label'},
+        },
+        'list_display': ('name', 'area_class')
+    },
+    'measurement_or_fact_parameter': {
+        'name': 'measurement_or_fact_parameter',
+        'fields': {
+            'name': { 'label': 'key'},
+            'label': { 'label': '標題'},
+        },
+        'list_display':('label', 'name')
+    },
+    'measurement_or_fact_parameter_option_group': {
+        'name': 'measurement_or_fact_parameter_option_group',
+        'fields': {
+            'name': { 'label': 'name' },
+        },
+        'list_display':('name', )
+    },
+    'measurement_or_fact_parameter_option': {
+        'name': 'measurement_or_fact_parameter_option',
+        'fields': {
+            'value': { 'label': '內容'},
+            'description': { 'label': '描述'},
+            'parameter': { 'label': '測量選項', 'type': 'select', 'foreign': MeasurementOrFactParameter, 'display': 'label'},
+            'group': { 'label': '測量選項分類', 'type': 'select', 'foreign': MeasurementOrFactParameterOptionGroup, 'display': 'name'},
+        },
+        'list_display':('group', 'parameter', 'value', 'description')
+    },
+    'taxon': {
+        'name': 'taxon',
+        'fields': {
+            'rank': { 'label': 'rank'},
+            'full_scientific_name': { 'label': '完整學名',},
+            'common_name': { 'label': '中文名'},
+        },
+        'list_display':('rank', 'full_scientific_name', 'common_name')
+    },
 }
 
 @admin.route('/')
@@ -84,24 +144,28 @@ def list_collection():
 @admin.route('/collections/<int:item_id>', methods=['GET'])
 @login_required
 def get_collection(item_id):
-    if obj := model.query.get(item_id):
+    if obj := Collection.query.get(item_id):
         return render_template('admin/form-view-collection.html', record=obj)
 
 
 
 class ListView(View):
-    def __init__(self, model, template='admin/list-view.html'):
+    def __init__(self, model, query=None):
         self.model = model
-        self.template = template
+        self.template = 'admin/list-view.html'
         self.register = ADMIN_REGISTER_MAP[model.__tablename__]
-
+        self.query = query
 
     def dispatch_request(self):
         # login_requried
         if not current_user.is_authenticated:
             return redirect('/login')
 
-        items = self.model.query.all()
+        if self.query:
+            items = self.query.all()
+        else:
+            items = self.model.query.all()
+
         return render_template(self.template, items=items, register=self.register)
 
 
@@ -179,11 +243,17 @@ MODEL_MAP = [
     ('related_link_category', 'related_link_categories', RelatedLinkCategory),
     ('article', 'articles', Article),
     ('article_category', 'article_categories', ArticleCategory),
+    ('area_class', 'area_classes', AreaClass),
+    ('named_area', 'named_areas', NamedArea),
+    ('measurement_or_fact_parameter', 'measurement_or_fact_parameters', MeasurementOrFactParameter),
+    ('measurement_or_fact_parameter_option_group', 'measurement_or_fact_parameter_option_groups', MeasurementOrFactParameterOptionGroup),
+    ('measurement_or_fact_parameter_option', 'measurement_or_fact_parameter_options', MeasurementOrFactParameterOption),
+    ('taxon', 'taxa', Taxon, Taxon.query.limit(20)),
 ]
 for i in MODEL_MAP:
     admin.add_url_rule(
         f'/{i[1]}/',
-        view_func=ListView.as_view(f'{i[0]}-list', i[2]),
+        view_func=ListView.as_view(f'{i[0]}-list', i[2], i[3] if len(i) >= 4 else None),
     )
     admin.add_url_rule(
         f'/{i[1]}/<int:item_id>',

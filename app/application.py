@@ -1,3 +1,4 @@
+
 import subprocess
 import click
 import json
@@ -256,7 +257,7 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(page_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
-    app.register_blueprint(api_bp, url_prefix='/api/v2') # TODO
+    app.register_blueprint(api_bp, url_prefix='/api/v1')
 
     #register_blueprint_api(app)
     #print(app.config, flush=True)
@@ -277,7 +278,7 @@ def create_app():
         elif request.method == 'POST':
             username = request.form.get('username', '')
             passwd = request.form.get('passwd', '')
-            print(username, passwd, flush=True)
+
             u = User.query.filter(username==username).first()
             if check_password_hash(u.passwd, passwd):
                 login_user(u)

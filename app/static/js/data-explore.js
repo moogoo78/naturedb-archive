@@ -1,3 +1,4 @@
+
 (function() {
 
   const TERM_LABELS = {
@@ -254,7 +255,7 @@
 
   const onSearchbar = (e) => {
     const q = e.target.value;
-    const endpoint = `/api/v2/searchbar?q=${q}`;
+    const endpoint = `/api/v1/searchbar?q=${q}`;
     const headers = {
       "Accept": "application/json",
       "Content-Type": "application/json; charset=utf-8",
@@ -307,7 +308,7 @@
     console.log(payload, filter);
     const queryString = new URLSearchParams(payload).toString()
     const seperator = (queryString === '') ? '' : '?';
-    const url = `/api/v2/explore${seperator}${queryString}`;
+    const url = `/api/v1/explore${seperator}${queryString}`;
     const headers = {
       "Accept": "application/json",
       "Content-Type": "application/json; charset=utf-8",

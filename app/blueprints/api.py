@@ -310,7 +310,7 @@ def get_explore():
         'range': json.loads(request.args.get('range')) if request.args.get('range') else [0, 20],
     }
     # query_key_map = {}
-    print(payload, flush=True)
+    # print(payload, flush=True)
     stmt = collection_filter(stmt, payload)
     # logging.debug(stmt)
 
@@ -384,6 +384,7 @@ def get_explore():
         rows = rows[0:TRUNCATE_LIMIT] # TODO
 
     for r in rows:
+        unit = r[0]
         if c := r[1]:
             t = None
             if taxon_id := c.proxy_taxon_id:
@@ -423,19 +424,18 @@ def get_explore():
             else:
                 image_url = ''
                 try:
-                    accession_number_int = int(r[0].accession_number)
+                    accession_number_int = int(unit.accession_number)
                     instance_id = f'{accession_number_int:06}'
                     first_3 = instance_id[0:3]
                     image_url = f'https://brmas-pub.s3-ap-northeast-1.amazonaws.com/hast/{first_3}/S_{instance_id}_s.jpg'
                 except:
                     pass
 
-                unit_id = r[0] or ''
                 data.append({
-                    'unit_id': r[0].id,
+                    'unit_id': unit.id if unit else '',
                     'collection_id': c.id,
-                    'record_key': f'u{r[0].id}' if r[0] else f'c{c.id}',
-                    'accession_number': r[0].accession_number,
+                    'record_key': f'u{unit.id}' if unit else f'c{c.id}',
+                    'accession_number': unit.accession_number if unit else '',
                     'image_url': image_url,
                     'field_number': c.field_number,
                     'collector': c.collector.to_dict() if c.collector else '',
@@ -448,7 +448,7 @@ def get_explore():
                     'altitude2': c.altitude2,
                     'longitude_decimal': c.longitude_decimal,
                     'latitude_decimal': c.latitude_decimal,
-                    'type_status': r[0].type_status if r[0].type_status else '',
+                    'type_status': unit.type_status if unit and unit.type_status else '',
                 })
 
     elapsed_mapping = time.time() - begin_time

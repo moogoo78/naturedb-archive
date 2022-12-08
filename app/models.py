@@ -414,6 +414,8 @@ class CollectionPerson(Base):
     role = Column(String(50))
     sequence = Column(Integer)
 
+#class Entity(Base):
+#    pass
 
 class Collection(Base):
     __tablename__ = 'collection'
@@ -854,8 +856,8 @@ class Unit(Base):
     #last_editor = Column(String(500))
     #owner
     #identifications = relationship('Identification', back_populates='unit')
-    kind_of_unit = Column(String(500)) # herbarium sheet (HS), leaf, muscle, leg, blood, ...
-    # multimedia_objects
+    kind_of_unit = Column(String(500)) # herbarium sheet (HS), leaf, muscle, leg, blood, ..., ref: https://arctos.database.museum/info/ctDocumentation.cfm?table=ctspecimen_part_name#whole_organism
+
     # assemblages
     # associations
     # sequences
